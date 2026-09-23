@@ -26,12 +26,14 @@ const METER_FULL = {
 };
 const COST_UP = { goodwill: false, risk: true, dollars: true, time: true };
 const RAIL_LABELS = {
-  risk_accept: "Risk", stop: "Off switch", tier: "Tier", decide: "Decider",
-  proof: "Proof", retier: "Re-review", funding: "Funding",
+  purpose: "Purpose", risk_accept: "Risk", stop: "Off switch", tier: "Tier",
+  decide: "Decider", proof: "Proof", retier: "Re-review", funding: "Funding",
+  represent: "The story",
 };
 const LONG_NAMES = {
-  risk_accept: "Risk acceptance", stop: "The off switch", tier: "Tiering",
-  decide: "The decider", proof: "Proof", retier: "Re-review", funding: "Funding",
+  purpose: "Purpose", risk_accept: "Risk acceptance", stop: "The off switch",
+  tier: "Tiering", decide: "The decider", proof: "Proof", retier: "Re-review",
+  funding: "Funding", represent: "Representation",
 };
 const LETTERS = ["A", "B", "C"];
 const optLetter = (o, i) => (o.id === "decline" ? "–" : o.id === "writein" ? "✎" : LETTERS[i]);
@@ -216,7 +218,7 @@ export default function App() {
   }, []);
 
   const state = data?.state;
-  const { scenario, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
+  const { scenario, scenarios, node, progress, decidedByPrompt, villagerStandingLine, roles, roleAssignments, records } = data ?? {};
 
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
@@ -275,7 +277,7 @@ export default function App() {
   const refresh = (d) => setData(d);
   const record = state.record;
   const phase = state.phase;
-  const briefed = state.briefed || phase !== "posed" || node?.index > 0;
+  const briefed = phase === "select" ? false : state.briefed || phase !== "posed" || node?.index > 0;
 
   const doSkip = async () => {
     if (!skipArmed) return setSkipArmed(true);
@@ -335,7 +337,18 @@ export default function App() {
 
   // ---------- facilitator bar per phase ----------
   let facbar;
-  if (!briefed)
+  if (phase === "select")
+    facbar = (
+      <>
+        <span className="fac-label">FACILITATOR</span>
+        <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
+        <a className="fac-btn" href="/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+          Printables
+        </a>
+        <span className="fac-score-label">THE GROUP CHOOSES THE CASE</span>
+      </>
+    );
+  else if (!briefed)
     facbar = (
       <>
         {commonFacBtns}
@@ -406,11 +419,31 @@ export default function App() {
 
   // ---------- main content per phase ----------
   let main;
-  if (!briefed) {
+  if (phase === "select") {
+    main = (
+      <div className="select-screen">
+        <span className="eyebrow" style={{ fontSize: 15 }}>Four cases · one room · the group decides</span>
+        <h1 className="b-title">Choose the case</h1>
+        <div className="case-grid">
+          {scenarios.map((s) => (
+            <button
+              key={s.id}
+              className="case-card"
+              onClick={async () => refresh(await api("scenario", { id: s.id }))}
+            >
+              <span className="eyebrow" style={{ fontSize: 12 }}>Enters at {s.entersAt} · {s.nodeCount} decisions</span>
+              <span className="case-title">{s.title}</span>
+              <span className="case-tagline">{s.tagline}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  } else if (!briefed) {
     main = (
       <div className="briefing">
         <div>
-          <span className="eyebrow" style={{ fontSize: 15 }}>Case file · scenario 4 · enters at {scenario.entersAt}</span>
+          <span className="eyebrow" style={{ fontSize: 15 }}>Case file · enters at {scenario.entersAt}</span>
           <h1 className="b-title">{scenario.title}</h1>
           {scenario.brief.split("\n\n").map((p, i) => (
             <p key={i} className="b-para">{p}</p>
@@ -452,18 +485,6 @@ export default function App() {
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
-          {!recording && (
-            <div className="evidence-block">
-              <div className="evidence-label">EVIDENCE FOLDER</div>
-              <div className="evidence-grid">
-                {scenario.evidence.map((doc) => (
-                  <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
-                    {doc.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         {recording ? (
           <RecordPanel
@@ -596,6 +617,13 @@ export default function App() {
             LOCKED · <span className="score">{record.score}</span>
             {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
           </p>
+          {record.villager && (
+            <div className="villager">
+              <span className="villager-name">{record.villager.name}</span>
+              <p className="villager-line">“{record.villager.line}”</p>
+              <span className="villager-standing">{villagerStandingLine}</span>
+            </div>
+          )}
         </div>
         <div>
           <div className="moved-label">WHAT MOVED</div>
@@ -649,8 +677,10 @@ export default function App() {
       <div className="stage" style={{ transform: `scale(${scale})` }}>
         <div className="topbar">
           <div>
-            <div className="eyebrow">TABLETOP · ENTERS AT {scenario.entersAt.toUpperCase()}</div>
-            <div className="title">{scenario.title}</div>
+            <div className="eyebrow">
+              TABLETOP{scenario ? ` · ENTERS AT ${scenario.entersAt.toUpperCase()}` : " · BREAKOUT SESSION"}
+            </div>
+            <div className="title">{scenario ? scenario.title : "Choose the case"}</div>
           </div>
           <div className="meters">
             {Object.keys(METER_LABELS).map((k) => (
@@ -665,56 +695,68 @@ export default function App() {
               {RAIL_LABELS[p.type]}
             </div>
           ))}
+          {progress.length === 0 && <div className="step">The docket fills when a case is chosen</div>}
         </div>
         <div className="main">{main}</div>
         <div className="facbar">{facbar}</div>
 
         {evidenceOpen && (
-          <div className="overlay" onClick={() => setEvidenceOpen(null)}>
-            <div className="panel" onClick={(e) => e.stopPropagation()}>
-              {evidenceOpen === "menu" ? (
-                <>
+          <>
+            <div className="drawer-scrim" onClick={() => setEvidenceOpen(null)} />
+            <div className="drawer">
+              <div className="drawer-head">
+                <div>
                   <span className="eyebrow">From the case file</span>
-                  <h3>Evidence folder</h3>
-                  <div className="evidence-grid" style={{ marginTop: 14 }}>
-                    {scenario.evidence.map((doc) => (
-                      <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
-                        {doc.title}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="eyebrow">From the case file</span>
-                  <h3>{evidenceOpen.title}</h3>
-                  <pre>{evidenceOpen.body}</pre>
-                </>
-              )}
-              <div className="close-row">
-                <button className="panel-btn" onClick={() => setEvidenceOpen(null)}>Return to the table</button>
+                  <h3>{evidenceOpen === "menu" ? "Evidence folder" : evidenceOpen.title}</h3>
+                </div>
+                <div className="drawer-actions">
+                  {evidenceOpen !== "menu" && (
+                    <button className="panel-btn" onClick={() => setEvidenceOpen("menu")}>
+                      All documents
+                    </button>
+                  )}
+                  <button className="panel-btn" onClick={() => setEvidenceOpen(null)}>Close</button>
+                </div>
               </div>
+              {evidenceOpen === "menu" ? (
+                <div className="drawer-grid">
+                  {scenario.evidence.map((doc) => (
+                    <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
+                      {doc.title}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <pre className="drawer-doc">{evidenceOpen.body}</pre>
+              )}
             </div>
-          </div>
+          </>
         )}
 
         {councilOpen && (
-          <div className="overlay" onClick={() => setCouncilOpen(false)}>
-            <div className="panel" onClick={(e) => e.stopPropagation()}>
-              <span className="eyebrow">At this table</span>
-              <h3>The AI Council</h3>
-              {council.map((e) => (
-                <div key={e.id} className="council-row">
-                  <div className="council-name">{e.name}</div>
-                  <div className="council-seat">ELDER · {e.seat}</div>
-                  <div className="council-fires">Fires on: {e.firesOn}</div>
+          <>
+            <div className="drawer-scrim" onClick={() => setCouncilOpen(false)} />
+            <div className="drawer">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">At this table</span>
+                  <h3>The AI Council</h3>
                 </div>
-              ))}
-              <div className="close-row">
-                <button className="panel-btn" onClick={() => setCouncilOpen(false)}>Return to the table</button>
+                <div className="drawer-actions">
+                  <button className="panel-btn" onClick={() => setCouncilOpen(false)}>Close</button>
+                </div>
+              </div>
+              <div className="council-grid">
+                {council.map((e) => (
+                  <div key={e.id} className="council-row">
+                    <div className="council-name">{e.name}</div>
+                    <div className="council-seat">ELDER · {e.seat}</div>
+                    <div className="council-fires">Fires on: {e.firesOn}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
