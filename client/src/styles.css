@@ -53,6 +53,60 @@ header {
 .meter-item.worse .meter-delta { color: var(--bad); }
 .meter-item.better .meter-delta { color: var(--good); }
 
+/* Progress rail */
+.progress { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.prog-node {
+  font-family: "Consolas", monospace; font-size: 0.72rem;
+  padding: 5px 12px; border-radius: 14px; border: 1px solid var(--line);
+  color: var(--muted); background: var(--panel);
+}
+.prog-node.current { border-color: var(--accent); color: var(--accent); }
+.prog-node.done { color: var(--ink); }
+.prog-node.done.specific { border-color: var(--good); }
+.prog-node.done.generic { border-color: var(--accent); }
+.prog-node.done.absent { border-color: var(--bad); }
+.prog-node.skipped { text-decoration: line-through; opacity: 0.6; }
+
+/* Inject banner */
+.inject {
+  border-left: 4px solid var(--bad); background: rgba(208, 122, 106, 0.08);
+  border-radius: 0 10px 10px 0; padding: 16px 22px; margin-bottom: 20px;
+}
+.inject p { margin: 6px 0 0; font-size: 1.1rem; font-style: italic; }
+
+.node-head { display: flex; align-items: center; gap: 14px; }
+.node-count {
+  font-family: "Segoe UI", system-ui, sans-serif; font-size: 0.75rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+}
+button.quiet.skip { float: right; opacity: 0.7; }
+
+/* Elder colors */
+.npc.steward { border-left-color: #7fb4c9; }
+.npc.steward .npc-name { color: #7fb4c9; }
+.npc.caretaker { border-left-color: #8fbc8f; }
+.npc.caretaker .npc-name { color: #8fbc8f; }
+.npc.cartographer { border-left-color: #b39ddb; }
+.npc.cartographer .npc-name { color: #b39ddb; }
+.npc.ledger { border-left-color: #d4b06a; }
+.npc.ledger .npc-name { color: #d4b06a; }
+.npc.decoupler { border-left-color: #80cbc4; }
+.npc.decoupler .npc-name { color: #80cbc4; }
+
+/* Epilogue */
+.epilogue h1 { font-size: 2rem; margin: 8px 0 20px; }
+.epilogue-parts { display: flex; flex-direction: column; gap: 14px; }
+.epi-part { background: var(--panel); border-radius: 10px; padding: 16px 22px; border-left: 4px solid var(--line); }
+.epi-part.held { border-left-color: var(--good); }
+.epi-part.broke { border-left-color: var(--bad); }
+.epi-head { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+.epi-verdict { font-family: "Segoe UI", system-ui, sans-serif; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.epi-verdict.held { color: var(--good); }
+.epi-verdict.broke { color: var(--bad); }
+.epi-part p { margin: 0; font-size: 1.05rem; }
+.epi-meta { font-family: "Segoe UI", system-ui, sans-serif; font-size: 0.85rem; color: var(--muted); margin-top: 18px; }
+.epi-meta a { color: var(--accent); }
+
 /* Brief + evidence */
 .brief { background: var(--panel); border-radius: 10px; padding: 24px 28px; margin-bottom: 28px; }
 .brief p { margin: 0 0 14px; font-size: 1.05rem; }

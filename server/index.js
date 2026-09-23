@@ -1,12 +1,19 @@
-// Tabletop server — Phase 0 vertical slice.
-// One room, one node, in-memory state. Postgres and multi-room arrive in Phase 3.
+// Tabletop server — Phase 1: Scenario 4 end to end, single room.
+// In-memory state. Postgres, facilitator codes, and the admin dashboard arrive in Phase 3.
 import "dotenv/config";
 import express from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { scenario, node, meterStart } from "./content.js";
-import { streamStewardTurn } from "./npc.js";
+import {
+  scenario,
+  nodes,
+  elders,
+  decidedByPrompt,
+  buildEpilogue,
+  meterStart,
+} from "./content.js";
+import { streamElderTurn } from "./npc.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,26 +23,84 @@ app.use(express.json());
 
 function freshState() {
   return {
-    phase: "posed", // posed -> challenge -> revise -> score -> locked
-    firstAnswer: null, // { choice, freeText, decidedBy, at }
-    revisedAnswer: null, // same shape; null until revised (hold keeps it null)
-    held: false,
-    score: null, // specific | generic | absent
+    nodeIndex: 0,
+    // per-node phase: posed -> challenge -> revise -> score -> consequence; then advance
+    phase: "posed",
+    epilogue: null, // set when the last node advances
+    records: {}, // nodeId -> { firstAnswer, revisedAnswer, held, skipped, score, consequence, npc: [elderIds], timings }
     meter: { ...meterStart },
-    consequence: null,
-    npcTurns: [], // [{ text, live, at }] — Steward memory within the room
-    timings: { posedAt: Date.now(), firstAnswerAt: null, lockedAt: null },
+    elderTurns: {}, // elderId -> [{ nodeId, text, live, at }]
+    startedAt: Date.now(),
+    posedAt: Date.now(),
   };
 }
 
 let state = freshState();
 
-function finalAnswer() {
-  return state.revisedAnswer ?? state.firstAnswer;
-}
+const currentNode = () => nodes[state.nodeIndex];
+const record = (nodeId) =>
+  (state.records[nodeId] ??= {
+    firstAnswer: null,
+    revisedAnswer: null,
+    held: false,
+    skipped: false,
+    score: null,
+    consequence: null,
+    timings: { posedAt: state.posedAt, firstAnswerAt: null, lockedAt: null },
+  });
+const finalAnswer = (r) => r.revisedAnswer ?? r.firstAnswer;
 
 function publicState() {
-  return { scenario, node, state };
+  const node = state.epilogue ? null : currentNode();
+  return {
+    scenario,
+    decidedByPrompt,
+    progress: nodes.map((n, i) => {
+      const r = state.records[n.id];
+      return {
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        status: state.epilogue
+          ? r?.skipped
+            ? "skipped"
+            : "done"
+          : i < state.nodeIndex
+            ? r?.skipped
+              ? "skipped"
+              : "done"
+            : i === state.nodeIndex
+              ? "current"
+              : "upcoming",
+        score: r?.score ?? null,
+      };
+    }),
+    node: node
+      ? {
+          id: node.id,
+          type: node.type,
+          title: node.title,
+          question: node.question,
+          freeTextPrompt: node.freeTextPrompt,
+          options: node.options,
+          elders: node.elders.map((id) => ({
+            id,
+            name: elders[id].name,
+            seat: elders[id].seat,
+          })),
+          inject: node.inject(state.records),
+          index: state.nodeIndex,
+          count: nodes.length,
+        }
+      : null,
+    state: {
+      phase: state.epilogue ? "epilogue" : state.phase,
+      record: node ? state.records[node.id] ?? null : null,
+      meter: state.meter,
+      epilogue: state.epilogue,
+      startedAt: state.startedAt,
+    },
+  };
 }
 
 // ---------- api ----------
@@ -43,6 +108,8 @@ function publicState() {
 app.get("/api/state", (_req, res) => res.json(publicState()));
 
 app.post("/api/answer", (req, res) => {
+  const node = currentNode();
+  if (state.epilogue || !node) return res.status(409).json({ error: "scenario complete" });
   const { choice, freeText, decidedBy } = req.body ?? {};
   if (!node.options.some((o) => o.id === choice)) {
     return res.status(400).json({ error: "unknown choice" });
@@ -50,13 +117,14 @@ app.post("/api/answer", (req, res) => {
   if (!freeText?.trim() || !decidedBy?.trim()) {
     return res.status(400).json({ error: "freeText and decidedBy are required" });
   }
+  const r = record(node.id);
   const answer = { choice, freeText: freeText.trim(), decidedBy: decidedBy.trim(), at: Date.now() };
   if (state.phase === "posed") {
-    state.firstAnswer = answer;
-    state.timings.firstAnswerAt = answer.at;
+    r.firstAnswer = answer;
+    r.timings.firstAnswerAt = answer.at;
     state.phase = "challenge";
   } else if (state.phase === "revise") {
-    state.revisedAnswer = answer;
+    r.revisedAnswer = answer;
     state.phase = "score";
   } else {
     return res.status(409).json({ error: `cannot answer in phase ${state.phase}` });
@@ -64,10 +132,11 @@ app.post("/api/answer", (req, res) => {
   res.json(publicState());
 });
 
-// Streams the Steward's in-character challenge as SSE.
-// On any failure the room gets a plain unavailable message and moves on (PRD §4).
-app.post("/api/npc", async (req, res) => {
-  if (state.phase !== "challenge") {
+// Streams the assigned Elders' challenges sequentially over one SSE response.
+// A failed Elder is skipped with a plain message; the room always continues (PRD §4).
+app.post("/api/npc", async (_req, res) => {
+  const node = currentNode();
+  if (state.epilogue || state.phase !== "challenge") {
     return res.status(409).json({ error: `cannot run NPC in phase ${state.phase}` });
   }
   res.setHeader("Content-Type", "text/event-stream");
@@ -76,64 +145,118 @@ app.post("/api/npc", async (req, res) => {
   res.flushHeaders();
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
-  const answer = state.firstAnswer;
+  const r = record(node.id);
+  const answer = r.firstAnswer;
   const option = node.options.find((o) => o.id === answer.choice);
-  try {
-    const text = await streamStewardTurn({
-      scenario,
-      node,
-      option,
-      answer,
-      priorTurns: state.npcTurns,
-      onDelta: (t) => send({ type: "delta", text: t }),
-    });
-    state.npcTurns.push({ text, live: true, at: Date.now() });
-    state.phase = "revise";
-    send({ type: "done" });
-  } catch (err) {
-    console.error("NPC turn failed:", err?.message ?? err);
-    state.npcTurns.push({
-      text: "(The Steward could not be reached.)",
-      live: false,
-      at: Date.now(),
-    });
-    state.phase = "revise";
-    send({
-      type: "unavailable",
-      message: "The Steward is unavailable — continue.",
-    });
+  const pathSummary = nodes
+    .slice(0, state.nodeIndex)
+    .map((n) => {
+      const pr = state.records[n.id];
+      if (!pr || pr.skipped) return `${n.type}: skipped`;
+      const a = finalAnswer(pr);
+      return `${n.type}: chose "${n.options.find((o) => o.id === a.choice)?.label}" — "${a.freeText}" (decided by: ${a.decidedBy}; scored ${pr.score})`;
+    })
+    .join("\n");
+
+  for (const elderId of node.elders) {
+    const elder = elders[elderId];
+    const priorTurns = (state.elderTurns[elderId] ?? []).filter((t) => t.live);
+    send({ type: "elder-start", elder: { id: elder.id, name: elder.name, seat: elder.seat } });
+    try {
+      const text = await streamElderTurn({
+        elder,
+        scenario,
+        node,
+        option,
+        answer,
+        pathSummary,
+        priorTurns,
+        onDelta: (t) => send({ type: "delta", text: t }),
+      });
+      (state.elderTurns[elderId] ??= []).push({ nodeId: node.id, text, live: true, at: Date.now() });
+      send({ type: "elder-done" });
+    } catch (err) {
+      console.error(`${elder.name} turn failed:`, err?.message ?? err);
+      (state.elderTurns[elderId] ??= []).push({
+        nodeId: node.id,
+        text: `(${elder.name} could not be reached.)`,
+        live: false,
+        at: Date.now(),
+      });
+      send({ type: "elder-unavailable", message: `${elder.name} is unavailable — continue.` });
+    }
   }
+  state.phase = "revise";
+  send({ type: "done" });
   res.end();
 });
 
 app.post("/api/hold", (_req, res) => {
-  if (state.phase !== "revise") {
+  if (state.epilogue || state.phase !== "revise") {
     return res.status(409).json({ error: `cannot hold in phase ${state.phase}` });
   }
-  state.held = true;
+  record(currentNode().id).held = true;
   state.phase = "score";
   res.json(publicState());
 });
 
 app.post("/api/lock", (req, res) => {
-  const { score } = req.body ?? {};
-  if (state.phase !== "score") {
+  const node = currentNode();
+  if (state.epilogue || state.phase !== "score") {
     return res.status(409).json({ error: `cannot lock in phase ${state.phase}` });
   }
+  const { score } = req.body ?? {};
   if (!["specific", "generic", "absent"].includes(score)) {
     return res.status(400).json({ error: "score must be specific | generic | absent" });
   }
-  state.score = score;
-  const answer = finalAnswer();
-  const deltas = node.meterDeltas[answer.choice];
+  const r = record(node.id);
+  r.score = score;
+  r.timings.lockedAt = Date.now();
+  const choice = finalAnswer(r).choice;
+  const deltas = node.meterDeltas[choice];
   for (const k of Object.keys(deltas)) state.meter[k] += deltas[k];
-  const variants = node.consequences[answer.choice];
-  state.consequence =
-    (score === "specific" ? variants.specific : null) ?? variants.generic;
-  state.phase = "locked";
-  state.timings.lockedAt = Date.now();
+  r.consequence = node.consequences[choice];
+  state.phase = "consequence";
   res.json(publicState());
 });
+
+// Facilitator control: skip the current node under time pressure.
+// Recorded as skipped — distinct from declined (PRD §5.3).
+app.post("/api/skip", (_req, res) => {
+  const node = currentNode();
+  if (state.epilogue || state.phase === "consequence") {
+    return res.status(409).json({ error: "cannot skip now" });
+  }
+  const r = record(node.id);
+  r.skipped = true;
+  r.timings.lockedAt = Date.now();
+  advance();
+  res.json(publicState());
+});
+
+app.post("/api/advance", (_req, res) => {
+  if (state.epilogue || state.phase !== "consequence") {
+    return res.status(409).json({ error: `cannot advance in phase ${state.phase}` });
+  }
+  advance();
+  res.json(publicState());
+});
+
+function advance() {
+  if (state.nodeIndex + 1 < nodes.length) {
+    state.nodeIndex += 1;
+    state.phase = "posed";
+    state.posedAt = Date.now();
+    record(currentNode().id).timings.posedAt = state.posedAt;
+  } else {
+    state.epilogue = {
+      parts: buildEpilogue(state.records),
+      meter: { ...state.meter },
+      finishedAt: Date.now(),
+      minutes: Math.round((Date.now() - state.startedAt) / 60000),
+    };
+  }
+}
 
 app.post("/api/reset", (_req, res) => {
   state = freshState();
@@ -144,14 +267,11 @@ app.get("/api/export", (_req, res) => {
   res.json({
     exportedAt: new Date().toISOString(),
     scenario: scenario.id,
-    node: node.id,
-    firstAnswer: state.firstAnswer,
-    revisedAnswer: state.revisedAnswer,
-    held: state.held,
-    score: state.score,
+    records: state.records,
+    elderTurns: state.elderTurns,
     meter: state.meter,
-    npcTurns: state.npcTurns,
-    timings: state.timings,
+    epilogue: state.epilogue,
+    startedAt: state.startedAt,
   });
 });
 
@@ -169,6 +289,6 @@ app.listen(port, () => {
   console.log(
     process.env.ANTHROPIC_API_KEY
       ? "Anthropic key: present"
-      : "Anthropic key: MISSING — NPC turns will fall back to the unavailable message",
+      : "Anthropic key: MISSING — Elder turns will fall back to the unavailable message",
   );
 });
