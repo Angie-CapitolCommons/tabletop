@@ -125,6 +125,9 @@ header { border-bottom: 1px solid var(--line); background: rgba(255, 254, 250, 0
 .choice:hover { border-color: var(--accent); background: #f4f7f3; }
 .choice.chosen { border: 2px solid var(--accent); background: var(--accent-soft); padding: 15px; }
 .choice.decline-opt { border-style: dashed; }
+.choice.writein-opt { border-style: dashed; border-color: #b9c8c4; background: #fbfaf3; }
+.choice.writein-opt .letter { background: var(--accent-soft); }
+.choice.writein-opt.chosen { border-color: var(--accent); border-style: solid; }
 .letter {
   width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; border: 1px solid var(--line);
   text-align: center; font-family: var(--mono); font-size: 12px; line-height: 26px; font-weight: 800; background: #f2f3ea;
