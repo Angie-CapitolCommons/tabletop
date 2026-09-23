@@ -255,6 +255,8 @@ export default function App() {
   const [roster, setRoster] = useState({});
   const [transcribing, setTranscribing] = useState(false);
   const [transcribeError, setTranscribeError] = useState(null);
+  const [rosterEdit, setRosterEdit] = useState({});
+  const [dmOpen, setDmOpen] = useState(false);
   const npcForNode = useRef(null);
   const recRef = useRef(null);
   const transcribingRef = useRef(false);
@@ -441,6 +443,15 @@ export default function App() {
       <span className="fac-label">FACILITATOR</span>
       <button className="fac-btn" onClick={() => setEvidenceOpen("menu")}>Evidence</button>
       <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
+      <button
+        className="fac-btn"
+        onClick={() => {
+          setRosterEdit({ ...roleAssignments });
+          setDmOpen(true);
+        }}
+      >
+        The Decisionmakers
+      </button>
       {briefed && node && ["posed", "challenge", "revise", "score"].includes(phase) && (
         <button
           className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
@@ -483,7 +494,7 @@ export default function App() {
         {commonFacBtns}
         <button
           className="fac-primary"
-          onClick={async () => refresh(await api("roles", { assignments: roster }))}
+          onClick={async () => refresh(await api("roles", { assignments: roster, start: true }))}
         >
           Start node 1
         </button>
@@ -873,6 +884,53 @@ export default function App() {
               ) : (
                 <pre className="drawer-doc">{evidenceOpen.body}</pre>
               )}
+            </div>
+          </>
+        )}
+
+        {dmOpen && (
+          <>
+            <div
+              className="drawer-scrim"
+              onClick={async () => {
+                setDmOpen(false);
+                refresh(await api("roles", { assignments: rosterEdit }));
+              }}
+            />
+            <div className="drawer">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">At this table · first names only</span>
+                  <h3>The Decisionmakers</h3>
+                </div>
+                <div className="drawer-actions">
+                  <button
+                    className="panel-btn"
+                    onClick={async () => {
+                      setDmOpen(false);
+                      refresh(await api("roles", { assignments: rosterEdit }));
+                    }}
+                  >
+                    Save and close
+                  </button>
+                </div>
+              </div>
+              <div className="dm-grid">
+                {roles.map((r) => (
+                  <div key={r} className="roster-row">
+                    <span className="role-name">{r}</span>
+                    <input
+                      value={rosterEdit[r] ?? ""}
+                      onChange={(e) => setRosterEdit({ ...rosterEdit, [r]: e.target.value })}
+                      placeholder="First name(s)"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="roster-note">
+                Every person plays a role and every role is played — share or double up as needed.
+                Names stay here; they never reach the model or the reports.
+              </p>
             </div>
           </>
         )}

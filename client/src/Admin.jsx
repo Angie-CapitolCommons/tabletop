@@ -163,6 +163,17 @@ export default function Admin() {
                       <span key={k}>{METER_LABELS[k]} <b>{r.meter[k]}</b></span>
                     ))}
                   </div>
+                  {Object.values(r.roleAssignments ?? {}).some(Boolean) && (
+                    <div className="room-roster">
+                      {Object.entries(r.roleAssignments)
+                        .filter(([, v]) => v)
+                        .map(([role, name]) => (
+                          <span key={role} title={role}>
+                            {role.replace(/^The /, "")} · <b>{name}</b>
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="room-phase">Choosing a case…</div>

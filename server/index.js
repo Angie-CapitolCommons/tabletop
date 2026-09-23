@@ -208,15 +208,18 @@ app.post("/api/scenario", roomAuth, (req, res) => {
   res.json(publicState(req.room, req.roomNumber));
 });
 
+// Role assignments (first names only). Editable at the briefing AND any time
+// after from The Table drawer — people swap roles and arrive late. `start`
+// marks the briefing complete; edits alone never skip the briefing.
 app.post("/api/roles", roomAuth, (req, res) => {
-  const { assignments } = req.body ?? {};
+  const { assignments, start } = req.body ?? {};
   if (assignments && typeof assignments === "object") {
     for (const role of roles) {
       const name = assignments[role];
       if (typeof name === "string") req.room.roleAssignments[role] = name.trim();
     }
   }
-  req.room.briefed = true;
+  if (start === true) req.room.briefed = true;
   persist();
   res.json(publicState(req.room, req.roomNumber));
 });
