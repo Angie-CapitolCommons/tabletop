@@ -3,23 +3,31 @@
 AI Integration Environment Tabletop — a facilitated governance exercise for the
 City of Hope HCD session. Virtual Insights LLC.
 
-PRD: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k (v0.6)
+PRD: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k (mirrored at `docs/PRD.md`)
 
-## Status: Phase 0 — vertical slice
+## Status: Phase 3 — four rooms + admin dashboard
 
-One room, one node (Scenario 4, `risk_accept`), the full beat:
-pose → discuss → collective answer (choice + free text + who-decided) →
-live Steward challenge (streamed) → revise or hold → facilitator scores →
-lock → consequence + cost meter. In-memory state; Postgres, facilitator
-codes, and the admin dashboard arrive in Phase 3.
+All four scenarios, the full node beat per room (pose → collective answer →
+Elder challenge → revise/hold → score → lock → consequence → epilogue),
+Villager beats, role cards, printable worksheets, facilitator codes, the lead
+facilitator's consolidation dashboard, exports, and the full game reset.
 
-**Gate:** does the beat feel engaging? Angie plays it.
+**Gate:** four-room dry run.
+
+## Access (PRD §4: five logins in the world)
+
+| Who | Where | Code (default — override via env) |
+|---|---|---|
+| Room facilitators | `/` | `OAK-1` `ELM-2` `ASH-3` `FIR-4` (`ROOM_CODES`) |
+| Lead facilitator | `/admin` | `DUARTE-LEAD` (`ADMIN_CODE`) |
+
+Participants touch no device. Printables (worksheets + role cards) at `/print`.
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env   # add ANTHROPIC_API_KEY
+cp .env.example .env   # add ANTHROPIC_API_KEY; set real codes before the session
 npm run dev            # server :4600 + vite dev :4700 → open http://localhost:4700
 ```
 
@@ -27,25 +35,37 @@ Production-style (what Replit runs):
 
 ```bash
 npm run build
-npm start              # serves the built client + API on :4600
+npm start
 ```
 
-Without an API key the app still runs — the Steward beat degrades to
-"The Steward is unavailable — continue," which is also the designed
-in-session failure behavior.
+Without an API key the app still runs — Elder beats degrade to
+"unavailable — continue," the designed in-session failure behavior. With
+Replit's Postgres attached (`DATABASE_URL`), room state survives restarts
+and redeploys; the admin full reset clears it.
+
+## Session-day runbook
+
+1. Rehearsal (day before): full run on the real app, then **admin → Export
+   all rooms → Full game reset** (type `RESET`).
+2. Session day: hand each facilitator their room code card; open `/admin`
+   on the lead laptop. The dashboard consolidates live (2.5s poll).
+3. After synthesis: export, then reset — session data is deletable on
+   request (PRD §13).
 
 ## Layout
 
-- `server/` — Express API. `npc.js` holds the only Anthropic call; the key
-  lives in server env only. `content.js` is the Phase 0 slice content
-  (fictional composite; the Steward profile is a placeholder until the
-  Council-encoding derivation lands in Phase 2).
-- `client/` — React room screen (Vite). Designed to be projected: large
-  type, readable across a room.
+- `server/` — Express API. `npc.js` holds the only Anthropic call (key never
+  reaches the client). `content/` holds the four scenarios, Elders, roles,
+  Villagers. `print.js` renders worksheets and role cards. `store.js` is the
+  optional Postgres persistence.
+- `client/` — React room screen + admin dashboard (Vite). Fixed 1280×800
+  projected stage, Virtual Insights brand v2 (`design/handoff/`).
 - Deploys on Replit (`.replit`), target `tabletop.virtual-insights.com`.
 
 ## Content rules (hard constraints)
 
 No CoH interview transcripts, survey responses, or attributable material —
 in the app, in prompts, or in this repo. Scenarios are fictional composites.
-First names only, and they never reach the model.
+First names only, and they never reach the model or the reports. Elder
+personas are placeholders until the `CoH_Council_Actor_Encoding.md`
+derivation lands.
