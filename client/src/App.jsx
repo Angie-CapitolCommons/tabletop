@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// Phase 1: Scenario 4 end to end, single room.
-// Per node: pose (with caused inject) -> answer -> Elder challenges (streamed,
-// up to two, with memory) -> revise or hold -> facilitator scores -> lock ->
-// consequence -> next node. After the last node: the twelve-month epilogue.
+// Tabletop room screen — Virtual Insights brand v2 (design handoff).
+// Fixed 1280×800 stage scaled to fit. Server phases unchanged:
+// posed → challenge → revise → score → consequence → … → epilogue.
+// Client adds: briefing (role roster), recording/revising sub-states,
+// evidence + AI Council available everywhere, score-at-lock in the
+// facilitator bar, decision-path strip, segmented meters.
 
 async function api(path, body) {
   const res = await fetch(`/api/${path}`, {
@@ -15,168 +17,208 @@ async function api(path, body) {
   return res.json();
 }
 
-const METER_LABELS = {
+const METER_LABELS = { goodwill: "Goodwill", risk: "Risk", dollars: "Dollars", time: "Time to value" };
+const METER_FULL = {
   goodwill: "Clinician goodwill",
   risk: "Risk exposure",
   dollars: "Dollars committed",
   time: "Time to first value",
 };
 const COST_UP = { goodwill: false, risk: true, dollars: true, time: true };
+const RAIL_LABELS = {
+  risk_accept: "Risk", stop: "Off switch", tier: "Tier", decide: "Decider",
+  proof: "Proof", retier: "Re-review", funding: "Funding",
+};
+const LONG_NAMES = {
+  risk_accept: "Risk acceptance", stop: "The off switch", tier: "Tiering",
+  decide: "The decider", proof: "Proof", retier: "Re-review", funding: "Funding",
+};
+const LETTERS = ["A", "B", "C"];
+const optLetter = (o, i) => (o.id === "decline" ? "–" : o.id === "writein" ? "✎" : LETTERS[i]);
+const nn = (i) => String(i + 1).padStart(2, "0");
 
-function Meter({ meter, prev }) {
+// ---------- stage scaling ----------
+function useStageScale() {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const update = () => setScale(Math.min(window.innerWidth / 1280, window.innerHeight / 800));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return scale;
+}
+
+// ---------- top bar ----------
+function Meter({ id, value, prev }) {
+  const delta = prev != null ? value - prev : 0;
+  const worse = COST_UP[id] ? delta > 0 : delta < 0;
+  const tone = worse ? "worse" : "better";
+  const v = Math.min(value, 12);
+  const pv = Math.min(prev ?? value, 12);
   return (
     <div className="meter">
-      {Object.keys(METER_LABELS).map((k) => {
-        const delta = prev ? meter[k] - prev[k] : 0;
-        const moved = delta !== 0;
-        const worse = COST_UP[k] ? delta > 0 : delta < 0;
-        return (
-          <div key={k} className={`meter-item ${moved ? (worse ? "worse" : "better") : ""}`}>
-            <span className="meter-label">{METER_LABELS[k]}</span>
-            <span className="meter-value">
-              {meter[k]}
-              {moved && <em className="meter-delta">{delta > 0 ? ` +${delta}` : ` ${delta}`}</em>}
-            </span>
-          </div>
-        );
-      })}
+      <span className="meter-label">{METER_LABELS[id]}</span>
+      <div className="meter-valrow">
+        <span className="meter-value">{value}</span>
+        {delta !== 0 && (
+          <span className={`meter-delta ${tone}`}>{delta > 0 ? `+${delta}` : `−${-delta}`}</span>
+        )}
+      </div>
+      <div className="segbar">
+        {Array.from({ length: 12 }, (_, i) => {
+          let cls = "";
+          if (i < Math.min(v, pv)) cls = "filled";
+          else if (v > pv && i < v) cls = `gained ${tone}`;
+          else if (v < pv && i < pv) cls = `lost ${tone}`;
+          return <i key={i} className={cls} />;
+        })}
+      </div>
     </div>
   );
 }
 
-function Progress({ progress }) {
-  return (
-    <div className="progress">
-      {progress.map((p) => (
-        <div key={p.id} className={`prog-node ${p.status} ${p.score ?? ""}`} title={p.title}>
-          <span className="prog-type">{p.type}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AnswerForm({ node, decidedByPrompt, initial, submitLabel, onSubmit }) {
+// ---------- record panel (2b, also used for revise) ----------
+function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, onCommit, commitLabel, setCommit }) {
   const [choice, setChoice] = useState(initial?.choice ?? null);
   const [freeText, setFreeText] = useState(initial?.freeText ?? "");
-  const [decidedBy, setDecidedBy] = useState(initial?.decidedBy ?? "");
-  const [error, setError] = useState(null);
-  const ready = choice && freeText.trim() && decidedBy.trim();
+  const chipLabels = roles.map((r) => (roleAssignments[r] ? `${r} · ${roleAssignments[r]}` : r));
+  const allChips = [...chipLabels, "The group"];
+  const initialIsChip = initial && allChips.includes(initial.decidedBy);
+  const [chip, setChip] = useState(initialIsChip ? initial.decidedBy : initial?.decidedBy ? "__other" : null);
+  const [other, setOther] = useState(initialIsChip ? "" : initial?.decidedBy ?? "");
+  const decidedBy = chip === "__other" ? other.trim() : chip;
+  const ready = choice && freeText.trim() && decidedBy;
+
+  // Surface the commit action to the facilitator bar.
+  useEffect(() => {
+    setCommit({
+      label: commitLabel,
+      enabled: !!ready,
+      run: () => onCommit({ choice, freeText, decidedBy }),
+    });
+    return () => setCommit(null);
+  }, [choice, freeText, decidedBy, ready]);
 
   return (
-    <div className="answer-form">
-      <div className="options">
-        {node.options.map((o) => (
+    <div className="record-panel">
+      <span className="eyebrow">Recording the room's answer</span>
+      <div className="rp-choices">
+        {node.options.map((o, i) => (
           <button
             key={o.id}
-            className={`option ${choice === o.id ? "selected" : ""} ${o.id === "decline" ? "decline" : ""}`}
+            className={`rp-choice ${choice === o.id ? "selected" : ""}`}
             onClick={() => setChoice(o.id)}
           >
-            <span className="option-label">{o.label}</span>
-            <span className="option-hint">{o.hint}</span>
+            <span className="letter">{optLetter(o, i)}</span>
+            <span>{o.label}</span>
           </button>
         ))}
       </div>
-      <label className="field">
-        <span>{node.freeTextPrompt}</span>
-        <textarea
-          rows={2}
-          value={freeText}
-          onChange={(e) => setFreeText(e.target.value)}
-          placeholder="A name or role, and a trigger…"
-        />
-      </label>
-      <label className="field">
-        <span>{decidedByPrompt}</span>
-        <input
-          value={decidedBy}
-          onChange={(e) => setDecidedBy(e.target.value)}
-          placeholder="e.g. The Security Guard · Dana · the group"
-        />
-      </label>
-      {error && <p className="error">{error}</p>}
-      <button
-        className="primary"
-        disabled={!ready}
-        onClick={async () => {
-          try {
-            setError(null);
-            await onSubmit({ choice, freeText, decidedBy });
-          } catch (e) {
-            setError(e.message);
-          }
-        }}
-      >
-        {submitLabel}
-      </button>
-    </div>
-  );
-}
-
-function Evidence({ scenario }) {
-  const [open, setOpen] = useState(null);
-  return (
-    <div className="evidence">
-      <span className="evidence-title">Evidence folder</span>
-      {scenario.evidence.map((doc) => (
-        <button key={doc.id} className="evidence-tab" onClick={() => setOpen(doc)}>
-          {doc.title}
-        </button>
-      ))}
-      {open && (
-        <div className="evidence-modal" onClick={() => setOpen(null)}>
-          <div className="evidence-doc" onClick={(e) => e.stopPropagation()}>
-            <h3>{open.title}</h3>
-            <pre>{open.body}</pre>
-            <button className="quiet" onClick={() => setOpen(null)}>Close</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Epilogue({ epilogue, onReset }) {
-  return (
-    <section className="epilogue">
-      <span className="tag">Twelve months later</span>
-      <h1>What held, and what broke</h1>
-      <div className="epilogue-parts">
-        {epilogue.parts.map((p) => (
-          <div key={p.nodeId} className={`epi-part ${p.held ? "held" : "broke"}`}>
-            <div className="epi-head">
-              <span className="node-type">{p.type}</span>
-              <span className={`epi-verdict ${p.held ? "held" : "broke"}`}>
-                {p.held ? "held" : "broke"}
-              </span>
-            </div>
-            <p>{p.line}</p>
-          </div>
-        ))}
+      <div className="rp-field">
+        <label>
+          {choice === "writein"
+            ? "Write the room's answer: the path, the named owner, and the trigger. This text is the decision — honored verbatim."
+            : node.freeTextPrompt}
+        </label>
+        <textarea value={freeText} onChange={(e) => setFreeText(e.target.value)} />
       </div>
-      <p className="epi-meta">
-        Session ran {epilogue.minutes} minutes ·{" "}
-        <a href="/api/export" target="_blank" rel="noreferrer">export JSON</a>
-      </p>
-      <button className="quiet" onClick={onReset}>Reset the scenario</button>
-    </section>
+      <div className="rp-field">
+        <label>{decidedByPrompt}</label>
+        <div className="chips">
+          {allChips.map((c) => (
+            <button key={c} className={`chip ${chip === c ? "selected" : ""}`} onClick={() => setChip(c)}>
+              {c}
+            </button>
+          ))}
+          <button className={`chip other ${chip === "__other" ? "selected" : ""}`} onClick={() => setChip("__other")}>
+            Other…
+          </button>
+          {chip === "__other" && (
+            <input
+              className="chip-input"
+              value={other}
+              onChange={(e) => setOther(e.target.value)}
+              placeholder="Who made the call…"
+              autoFocus
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- decision path strip ----------
+function PathStrip({ progress, records, currentIndex, epilogue }) {
+  const lastLockedIdx = progress.reduce(
+    (acc, p, i) => (records[p.id]?.answer && records[p.id]?.score ? i : acc),
+    -1,
+  );
+  return (
+    <div className="path-strip">
+      <div className="path-label">DECISION PATH</div>
+      <div className="path">
+        {progress.map((p, i) => {
+          const r = records[p.id];
+          if (r?.skipped)
+            return (
+              <div key={p.id} className="path-cell skipped-cell">
+                <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · skipped</span>
+                <span className="pc-choice">Never asked</span>
+              </div>
+            );
+          if (r?.answer && r?.score)
+            return (
+              <div key={p.id} className={`path-cell locked ${i === lastLockedIdx ? "latest" : ""}`}>
+                <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · {r.score}</span>
+                <span className="pc-choice">{r.answer.short}</span>
+                <span className="pc-detail">{r.answer.freeText}</span>
+              </div>
+            );
+          if (!epilogue && i === currentIndex + 1)
+            return (
+              <div key={p.id} className="path-cell next">
+                <span className="pc-eyebrow">{nn(i)} · next</span>
+                <span className="pc-choice">{RAIL_LABELS[p.type]}</span>
+              </div>
+            );
+          return (
+            <div key={p.id} className="path-cell pending">
+              <span className="pc-eyebrow">{nn(i)}</span>
+              <span className="pc-choice">{RAIL_LABELS[p.type]}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 export default function App() {
+  const scale = useStageScale();
   const [data, setData] = useState(null);
-  const [turns, setTurns] = useState([]); // [{elder, text, status: streaming|done|unavailable}]
+  const [turns, setTurns] = useState([]);
   const [prevMeter, setPrevMeter] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [revising, setRevising] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(null);
+  const [councilOpen, setCouncilOpen] = useState(false);
+  const [council, setCouncil] = useState([]);
+  const [skipArmed, setSkipArmed] = useState(false);
+  const [commit, setCommit] = useState(null); // surfaced from RecordPanel
+  const [roster, setRoster] = useState({});
   const npcForNode = useRef(null);
 
   useEffect(() => {
     api("state").then(setData);
+    api("elders").then(setCouncil);
   }, []);
 
   const state = data?.state;
-  const { scenario, node, progress, decidedByPrompt } = data ?? {};
+  const { scenario, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
 
-  // Kick off the Elders automatically when the first answer lands on a node.
+  // Elder turns stream automatically on entering challenge.
   useEffect(() => {
     if (!state || state.phase !== "challenge" || !node) return;
     if (npcForNode.current === node.id) return;
@@ -199,21 +241,13 @@ export default function App() {
           const msg = JSON.parse(line.slice(6));
           setTurns((ts) => {
             const next = [...ts];
-            if (msg.type === "elder-start")
-              next.push({ elder: msg.elder, text: "", status: "streaming" });
+            if (msg.type === "elder-start") next.push({ elder: msg.elder, text: "", status: "streaming" });
             else if (msg.type === "delta" && next.length)
-              next[next.length - 1] = {
-                ...next[next.length - 1],
-                text: next[next.length - 1].text + msg.text,
-              };
+              next[next.length - 1] = { ...next[next.length - 1], text: next[next.length - 1].text + msg.text };
             else if (msg.type === "elder-done" && next.length)
               next[next.length - 1] = { ...next[next.length - 1], status: "done" };
             else if (msg.type === "elder-unavailable" && next.length)
-              next[next.length - 1] = {
-                ...next[next.length - 1],
-                text: msg.message,
-                status: "unavailable",
-              };
+              next[next.length - 1] = { ...next[next.length - 1], text: msg.message, status: "unavailable" };
             return next;
           });
         }
@@ -229,173 +263,460 @@ export default function App() {
     });
   }, [state?.phase, node?.id]);
 
-  if (!data) return <div className="shell loading">Loading…</div>;
+  useEffect(() => setSkipArmed(false), [state?.phase, node?.id]);
+
+  if (!data)
+    return (
+      <div className="viewport">
+        <span className="loading">Opening the case file…</span>
+      </div>
+    );
 
   const refresh = (d) => setData(d);
   const record = state.record;
+  const phase = state.phase;
+  const briefed = state.briefed || phase !== "posed" || node?.index > 0;
 
-  const skipButton =
-    !state.epilogue && ["posed", "challenge", "revise", "score"].includes(state.phase) ? (
-      <button
-        className="quiet skip"
-        onClick={async () => refresh(await api("skip", {}))}
-        title="Facilitator: skip this node under time pressure (recorded as skipped, distinct from declined)"
-      >
-        Skip this node
-      </button>
-    ) : null;
+  const doSkip = async () => {
+    if (!skipArmed) return setSkipArmed(true);
+    setSkipArmed(false);
+    refresh(await api("skip", {}));
+  };
 
-  return (
-    <div className="shell">
-      <header>
+  const advance = async () => {
+    npcForNode.current = null;
+    setTurns([]);
+    refresh(await api("advance", {}));
+  };
+
+  const reset = async () => {
+    npcForNode.current = null;
+    setTurns([]);
+    setPrevMeter(null);
+    setRecording(false);
+    setRevising(false);
+    refresh(await api("reset", {}));
+  };
+
+  const commitAnswer = async (a) => {
+    const d = await api("answer", a);
+    setRecording(false);
+    setRevising(false);
+    refresh(d);
+  };
+
+  const scoreBtns = ["specific", "generic", "absent"].map((s) => (
+    <button
+      key={s}
+      className="fac-score"
+      disabled={phase !== "score"}
+      title="Specific names a role or person plus a trigger or threshold · Generic names a function · Absent declined or named no one"
+      onClick={async () => {
+        setPrevMeter(state.meter);
+        refresh(await api("lock", { score: s }));
+      }}
+    >
+      {s[0].toUpperCase() + s.slice(1)}
+    </button>
+  ));
+
+  const commonFacBtns = (
+    <>
+      <span className="fac-label">FACILITATOR</span>
+      <button className="fac-btn" onClick={() => setEvidenceOpen("menu")}>Evidence</button>
+      <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
+    </>
+  );
+  const skipBtn = (
+    <button className={`fac-btn ${skipArmed ? "armed" : ""}`} onClick={doSkip}>
+      {skipArmed ? "Confirm skip?" : "Skip node"}
+    </button>
+  );
+
+  // ---------- facilitator bar per phase ----------
+  let facbar;
+  if (!briefed)
+    facbar = (
+      <>
+        {commonFacBtns}
+        <button
+          className="fac-primary"
+          onClick={async () => refresh(await api("roles", { assignments: roster }))}
+        >
+          Start node 1
+        </button>
+      </>
+    );
+  else if (phase === "posed" && !recording)
+    facbar = (
+      <>
+        {commonFacBtns}
+        {skipBtn}
+        <button className="fac-primary" onClick={() => setRecording(true)}>
+          Record the room's answer
+        </button>
+      </>
+    );
+  else if ((phase === "posed" && recording) || (phase === "revise" && revising))
+    facbar = (
+      <>
+        {commonFacBtns}
+        <button
+          className="fac-btn"
+          onClick={() => {
+            setRecording(false);
+            setRevising(false);
+          }}
+        >
+          Back to discussion
+        </button>
+        <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
+          {commit?.label ?? "Commit"}
+        </button>
+      </>
+    );
+  else if (phase === "challenge" || phase === "revise" || phase === "score")
+    facbar = (
+      <>
+        {commonFacBtns}
+        {phase !== "score" && skipBtn}
+        <span className="fac-score-label">SCORE AT LOCK</span>
+        {scoreBtns}
+      </>
+    );
+  else if (phase === "consequence")
+    facbar = (
+      <>
+        {commonFacBtns}
+        <button className="fac-primary" onClick={advance}>
+          {node ? `Continue to node ${node.index + 2 > progress.length ? "— report" : node.index + 2}` : "Continue"}
+        </button>
+      </>
+    );
+  else if (phase === "epilogue")
+    facbar = (
+      <>
+        {commonFacBtns}
+        <a className="fac-btn" href="/api/export" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+          Export the record
+        </a>
+        <button className="fac-primary" onClick={reset}>Close the file and reset</button>
+      </>
+    );
+
+  // ---------- main content per phase ----------
+  let main;
+  if (!briefed) {
+    main = (
+      <div className="briefing">
         <div>
-          <span className="brand">Tabletop</span>
-          <span className="scenario-title">{scenario.title}</span>
-          <span className="enters">enters at {scenario.entersAt}</span>
+          <span className="eyebrow" style={{ fontSize: 15 }}>Case file · scenario 4 · enters at {scenario.entersAt}</span>
+          <h1 className="b-title">{scenario.title}</h1>
+          {scenario.brief.split("\n\n").map((p, i) => (
+            <p key={i} className="b-para">{p}</p>
+          ))}
         </div>
-        <Meter meter={state.meter} prev={prevMeter} />
-      </header>
-      <Progress progress={progress} />
-
-      <main>
-        {state.phase === "epilogue" && (
-          <Epilogue
-            epilogue={state.epilogue}
-            onReset={async () => {
-              npcForNode.current = null;
-              setTurns([]);
-              setPrevMeter(null);
-              refresh(await api("reset", {}));
-            }}
-          />
-        )}
-
-        {state.phase === "posed" && node && (
-          <>
-            {node.index === 0 && (
-              <section className="brief">
-                {scenario.brief.split("\n\n").map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
-              </section>
-            )}
-            {node.inject && (
-              <div className="inject">
-                <span className="tag">Meanwhile</span>
-                <p>{node.inject}</p>
-              </div>
-            )}
-            <section className="node">
-              <div className="node-head">
-                <span className="node-type">{node.type}</span>
-                <span className="node-count">
-                  node {node.index + 1} of {node.count}
-                </span>
-              </div>
-              <h1>{node.title}</h1>
-              <p className="question">{node.question}</p>
-              <Evidence scenario={scenario} />
-              <AnswerForm
-                node={node}
-                decidedByPrompt={decidedByPrompt}
-                submitLabel="Commit the room's answer"
-                onSubmit={async (a) => refresh(await api("answer", a))}
-              />
-              {skipButton}
-            </section>
-          </>
-        )}
-
-        {(state.phase === "challenge" || state.phase === "revise") && node && (
-          <section className="challenge">
-            <div className="committed">
-              <span className="tag">The room committed</span>
-              <p className="committed-choice">
-                {node.options.find((o) => o.id === record.firstAnswer.choice).label}
-              </p>
-              <p className="committed-free">“{record.firstAnswer.freeText}”</p>
-              <p className="committed-by">Final call: {record.firstAnswer.decidedBy}</p>
-            </div>
-            {turns.map((t, i) => (
-              <div key={i} className={`npc ${t.elder.id} ${t.status}`}>
-                <span className="npc-name">{t.elder.name}</span>
-                <span className="npc-seat">{t.elder.seat}</span>
-                <p className="npc-text">
-                  {t.text}
-                  {t.status === "streaming" && <span className="cursor">▋</span>}
-                </p>
+        <div>
+          <div className="roster-label">The table · first names only</div>
+          <div className="roster">
+            {roles.map((r) => (
+              <div key={r} className="roster-row">
+                <span className="role-name">{r}</span>
+                <input
+                  value={roster[r] ?? ""}
+                  onChange={(e) => setRoster({ ...roster, [r]: e.target.value })}
+                  placeholder="First name(s)"
+                />
               </div>
             ))}
-            {state.phase === "revise" && (
-              <div className="revise">
-                <h2>Revise, or hold your answer?</h2>
-                <AnswerForm
-                  node={node}
-                  decidedByPrompt={decidedByPrompt}
-                  initial={record.firstAnswer}
-                  submitLabel="Commit the revised answer"
-                  onSubmit={async (a) => refresh(await api("answer", a))}
-                />
-                <button className="quiet" onClick={async () => refresh(await api("hold", {}))}>
-                  Hold — the answer stands
-                </button>
+          </div>
+          <p className="roster-note">
+            Every person plays a role and every role is played — share or double up as needed.
+            Names stay here; they never reach the model or the reports.
+          </p>
+        </div>
+      </div>
+    );
+  } else if (phase === "posed" && node) {
+    main = (
+      <div className={`discuss ${recording ? "recording" : ""}`}>
+        <div className="d-left">
+          {node.inject && (
+            <div className="inject">
+              <span className="eyebrow">Meanwhile</span>
+              <p>{node.inject}</p>
+            </div>
+          )}
+          <span className="eyebrow" style={{ fontSize: 15 }}>
+            {nn(node.index)} / {LONG_NAMES[node.type]}
+          </span>
+          <h1 className="node-title">{node.title}</h1>
+          <p className="node-question">{node.question}</p>
+          {!recording && (
+            <div className="evidence-block">
+              <div className="evidence-label">EVIDENCE FOLDER</div>
+              <div className="evidence-grid">
+                {scenario.evidence.map((doc) => (
+                  <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
+                    {doc.title}
+                  </button>
+                ))}
               </div>
-            )}
-            {skipButton}
-          </section>
-        )}
-
-        {state.phase === "score" && (
-          <section className="scoring">
-            <h2>Facilitator: score this node</h2>
-            <p className="rubric">
-              <strong>Specific</strong> names a role or person plus a trigger or threshold ·{" "}
-              <strong>Generic</strong> names a function · <strong>Absent</strong> declined or
-              named no one
-            </p>
-            <div className="score-buttons">
-              {["specific", "generic", "absent"].map((s) => (
-                <button
-                  key={s}
-                  className={`score ${s}`}
-                  onClick={async () => {
-                    setPrevMeter(state.meter);
-                    refresh(await api("lock", { score: s }));
-                  }}
-                >
-                  {s}
-                </button>
+            </div>
+          )}
+        </div>
+        {recording ? (
+          <RecordPanel
+            node={node}
+            decidedByPrompt={decidedByPrompt}
+            roles={roles}
+            roleAssignments={roleAssignments}
+            initial={null}
+            onCommit={commitAnswer}
+            commitLabel="Commit the room's answer"
+            setCommit={setCommit}
+          />
+        ) : (
+          <div className="options-col">
+            <div className="opt-stack">
+              {node.options.filter((o) => o.id !== "decline" && o.id !== "writein").map((o, i) => (
+                <div key={o.id} className="opt">
+                  <span className="letter">{LETTERS[i]}</span>
+                  <span>
+                    <span className="opt-label">{o.label}</span>
+                    <span className="opt-hint">{o.hint}</span>
+                  </span>
+                </div>
               ))}
             </div>
-            {skipButton}
-          </section>
+            {node.options.filter((o) => o.id === "writein" || o.id === "decline").map((o) => (
+              <div key={o.id} className={`opt special ${o.id}-opt`}>
+                <span className="letter">{o.id === "writein" ? "✎" : "–"}</span>
+                <span>
+                  <span className="opt-label">{o.label}</span>
+                  <span className="opt-hint">{o.hint}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  } else if ((phase === "challenge" || phase === "revise" || phase === "score") && node) {
+    main = revising ? (
+      <div className="discuss recording">
+        <div className="d-left">
+          <span className="eyebrow" style={{ fontSize: 15 }}>
+            {nn(node.index)} / {LONG_NAMES[node.type]}
+          </span>
+          <h1 className="node-title">{node.title}</h1>
+          <p className="node-question">{node.question}</p>
+        </div>
+        <RecordPanel
+          node={node}
+          decidedByPrompt={decidedByPrompt}
+          roles={roles}
+          roleAssignments={roleAssignments}
+          initial={record.firstAnswer}
+          onCommit={commitAnswer}
+          commitLabel="Commit the revised answer"
+          setCommit={setCommit}
+        />
+      </div>
+    ) : (
+      <div className="challenge">
+        <div>
+          <div className="committed-label">THE ROOM COMMITTED</div>
+          <div className="committed-card">
+            <div className="cc-choice">
+              <span className="letter">
+                {optLetter(
+                  node.options.find((o) => o.id === record.firstAnswer.choice),
+                  node.options.findIndex((o) => o.id === record.firstAnswer.choice),
+                )}
+              </span>
+              <span className="cc-label">
+                {node.options.find((o) => o.id === record.firstAnswer.choice).label}
+              </span>
+            </div>
+            <p className="cc-quote">“{record.firstAnswer.freeText}”</p>
+            <div className="cc-rule">
+              <div className="cc-final-label">FINAL CALL</div>
+              <div className="cc-final">{record.firstAnswer.decidedBy}</div>
+            </div>
+          </div>
+        </div>
+        <div className="elder-col">
+          {turns.map((t, i) => (
+            <div key={i} className={`elder ${i > 0 ? "secondary" : ""} ${t.status}`}>
+              <div className="elder-head">
+                <span className="elder-mark">{t.elder.name.replace(/^The /, "")[0]}</span>
+                <div>
+                  <div className="elder-name">{t.elder.name}</div>
+                  <div className="elder-seat">ELDER · {t.elder.seat}</div>
+                </div>
+              </div>
+              <p className="elder-text">
+                {t.text}
+                {t.status === "streaming" && <span className="cursor">▋</span>}
+              </p>
+            </div>
+          ))}
+          {phase === "revise" && (
+            <div className="hold-revise">
+              <button className="hr-cell" onClick={async () => refresh(await api("hold", {}))}>
+                <span className="hr-title">Hold</span>
+                <span className="hr-sub">The first answer locks as written.</span>
+              </button>
+              <button className="hr-cell" onClick={() => setRevising(true)}>
+                <span className="hr-title">Revise</span>
+                <span className="hr-sub">Reopens the record, pre-filled. Both are kept.</span>
+              </button>
+            </div>
+          )}
+          {phase === "score" && (
+            <div className="hold-revise">
+              <div className="hr-cell" style={{ gridColumn: "1 / -1" }}>
+                <span className="hr-title">Ready to lock</span>
+                <span className="hr-sub">Facilitator: stamp the score in the bar below.</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  } else if (phase === "consequence" && node) {
+    const answer = record.revisedAnswer ?? record.firstAnswer;
+    main = (
+      <div className="consequence">
+        <div className="cq-left">
+          <span className="eyebrow">What this sets in motion</span>
+          <p className="cq-text">{record.consequence}</p>
+          <p className="cq-meta">
+            LOCKED · <span className="score">{record.score}</span>
+            {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
+          </p>
+        </div>
+        <div>
+          <div className="moved-label">WHAT MOVED</div>
+          {Object.keys(METER_FULL).map((k) => {
+            const before = prevMeter?.[k] ?? state.meter[k];
+            const after = state.meter[k];
+            const delta = after - before;
+            const worse = COST_UP[k] ? delta > 0 : delta < 0;
+            return (
+              <div key={k} className="moved-row">
+                <span className="moved-name">
+                  {METER_FULL[k]}
+                  <span className="moved-dir">{COST_UP[k] ? "Lower is better" : "Higher is better"}</span>
+                </span>
+                <span className="moved-vals">{before} → {after}</span>
+                <span className={`moved-delta ${delta === 0 ? "same" : worse ? "worse" : "better"}`}>
+                  {delta === 0 ? "—" : delta > 0 ? `+${delta}` : `−${-delta}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <PathStrip
+          progress={progress}
+          records={{ ...records, [node.id]: { score: record.score, skipped: false, answer: { ...answer, short: node.options.find((o) => o.id === answer.choice).short } } }}
+          currentIndex={node.index}
+        />
+      </div>
+    );
+  } else if (phase === "epilogue") {
+    main = (
+      <div className="epilogue">
+        <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
+        <h1 className="epi-head-title">Twelve months later</h1>
+        <PathStrip progress={progress} records={records} currentIndex={-1} epilogue />
+        <div className="epi-rows" style={{ marginTop: 20 }}>
+          {state.epilogue.parts.map((p) => (
+            <div key={p.nodeId} className="epi-row">
+              <span className="pc-eyebrow">{RAIL_LABELS[p.type]}</span>
+              <span className={`epi-verdict ${p.held ? "held" : "broke"}`}>{p.held ? "HELD" : "BROKE"}</span>
+              <span className="epi-line">{p.line}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="viewport">
+      <div className="stage" style={{ transform: `scale(${scale})` }}>
+        <div className="topbar">
+          <div>
+            <div className="eyebrow">TABLETOP · ENTERS AT {scenario.entersAt.toUpperCase()}</div>
+            <div className="title">{scenario.title}</div>
+          </div>
+          <div className="meters">
+            {Object.keys(METER_LABELS).map((k) => (
+              <Meter key={k} id={k} value={state.meter[k]} prev={prevMeter?.[k]} />
+            ))}
+          </div>
+        </div>
+        <div className="steprail">
+          {progress.map((p, i) => (
+            <div key={p.id} className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}>
+              <span className="num">{nn(i)}</span>
+              {RAIL_LABELS[p.type]}
+            </div>
+          ))}
+        </div>
+        <div className="main">{main}</div>
+        <div className="facbar">{facbar}</div>
+
+        {evidenceOpen && (
+          <div className="overlay" onClick={() => setEvidenceOpen(null)}>
+            <div className="panel" onClick={(e) => e.stopPropagation()}>
+              {evidenceOpen === "menu" ? (
+                <>
+                  <span className="eyebrow">From the case file</span>
+                  <h3>Evidence folder</h3>
+                  <div className="evidence-grid" style={{ marginTop: 14 }}>
+                    {scenario.evidence.map((doc) => (
+                      <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
+                        {doc.title}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="eyebrow">From the case file</span>
+                  <h3>{evidenceOpen.title}</h3>
+                  <pre>{evidenceOpen.body}</pre>
+                </>
+              )}
+              <div className="close-row">
+                <button className="panel-btn" onClick={() => setEvidenceOpen(null)}>Return to the table</button>
+              </div>
+            </div>
+          </div>
         )}
 
-        {state.phase === "consequence" && (
-          <section className="consequence">
-            <span className="tag">What this sets in motion</span>
-            <p className="consequence-text">{record.consequence}</p>
-            <p className="locked-meta">
-              Locked · scored <strong>{record.score}</strong>
-              {record.held
-                ? " · held after challenge"
-                : record.revisedAnswer
-                  ? " · revised after challenge"
-                  : ""}
-            </p>
-            <button
-              className="primary"
-              onClick={async () => {
-                npcForNode.current = null;
-                setTurns([]);
-                refresh(await api("advance", {}));
-              }}
-            >
-              Continue
-            </button>
-          </section>
+        {councilOpen && (
+          <div className="overlay" onClick={() => setCouncilOpen(false)}>
+            <div className="panel" onClick={(e) => e.stopPropagation()}>
+              <span className="eyebrow">At this table</span>
+              <h3>The AI Council</h3>
+              {council.map((e) => (
+                <div key={e.id} className="council-row">
+                  <div className="council-name">{e.name}</div>
+                  <div className="council-seat">ELDER · {e.seat}</div>
+                  <div className="council-fires">Fires on: {e.firesOn}</div>
+                </div>
+              ))}
+              <div className="close-row">
+                <button className="panel-btn" onClick={() => setCouncilOpen(false)}>Return to the table</button>
+              </div>
+            </div>
+          </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

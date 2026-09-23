@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html { font-size: 18px; }
+body { margin: 0; background: #ECEAE4; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+a { color: #2F2E78; text-decoration: none; border-bottom: 1px solid #c9c6bd; }
+a:hover { color: #387DB7; }
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+</helmet>
+
+<section id="recs" style="padding:72px 64px 32px;font-family:Archivo,Helvetica,sans-serif;color:#10122D">
+  <div style="max-width:1280px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#387DB7">Tabletop · room screen review</span>
+      <h1 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:64px;line-height:1;letter-spacing:-0.02em">Recommendations</h1>
+      <p style="margin:0;font-size:18px;line-height:1.6;color:#4a4e70;max-width:68ch;text-wrap:pretty">The current build (<a href="#1a">1a–1e</a>) is a solid Phase 1 slice. Most issues come from one fact: this screen is projected for a room, but it is laid out like a scrolling web form operated by one person. The proposal (<a href="#2a">2a–2d</a>) applies the Virtual Insights brand; numbered markers on it match this list.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#d9d6ce;border-top:1px solid #d9d6ce;border-bottom:1px solid #d9d6ce">
+      <sc-for list="{{ recs }}" as="r" hint-placeholder-count="12">
+        <div style="background:#F7F6F3;padding:22px 24px;display:flex;gap:18px">
+          <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:#387DB7;width:22px;padding-top:3px">{{ r.n }}</span>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">{{ r.t }}</span>
+            <span style="font-size:15px;line-height:1.6;color:#4a4e70;text-wrap:pretty">{{ r.d }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section id="turn-2" style="padding:40px 64px;font-family:Archivo,Helvetica,sans-serif;color:#10122D">
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:28px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#387DB7">02 / Proposed</span>
+    <h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:44px;line-height:1.08">Proposed room screen, in brand</h2>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#4a4e70;max-width:80ch">Paper ground for projection, Deep Purple ink, Purple for primary state, Blue as the single accent. 2px radius, hairline rules, no shadows. Labels run larger than the brand's 11–12px mono spec so they read from the back of a room.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:48px">
+
+    <div id="2a" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">2a</span><span style="font-size:15px;color:#33375c">Discuss — the room reads, nobody types</span></div>
+      <div style="position:relative;width:1280px;height:800px;overflow:hidden;background:#F7F6F3;color:#10122D;font-family:Archivo,Helvetica,sans-serif;border:1px solid #d9d6ce">
+        <div style="height:92px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d9d6ce">
+          <div style="display:flex;align-items:center;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Tabletop · enters at monitoring</span>
+              <span style="font-size:21px;font-weight:600;letter-spacing:-0.01em">Live a Year, Drifted, Spread Beyond Approval</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:22px">
+            <sc-for list="{{ bMeter0 }}" as="m" hint-placeholder-count="4">
+              <div style="width:124px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#4a4e70;white-space:nowrap">{{ m.label }}</span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:36px;line-height:1">{{ m.v }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ m.dc }}">{{ m.d }}</span></div>
+                <div style="display:flex;gap:2px;height:10px">
+                  <sc-for list="{{ m.segs }}" as="g" hint-placeholder-count="12"><span style="flex:1;background:{{ g.bg }};border:1px {{ g.bs }} {{ g.bc }}"></span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:54px;padding:0 24px;display:flex;align-items:stretch;gap:4px;background:#ECEAE4;border-bottom:1px solid #d9d6ce">
+          <sc-for list="{{ bSteps0 }}" as="s" hint-placeholder-count="7">
+            <span style="display:flex;align-items:center;gap:8px;padding:0 16px;font-size:17px;color:{{ s.c }};font-weight:{{ s.w }};background:{{ s.bg }};border-bottom:3px solid {{ s.bb }}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ s.nc }}">{{ s.n }}</span>{{ s.label }}</span>
+          </sc-for>
+        </div>
+        <div style="position:absolute;top:146px;bottom:64px;left:0;right:0;padding:34px 40px 28px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:48px">
+          <div style="display:flex;flex-direction:column">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">01 / Risk acceptance</span>
+            <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:62px;line-height:1.02;letter-spacing:-0.02em;margin:12px 0 18px">Who is carrying this risk?</h1>
+            <p style="font-size:23px;line-height:1.5;margin:0;text-wrap:pretty">ChartPilot is operating outside its approval in two clinics, on a model version nobody evaluated. Until a re-review happens, someone is carrying the residual risk — today, whether or not anyone has said so. Who accepts it, in writing — or who turns it off?</p>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#4a4e70">Evidence folder</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#d9d6ce;border:1px solid #d9d6ce">
+                <sc-for list="{{ evidence }}" as="e" hint-placeholder-count="4">
+                  <span style="background:#fff;padding:11px 14px;font-size:17px">{{ e }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:1px;background:#d9d6ce;border:1px solid #d9d6ce">
+              <sc-for list="{{ bOpts3 }}" as="o" hint-placeholder-count="3">
+                <div style="display:flex;gap:16px;background:#fff;padding:16px 18px">
+                  <span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:18px;color:#387DB7;padding-top:2px">{{ o.k }}</span>
+                  <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:20px;font-weight:600;line-height:1.3;letter-spacing:-0.01em">{{ o.label }}</span><span style="font-size:16px;line-height:1.4;color:#4a4e70">{{ o.hint }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:16px;background:#EFECE5;border:1px dashed #c9c6bd;padding:16px 18px">
+              <span style="flex:none;width:22px;font-family:'JetBrains Mono',monospace;font-size:18px;color:#6c7196;padding-top:2px">D</span>
+              <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:20px;font-weight:600;line-height:1.3">We cannot answer this today</span><span style="font-size:16px;line-height:1.4;color:#4a4e70">Recorded as an explicit gap, not a failure. It is also not free.</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:64px;background:#10122D;padding:0 40px;display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#a8b6de;margin-right:10px">Facilitator</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Evidence</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">AI Council</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Skip node</span>
+          <span style="margin-left:auto;font-size:16px;font-weight:500;background:#F7F6F3;color:#10122D;border-radius:2px;padding:12px 26px">Record the room's answer</span>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+          <span style="position:absolute;top:156px;left:14px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">1</span>
+          <span style="position:absolute;top:104px;left:14px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">9</span>
+          <span style="position:absolute;top:170px;left:678px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">3</span>
+          <span style="position:absolute;bottom:20px;left:10px;width:24px;height:24px;background:#387DB7;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">2</span>
+          <span style="position:absolute;bottom:20px;left:252px;width:24px;height:24px;background:#387DB7;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">11</span>
+        </sc-if>
+      </div>
+    </div>
+
+    <div id="2b" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">2b</span><span style="font-size:15px;color:#33375c">Record — facilitator enters the room's answer</span></div>
+      <div style="position:relative;width:1280px;height:800px;overflow:hidden;background:#F7F6F3;color:#10122D;font-family:Archivo,Helvetica,sans-serif;border:1px solid #d9d6ce">
+        <div style="height:92px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d9d6ce">
+          <div style="display:flex;align-items:center;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Tabletop · enters at monitoring</span>
+              <span style="font-size:21px;font-weight:600;letter-spacing:-0.01em">Live a Year, Drifted, Spread Beyond Approval</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:22px">
+            <sc-for list="{{ bMeter0 }}" as="m" hint-placeholder-count="4">
+              <div style="width:124px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#4a4e70;white-space:nowrap">{{ m.label }}</span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:36px;line-height:1">{{ m.v }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ m.dc }}">{{ m.d }}</span></div>
+                <div style="display:flex;gap:2px;height:10px">
+                  <sc-for list="{{ m.segs }}" as="g" hint-placeholder-count="12"><span style="flex:1;background:{{ g.bg }};border:1px {{ g.bs }} {{ g.bc }}"></span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:54px;padding:0 24px;display:flex;align-items:stretch;gap:4px;background:#ECEAE4;border-bottom:1px solid #d9d6ce">
+          <sc-for list="{{ bSteps0 }}" as="s" hint-placeholder-count="7">
+            <span style="display:flex;align-items:center;gap:8px;padding:0 16px;font-size:17px;color:{{ s.c }};font-weight:{{ s.w }};background:{{ s.bg }};border-bottom:3px solid {{ s.bb }}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ s.nc }}">{{ s.n }}</span>{{ s.label }}</span>
+          </sc-for>
+        </div>
+        <div style="position:absolute;top:146px;bottom:64px;left:0;right:0;padding:34px 40px 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:48px">
+          <div style="display:flex;flex-direction:column">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">01 / Risk acceptance</span>
+            <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:54px;line-height:1.02;letter-spacing:-0.02em;margin:12px 0 18px">Who is carrying this risk?</h1>
+            <p style="font-size:21px;line-height:1.5;margin:0;text-wrap:pretty">ChartPilot is operating outside its approval in two clinics, on a model version nobody evaluated. Until a re-review happens, someone is carrying the residual risk — today, whether or not anyone has said so. Who accepts it, in writing — or who turns it off?</p>
+          </div>
+          <div style="background:#fff;border:1px solid #e3e1db;padding:24px 26px;display:flex;flex-direction:column;gap:20px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Recording the room's answer</span>
+            <div style="display:flex;gap:14px;align-items:flex-start;border:2px solid #2F2E78;border-radius:2px;background:#F7F6F3;padding:12px 14px"><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:17px;color:#2F2E78;padding-top:1px">B</span><span style="font-size:19px;font-weight:600;line-height:1.3">Restrict to the originally approved clinic; switch it off in Clinics B and C today</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:16px;line-height:1.45;color:#4a4e70">Name the specific person or role who accepts the residual risk (or who orders the shutdown), and what triggers revisiting it.</span>
+              <div style="border:2px solid #2F2E78;border-radius:2px;padding:12px 14px;font-size:20px;line-height:1.45;min-height:88px">Maya, CMIO office, accepts it for Clinic A in writing by Friday. Revisit at the re-review or any model version change.<span style="color:#387DB7;animation:blink 1s steps(1) infinite">|</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:16px;color:#4a4e70">Who at the table made that final decision?</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <sc-for list="{{ deciders }}" as="d" hint-placeholder-count="7">
+                  <span style="font-size:16px;padding:8px 14px;border-radius:2px;border:1px {{ d.bs }} {{ d.bc }};background:{{ d.bg }};color:{{ d.c }}">{{ d.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:64px;background:#10122D;padding:0 40px;display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#a8b6de;margin-right:10px">Facilitator</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Evidence</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">AI Council</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Back to discussion</span>
+          <span style="margin-left:auto;font-size:16px;font-weight:500;background:#F7F6F3;color:#10122D;border-radius:2px;padding:12px 26px">Commit the room's answer</span>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+          <span style="position:absolute;top:172px;left:618px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">3</span>
+          <span style="position:absolute;top:500px;left:618px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">4</span>
+        </sc-if>
+      </div>
+    </div>
+
+    <div id="2c" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">2c</span><span style="font-size:15px;color:#33375c">Challenge — the Elder has the floor</span></div>
+      <div style="position:relative;width:1280px;height:800px;overflow:hidden;background:#F7F6F3;color:#10122D;font-family:Archivo,Helvetica,sans-serif;border:1px solid #d9d6ce">
+        <div style="height:92px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d9d6ce">
+          <div style="display:flex;align-items:center;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Tabletop · enters at monitoring</span>
+              <span style="font-size:21px;font-weight:600;letter-spacing:-0.01em">Live a Year, Drifted, Spread Beyond Approval</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:22px">
+            <sc-for list="{{ bMeter0 }}" as="m" hint-placeholder-count="4">
+              <div style="width:124px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#4a4e70;white-space:nowrap">{{ m.label }}</span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:36px;line-height:1">{{ m.v }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ m.dc }}">{{ m.d }}</span></div>
+                <div style="display:flex;gap:2px;height:10px">
+                  <sc-for list="{{ m.segs }}" as="g" hint-placeholder-count="12"><span style="flex:1;background:{{ g.bg }};border:1px {{ g.bs }} {{ g.bc }}"></span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:54px;padding:0 24px;display:flex;align-items:stretch;gap:4px;background:#ECEAE4;border-bottom:1px solid #d9d6ce">
+          <sc-for list="{{ bSteps0 }}" as="s" hint-placeholder-count="7">
+            <span style="display:flex;align-items:center;gap:8px;padding:0 16px;font-size:17px;color:{{ s.c }};font-weight:{{ s.w }};background:{{ s.bg }};border-bottom:3px solid {{ s.bb }}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ s.nc }}">{{ s.n }}</span>{{ s.label }}</span>
+          </sc-for>
+        </div>
+        <div style="position:absolute;top:146px;bottom:64px;left:0;right:0;padding:34px 40px 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:48px">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#4a4e70">The room committed</span>
+            <div style="background:#ECEAE4;padding:22px 22px 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:16px;color:#387DB7;padding-top:2px">B</span><span style="font-size:19px;font-weight:600;line-height:1.3">Restrict to the originally approved clinic; switch it off in Clinics B and C today</span></div>
+              <p style="margin:0;font-size:18px;line-height:1.5;color:#33375c">“Maya, CMIO office, accepts it for Clinic A in writing by Friday. Revisit at the re-review or any model version change.”</p>
+              <div style="border-top:1px solid #d9d6ce;padding-top:12px;display:flex;flex-direction:column;gap:3px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#6c7196">Final call</span><span style="font-size:17px">The Security Guard · Dana</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;gap:20px;align-items:center">
+              <span style="flex:none;width:64px;height:64px;background:#10122D;color:#F7F6F3;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',Georgia,serif;font-size:36px">S</span>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:42px;line-height:1">The Steward</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Elder · security and risk</span></div>
+            </div>
+            <p style="font-size:30px;line-height:1.45;margin:24px 0 0;text-wrap:pretty;letter-spacing:-0.005em">You've put a name on Clinic A, and I'll take that — in writing, by Friday. But switching off Clinics B and C in this room doesn't switch them off in the chart; that shared template is still live tonight. Who confirms it's actually disabled, and when does Maya's acceptance expire?</p>
+            <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#d9d6ce;border:1px solid #d9d6ce">
+              <div style="background:#fff;padding:18px 22px;display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:600;letter-spacing:-0.01em">Hold — the answer stands</span><span style="font-size:16px;color:#4a4e70">The first answer locks as written.</span></div>
+              <div style="background:#fff;padding:18px 22px;display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:600;letter-spacing:-0.01em">Revise the answer</span><span style="font-size:16px;color:#4a4e70">Reopens the record, pre-filled. Both are kept.</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:64px;background:#10122D;padding:0 40px;display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#a8b6de;margin-right:10px">Facilitator</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Evidence</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">AI Council</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Skip node</span>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;opacity:0.45">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#a8b6de;margin-right:6px">Score at lock</span>
+            <span style="font-size:15px;color:#F7F6F3;border:1px solid rgba(247,246,243,0.5);border-radius:2px;padding:9px 16px">Specific</span>
+            <span style="font-size:15px;color:#F7F6F3;border:1px solid rgba(247,246,243,0.5);border-radius:2px;padding:9px 16px">Generic</span>
+            <span style="font-size:15px;color:#F7F6F3;border:1px solid rgba(247,246,243,0.5);border-radius:2px;padding:9px 16px">Absent</span>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+          <span style="position:absolute;top:174px;left:444px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">5</span>
+          <span style="position:absolute;top:618px;left:444px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">6</span>
+          <span style="position:absolute;bottom:20px;left:780px;width:24px;height:24px;background:#387DB7;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">2</span>
+        </sc-if>
+      </div>
+    </div>
+
+    <div id="2d" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">2d</span><span style="font-size:15px;color:#33375c">Lock and consequence — what moved, and the path so far</span></div>
+      <div style="position:relative;width:1280px;height:800px;overflow:hidden;background:#F7F6F3;color:#10122D;font-family:Archivo,Helvetica,sans-serif;border:1px solid #d9d6ce">
+        <div style="height:92px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d9d6ce">
+          <div style="display:flex;align-items:center;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">Tabletop · enters at monitoring</span>
+              <span style="font-size:21px;font-weight:600;letter-spacing:-0.01em">Live a Year, Drifted, Spread Beyond Approval</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:22px">
+            <sc-for list="{{ bMeter1 }}" as="m" hint-placeholder-count="4">
+              <div style="width:124px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#4a4e70;white-space:nowrap">{{ m.label }}</span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:36px;line-height:1">{{ m.v }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ m.dc }}">{{ m.d }}</span></div>
+                <div style="display:flex;gap:2px;height:10px">
+                  <sc-for list="{{ m.segs }}" as="g" hint-placeholder-count="12"><span style="flex:1;background:{{ g.bg }};border:1px {{ g.bs }} {{ g.bc }}"></span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:54px;padding:0 24px;display:flex;align-items:stretch;gap:4px;background:#ECEAE4;border-bottom:1px solid #d9d6ce">
+          <sc-for list="{{ bSteps1 }}" as="s" hint-placeholder-count="7">
+            <span style="display:flex;align-items:center;gap:8px;padding:0 16px;font-size:17px;color:{{ s.c }};font-weight:{{ s.w }};background:{{ s.bg }};border-bottom:3px solid {{ s.bb }}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ s.nc }}">{{ s.n }}</span>{{ s.label }}</span>
+          </sc-for>
+        </div>
+        <div style="position:absolute;top:146px;bottom:64px;left:0;right:0;padding:34px 40px 28px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:1fr auto;gap:28px 56px">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:0.14em;text-transform:uppercase;color:#387DB7">What this sets in motion</span>
+            <p style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:48px;line-height:1.1;letter-spacing:-0.01em;text-wrap:pretty">Clinics B and C lose ChartPilot at 7 a.m. tomorrow. The shared template that enabled them is still live.</p>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:#4a4e70">Locked · <span style="color:#2F2E78;font-weight:500">Specific</span> · held after challenge</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#4a4e70">What moved</span>
+            <div style="display:flex;flex-direction:column;border-top:1px solid #d9d6ce">
+              <sc-for list="{{ moved }}" as="m" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:1fr auto auto;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid #d9d6ce">
+                  <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600">{{ m.label }}</span><span style="font-size:14px;color:#6c7196">{{ m.dir }}</span></div>
+                  <span style="font-family:'Instrument Serif',Georgia,serif;font-size:34px;line-height:1">{{ m.fromTo }}</span>
+                  <span style="width:64px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ m.c }}">{{ m.delta }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:10px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#4a4e70">Decision path</span>
+            <div style="display:flex;gap:1px;background:#d9d6ce;border:1px solid #d9d6ce;height:92px">
+              <div style="flex:2.4;background:#2F2E78;color:#F7F6F3;padding:12px 16px;display:flex;flex-direction:column;gap:3px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#a8b6de">01 Risk · specific</span>
+                <span style="font-size:17px;font-weight:600">Restrict to Clinic A</span>
+                <span style="font-size:14px;color:#d5d8e8">Accepts: Maya, CMIO office</span>
+              </div>
+              <div style="flex:1;background:#fff;border-top:3px solid #387DB7;padding:10px 14px;display:flex;flex-direction:column;gap:3px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#387DB7">02 · next</span><span style="font-size:16px;font-weight:600">Off switch</span></div>
+              <sc-for list="{{ pathRest }}" as="p" hint-placeholder-count="5">
+                <div style="flex:1;background:#ECEAE4;padding:12px 14px;display:flex;flex-direction:column;gap:3px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a8fae">{{ p.n }}</span><span style="font-size:16px;color:#6c7196">{{ p.label }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:64px;background:#10122D;padding:0 40px;display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#a8b6de;margin-right:10px">Facilitator</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">Evidence</span>
+          <span style="font-size:15px;color:#d5d8e8;border:1px solid rgba(247,246,243,0.3);border-radius:2px;padding:9px 16px">AI Council</span>
+          <span style="margin-left:auto;font-size:16px;font-weight:500;background:#F7F6F3;color:#10122D;border-radius:2px;padding:12px 26px">Continue to node 2</span>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+          <span style="position:absolute;top:176px;left:708px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">7</span>
+          <span style="position:absolute;top:572px;left:14px;width:24px;height:24px;background:#2F2E78;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">8</span>
+        </sc-if>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="turn-1" style="padding:40px 64px 96px;font-family:Archivo,Helvetica,sans-serif;color:#10122D">
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:28px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#387DB7">01 / Current build</span>
+    <h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:44px;line-height:1.08">The room screen today</h2>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#4a4e70;max-width:80ch">Recreated from client/src/App.jsx and styles.css at 1280px, full page height, Scenario 4 node 1.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">1a</span><span style="font-size:15px;color:#33375c">Pose — brief, question, evidence, answer form</span></div>
+      <div style="width:1280px;background:#16181d;color:#f2efe9;font-family:Georgia,'Times New Roman',serif;line-height:1.5;font-size:18px">
+        <div style="max-width:1100px;margin:0 auto;padding:24px 32px 64px">
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #363c48;padding-bottom:16px;margin-bottom:28px">
+            <div><span style="font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#e0b34a;margin-right:16px;font-size:0.9rem">Tabletop</span><span style="font-size:1.1rem;font-style:italic;margin-right:12px">Live a Year, Drifted, Spread Beyond Approval</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em">enters at Monitoring</span></div>
+            <div style="display:flex;gap:20px;font-family:'Segoe UI',system-ui,sans-serif">
+              <sc-for list="{{ cMeter0 }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:0.68rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">{{ m.label }}</span><span style="font-size:1.3rem;font-weight:600">{{ m.v }}</span></div></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap">
+            <sc-for list="{{ cProg0 }}" as="p" hint-placeholder-count="7"><div style="font-family:Consolas,monospace;font-size:0.72rem;padding:5px 12px;border-radius:14px;border:1px solid {{ p.bc }};color:{{ p.c }};background:#1f232b">{{ p.t }}</div></sc-for>
+          </div>
+          <div style="background:#1f232b;border-radius:10px;padding:24px 28px;margin-bottom:28px">
+            <p style="margin:0 0 14px;font-size:1.05rem">ChartPilot is an AI documentation assistant that summarizes prior visits and drafts note sections. Fourteen months ago it was approved as a six-month pilot in one medical oncology clinic. It is still running.</p>
+            <p style="margin:0 0 14px;font-size:1.05rem">Since go-live: the vendor has shipped two model updates nobody evaluated; two more clinics enabled ChartPilot through a shared note template; and last month's quality sample found summaries omitting recent lab trends. The original approval names a pilot sponsor who has since changed roles. No one has reviewed ChartPilot since launch.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px"><span style="font-family:Consolas,monospace;font-size:0.8rem;color:#e0b34a;background:rgba(224,179,74,0.12);padding:3px 10px;border-radius:4px">risk_accept</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">node 1 of 7</span></div>
+          <h1 style="font-size:2rem;margin:12px 0 8px">Who is carrying this risk?</h1>
+          <p style="font-size:1.2rem;margin:0 0 24px">ChartPilot is operating outside its approval in two clinics, on a model version nobody evaluated. Until a re-review happens, someone is carrying the residual risk — today, whether or not anyone has said so. Who accepts it, in writing — or who turns it off?</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px">
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.72rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em;margin-right:4px">Evidence folder</span>
+            <sc-for list="{{ evidenceFull }}" as="e" hint-placeholder-count="4"><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;background:#262b35;color:#f2efe9;border:1px solid #363c48;border-radius:20px;padding:6px 14px">{{ e }}</span></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <sc-for list="{{ cOpts0 }}" as="o" hint-placeholder-count="4"><div style="background:{{ o.bg }};border:2px {{ o.bs }} {{ o.bc }};border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:1.05rem;font-weight:600">{{ o.label }}</span><span style="font-size:0.88rem;color:#a9a49a;font-style:italic">{{ o.hint }}</span></div></sc-for>
+          </div>
+          <div style="margin-bottom:16px"><span style="display:block;font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin-bottom:6px">Name the specific person or role who accepts the residual risk (or who orders the shutdown), and what triggers revisiting it.</span><div style="background:#1f232b;border:1px solid #363c48;border-radius:8px;padding:12px 14px;font-size:1.05rem;height:78px;color:#757575">A name or role, and a trigger…</div></div>
+          <div style="margin-bottom:16px"><span style="display:block;font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin-bottom:6px">Who at the table made that final decision? A role, a first name, or “the group.”</span><div style="background:#1f232b;border:1px solid #363c48;border-radius:8px;padding:12px 14px;font-size:1.05rem;color:#757575">e.g. The Security Guard · Dana · the group</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:1rem;font-weight:600;background:#e0b34a;color:#201a0c;border-radius:8px;padding:14px 28px;opacity:0.35">Commit the room's answer</span>
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.9rem;color:#a9a49a;border:1px solid #363c48;border-radius:8px;padding:10px 20px;margin-top:10px;opacity:0.7">Skip this node</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">1b</span><span style="font-size:15px;color:#33375c">Challenge + revise — Steward turn, duplicate form, Hold below</span></div>
+      <div style="width:1280px;background:#16181d;color:#f2efe9;font-family:Georgia,'Times New Roman',serif;line-height:1.5;font-size:18px">
+        <div style="max-width:1100px;margin:0 auto;padding:24px 32px 64px">
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #363c48;padding-bottom:16px;margin-bottom:28px">
+            <div><span style="font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#e0b34a;margin-right:16px;font-size:0.9rem">Tabletop</span><span style="font-size:1.1rem;font-style:italic;margin-right:12px">Live a Year, Drifted, Spread Beyond Approval</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em">enters at Monitoring</span></div>
+            <div style="display:flex;gap:20px;font-family:'Segoe UI',system-ui,sans-serif">
+              <sc-for list="{{ cMeter0 }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:0.68rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">{{ m.label }}</span><span style="font-size:1.3rem;font-weight:600">{{ m.v }}</span></div></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap">
+            <sc-for list="{{ cProg0 }}" as="p" hint-placeholder-count="7"><div style="font-family:Consolas,monospace;font-size:0.72rem;padding:5px 12px;border-radius:14px;border:1px solid {{ p.bc }};color:{{ p.c }};background:#1f232b">{{ p.t }}</div></sc-for>
+          </div>
+          <div style="background:#1f232b;border-radius:10px;padding:20px 24px;margin-bottom:20px">
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.72rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.1em">The room committed</span>
+            <p style="font-size:1.15rem;font-weight:600;margin:8px 0 6px">Restrict to the originally approved clinic; switch it off in Clinics B and C today</p>
+            <p style="font-style:italic;margin:0 0 6px">“Maya, CMIO office, accepts it for Clinic A in writing by Friday. Revisit at the re-review or any model version change.”</p>
+            <p style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin:0">Final call: The Security Guard</p>
+          </div>
+          <div style="border-left:4px solid #7fb4c9;background:#262b35;border-radius:0 10px 10px 0;padding:20px 26px;margin-bottom:24px">
+            <span style="font-weight:700;color:#7fb4c9;margin-right:10px">The Steward</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.78rem;color:#a9a49a">Security and risk</span>
+            <p style="font-size:1.25rem;margin:10px 0 0">You've put a name on Clinic A, and I'll take that — in writing, by Friday. But switching off Clinics B and C in this room doesn't switch them off in the chart; that shared template is still live tonight. Who confirms it's actually disabled, and when does Maya's acceptance expire?</p>
+          </div>
+          <h2 style="font-size:1.3rem;margin:24px 0 14px">Revise, or hold your answer?</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <sc-for list="{{ cOpts1 }}" as="o" hint-placeholder-count="4"><div style="background:{{ o.bg }};border:2px {{ o.bs }} {{ o.bc }};border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:1.05rem;font-weight:600">{{ o.label }}</span><span style="font-size:0.88rem;color:#a9a49a;font-style:italic">{{ o.hint }}</span></div></sc-for>
+          </div>
+          <div style="margin-bottom:16px"><span style="display:block;font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin-bottom:6px">Name the specific person or role who accepts the residual risk (or who orders the shutdown), and what triggers revisiting it.</span><div style="background:#1f232b;border:1px solid #363c48;border-radius:8px;padding:12px 14px;font-size:1.05rem;height:78px">Maya, CMIO office, accepts it for Clinic A in writing by Friday. Revisit at the re-review or any model version change.</div></div>
+          <div style="margin-bottom:16px"><span style="display:block;font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin-bottom:6px">Who at the table made that final decision? A role, a first name, or “the group.”</span><div style="background:#1f232b;border:1px solid #363c48;border-radius:8px;padding:12px 14px;font-size:1.05rem">The Security Guard</div></div>
+          <span style="display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:1rem;font-weight:600;background:#e0b34a;color:#201a0c;border-radius:8px;padding:14px 28px">Commit the revised answer</span>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.9rem;color:#a9a49a;border:1px solid #363c48;border-radius:8px;padding:10px 20px;margin-top:10px">Hold — the answer stands</span>
+            <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.9rem;color:#a9a49a;border:1px solid #363c48;border-radius:8px;padding:10px 20px;margin-top:10px;opacity:0.7">Skip this node</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:48px">
+      <div id="1c" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">1c</span><span style="font-size:15px;color:#33375c">Score — facilitator scores on the projected screen</span></div>
+        <div style="width:1280px;background:#16181d;color:#f2efe9;font-family:Georgia,'Times New Roman',serif;line-height:1.5;font-size:18px">
+          <div style="max-width:1100px;margin:0 auto;padding:24px 32px 64px">
+            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #363c48;padding-bottom:16px;margin-bottom:28px">
+              <div><span style="font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#e0b34a;margin-right:16px;font-size:0.9rem">Tabletop</span><span style="font-size:1.1rem;font-style:italic;margin-right:12px">Live a Year, Drifted, Spread Beyond Approval</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em">enters at Monitoring</span></div>
+              <div style="display:flex;gap:20px;font-family:'Segoe UI',system-ui,sans-serif">
+                <sc-for list="{{ cMeter0 }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:0.68rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">{{ m.label }}</span><span style="font-size:1.3rem;font-weight:600">{{ m.v }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap">
+              <sc-for list="{{ cProg0 }}" as="p" hint-placeholder-count="7"><div style="font-family:Consolas,monospace;font-size:0.72rem;padding:5px 12px;border-radius:14px;border:1px solid {{ p.bc }};color:{{ p.c }};background:#1f232b">{{ p.t }}</div></sc-for>
+            </div>
+            <h2 style="font-size:1.3rem;margin:24px 0 14px">Facilitator: score this node</h2>
+            <p style="color:#a9a49a;font-size:0.95rem"><strong>Specific</strong> names a role or person plus a trigger or threshold · <strong>Generic</strong> names a function · <strong>Absent</strong> declined or named no one</p>
+            <div style="display:flex;gap:14px;margin-top:16px">
+              <sc-for list="{{ scores }}" as="s" hint-placeholder-count="3"><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:1.05rem;font-weight:600;text-transform:capitalize;border-radius:8px;padding:16px 32px;border:2px solid #363c48;background:#1f232b">{{ s }}</span></sc-for>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.9rem;color:#a9a49a;border:1px solid #363c48;border-radius:8px;padding:10px 20px;margin-top:10px;opacity:0.7">Skip this node</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="1d" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">1d</span><span style="font-size:15px;color:#33375c">Consequence — deltas appear only in the header</span></div>
+        <div style="width:1280px;background:#16181d;color:#f2efe9;font-family:Georgia,'Times New Roman',serif;line-height:1.5;font-size:18px">
+          <div style="max-width:1100px;margin:0 auto;padding:24px 32px 64px">
+            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #363c48;padding-bottom:16px;margin-bottom:28px">
+              <div><span style="font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#e0b34a;margin-right:16px;font-size:0.9rem">Tabletop</span><span style="font-size:1.1rem;font-style:italic;margin-right:12px">Live a Year, Drifted, Spread Beyond Approval</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em">enters at Monitoring</span></div>
+              <div style="display:flex;gap:20px;font-family:'Segoe UI',system-ui,sans-serif">
+                <sc-for list="{{ cMeter1 }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:0.68rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">{{ m.label }}</span><span style="font-size:1.3rem;font-weight:600">{{ m.v }}<em style="font-style:normal;font-size:0.85rem;margin-left:2px;color:{{ m.dc }}">{{ m.d }}</em></span></div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap">
+              <sc-for list="{{ cProg1 }}" as="p" hint-placeholder-count="7"><div style="font-family:Consolas,monospace;font-size:0.72rem;padding:5px 12px;border-radius:14px;border:1px solid {{ p.bc }};color:{{ p.c }};background:#1f232b">{{ p.t }}</div></sc-for>
+            </div>
+            <div style="background:#1f232b;border-radius:10px;padding:28px 32px">
+              <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.72rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.1em">What this sets in motion</span>
+              <p style="font-size:1.3rem;margin:12px 0 18px">Clinics B and C lose ChartPilot at 7 a.m. tomorrow. The shared template that enabled them is still live.</p>
+              <p style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a">Locked · scored <strong>specific</strong> · held after challenge</p>
+              <span style="display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:1rem;font-weight:600;background:#e0b34a;color:#201a0c;border-radius:8px;padding:14px 28px">Continue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1e" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:center"><span style="background:#10122D;color:#F7F6F3;font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;border-radius:2px">1e</span><span style="font-size:15px;color:#33375c">Epilogue — twelve months later</span></div>
+      <div style="width:1280px;background:#16181d;color:#f2efe9;font-family:Georgia,'Times New Roman',serif;line-height:1.5;font-size:18px">
+        <div style="max-width:1100px;margin:0 auto;padding:24px 32px 64px">
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #363c48;padding-bottom:16px;margin-bottom:28px">
+            <div><span style="font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#e0b34a;margin-right:16px;font-size:0.9rem">Tabletop</span><span style="font-size:1.1rem;font-style:italic;margin-right:12px">Live a Year, Drifted, Spread Beyond Approval</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.75rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.08em">enters at Monitoring</span></div>
+            <div style="display:flex;gap:20px;font-family:'Segoe UI',system-ui,sans-serif">
+              <sc-for list="{{ cMeter2 }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:0.68rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.06em">{{ m.label }}</span><span style="font-size:1.3rem;font-weight:600">{{ m.v }}<em style="font-style:normal;font-size:0.85rem;margin-left:2px;color:{{ m.dc }}">{{ m.d }}</em></span></div></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap">
+            <sc-for list="{{ cProg2 }}" as="p" hint-placeholder-count="7"><div style="font-family:Consolas,monospace;font-size:0.72rem;padding:5px 12px;border-radius:14px;border:1px solid {{ p.bc }};color:{{ p.c }};background:#1f232b;text-decoration:{{ p.td }};opacity:{{ p.op }}">{{ p.t }}</div></sc-for>
+          </div>
+          <span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.72rem;color:#a9a49a;text-transform:uppercase;letter-spacing:0.1em">Twelve months later</span>
+          <h1 style="font-size:2rem;margin:8px 0 20px">What held, and what broke</h1>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ epi }}" as="p" hint-placeholder-count="7">
+              <div style="background:#1f232b;border-radius:10px;padding:16px 22px;border-left:4px solid {{ p.col }}">
+                <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><span style="font-family:Consolas,monospace;font-size:0.8rem;color:#e0b34a;background:rgba(224,179,74,0.12);padding:3px 10px;border-radius:4px">{{ p.t }}</span><span style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:{{ p.col }}">{{ p.v }}</span></div>
+                <p style="margin:0;font-size:1.05rem">{{ p.line }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-family:'Segoe UI',system-ui,sans-serif;font-size:0.85rem;color:#a9a49a;margin-top:18px">Session ran 84 minutes · <span style="color:#e0b34a;text-decoration:underline">export JSON</span></p>
+          <span style="display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:0.9rem;color:#a9a49a;border:1px solid #363c48;border-radius:8px;padding:10px 20px;margin-top:10px">Reset the scenario</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showNotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const OPTS = [
+      { k: "A", label: "Keep it running everywhere while an expedited re-review happens", hint: "Fastest for users. The risk stays live and someone must own it." },
+      { k: "B", label: "Restrict to the originally approved clinic; switch it off in Clinics B and C today", hint: "Honors the approval. Two clinics lose a tool they now depend on." },
+      { k: "C", label: "Suspend everywhere until the re-review completes", hint: "Cleanest risk posture. All three clinics feel it tomorrow morning." },
+      { k: "D", label: "We cannot answer this today", hint: "Recorded as an explicit gap, not a failure. It is also not free.", decline: true },
+    ];
+    const cOpt = (sel) => OPTS.map((o) => ({ ...o, bs: o.decline ? "dashed" : "solid", bc: o.k === sel ? "#e0b34a" : "#363c48", bg: o.k === sel ? "#262b35" : "#1f232b" }));
+    const TYPES = ["risk_accept", "stop", "tier", "decide", "proof", "retier", "funding"];
+    const LABELS = ["Risk", "Off switch", "Tier", "Decider", "Proof", "Re-review", "Funding"];
+    const SC = { specific: "#79b791", generic: "#e0b34a", absent: "#d07a6a" };
+    const cProg = (states) => TYPES.map((t, i) => {
+      const s = states[i] || "pending";
+      if (s === "current") return { t, bc: "#e0b34a", c: "#e0b34a", td: "none", op: 1 };
+      if (s === "skipped") return { t, bc: "#363c48", c: "#a9a49a", td: "line-through", op: 0.6 };
+      if (SC[s]) return { t, bc: SC[s], c: "#f2efe9", td: "none", op: 1 };
+      return { t, bc: "#363c48", c: "#a9a49a", td: "none", op: 1 };
+    });
+    const ML = { goodwill: "Clinician goodwill", risk: "Risk exposure", dollars: "Dollars committed", time: "Time to first value" };
+    const UP = { goodwill: false, risk: true, dollars: true, time: true };
+    const cMeter = (m, prev) => Object.keys(ML).map((k) => {
+      const d = prev ? m[k] - prev[k] : 0;
+      const worse = UP[k] ? d > 0 : d < 0;
+      return { label: ML[k], v: m[k], d: d ? (d > 0 ? ` +${d}` : ` ${d}`) : "", dc: worse ? "#d07a6a" : "#79b791" };
+    });
+    const m0 = { goodwill: 10, risk: 4, dollars: 3, time: 5 };
+    const m1 = { goodwill: 8, risk: 3, dollars: 3, time: 6 };
+    const mEndPrev = { goodwill: 7, risk: 5, dollars: 5, time: 7 };
+    const mEnd = { goodwill: 7, risk: 5, dollars: 6, time: 8 };
+    const BL = { goodwill: "Goodwill", risk: "Risk", dollars: "Dollars", time: "Time to value" };
+    const bMeter = (m, p) => Object.keys(BL).map((k) => {
+      const v = m[k], pv = p ? p[k] : v, d = v - pv;
+      const worse = UP[k] ? d > 0 : d < 0;
+      const tone = worse ? "#a24f2c" : "#387DB7";
+      const segs = Array.from({ length: 12 }, (_, i) => {
+        if (i < Math.min(v, pv)) return { bg: "#2F2E78", bc: "#2F2E78", bs: "solid" };
+        if (d > 0 && i < v) return { bg: tone, bc: tone, bs: "solid" };
+        if (d < 0 && i < pv) return { bg: "transparent", bc: tone, bs: "dashed" };
+        return { bg: "#ddd9d0", bc: "#ddd9d0", bs: "solid" };
+      });
+      return { label: BL[k], v, segs, d: d ? (d > 0 ? `+${d}` : `−${-d}`) : "", dc: tone };
+    });
+    const bSteps = (cur) => LABELS.map((label, i) => ({
+      n: "0" + (i + 1), label,
+      c: i === cur ? "#F7F6F3" : i < cur ? "#10122D" : "#6c7196",
+      nc: i === cur ? "#a8b6de" : "inherit",
+      w: i === cur ? 600 : 400,
+      bg: i === cur ? "#10122D" : "transparent",
+      bb: i === cur ? "#10122D" : i < cur ? "#2F2E78" : "transparent",
+    }));
+    const WORSE = "#a24f2c";
+    return {
+      showNotes: this.props.showNotes ?? true,
+      recs: [
+        { n: "01", t: "One beat, one screen, no scrolling.", d: "The pose step (1a) runs ~1,900px tall. When the facilitator scrolls to type, the room loses the question. Fit every beat to a 1280×800 projected laptop." },
+        { n: "02", t: "Separate the room's view from the facilitator's controls.", d: "A persistent Deep Purple bar holds Record, Skip, Score and Evidence. Skip moves away from the primary action; today it floats beside it." },
+        { n: "03", t: "Split Discuss from Record.", d: "Options stay readable while the room argues (2a). Input fields appear only when the facilitator records (2b)." },
+        { n: "04", t: "“Who made the final call” as one tap.", d: "Chips from the role roster with first names, plus “the group” and Other. Faster entry and cleaner decider-emergence data (PRD §8)." },
+        { n: "05", t: "Make the Elder the loudest thing on screen.", d: "The challenge is the drama of the beat. Give it the largest type and pin the committed answer to the side for reference (2c)." },
+        { n: "06", t: "Hold and Revise as equal choices.", d: "In 1b, Hold is a quiet button under a pre-filled duplicate form with a bright Commit button, which nudges rooms to re-commit. Revise should reopen the record sheet." },
+        { n: "07", t: "Show what moved beside the consequence.", d: "Deltas only appear in the header in ~15px type, far from the story. Show before → after and which direction is worse (2d)." },
+        { n: "08", t: "Grow the decision path on screen.", d: "The PRD says the flowchart grows at lock; nothing shows it yet. A path strip that fills node by node also replaces the progress rail." },
+        { n: "09", t: "Human labels over schema IDs.", d: "risk_accept and retier in monospace read as code to clinical leaders. Use “Risk”, “Re-review”; keep IDs in exports." },
+        { n: "10", t: "Raise the projected type floor.", d: "Labels at 0.68–0.8rem (12–14px) and small italic hints won't read from the back row. 16px minimum for labels, 22px+ for anything the room must read." },
+        { n: "11", t: "Evidence folder reachable in every phase.", d: "It only renders on the pose step today; the PRD says any time. It lives in the facilitator bar in the proposal." },
+        { n: "12", t: "Give the scenario briefing its own opening beat.", d: "The brief sits above node 1 and pushes the question below the fold. A briefing screen with role-roster entry sets the scene; node 1 then starts clean." },
+      ],
+      evidence: ["Original approval memo", "Usage dashboard, this quarter", "Quality sample, last month", "Vendor renewal notice"],
+      evidenceFull: ["Original approval memo (14 months ago)", "Usage dashboard, this quarter", "Quality sample, last month", "Vendor renewal notice"],
+      bOpts3: OPTS.slice(0, 3),
+      cOpts0: cOpt(null),
+      cOpts1: cOpt("B"),
+      cProg0: cProg(["current"]),
+      cProg1: cProg(["specific"]),
+      cProg2: cProg(["specific", "specific", "generic", "absent", "specific", "skipped", "generic"]),
+      cMeter0: cMeter(m0),
+      cMeter1: cMeter(m1, m0),
+      cMeter2: cMeter(mEnd, mEndPrev),
+      scores: ["specific", "generic", "absent"],
+      epi: [
+        { t: "risk_accept", held: true, line: "The risk had a name on it all year. When CP-4.1 shipped with a regression, the acceptor's standing review caught it in nine days." },
+        { t: "stop", held: true, line: "When the switch was finally needed — the CP-4.1 regression — turning ChartPilot off took forty minutes, not nineteen hours." },
+        { t: "tier", held: false, line: "The tier never settled, so it never bound anyone. By summer, “tier” was a word that meant approved-ish." },
+        { t: "decide", held: false, line: "“It went to committee” remained a complete sentence. The re-review concluded in June with a recommendation to review further." },
+        { t: "proof", held: true, line: "The monthly number did what numbers do: it ended arguments. When it slipped past the ceiling in April, nobody had to debate what happened next." },
+        { t: "retier", held: false, line: "Never asked. The question did not go away for being unasked — it answered itself off-screen, on nobody's terms." },
+        { t: "funding", held: false, line: "Money stayed the question nobody owned. ChartPilot auto-renewed at the higher price, unmonitored — the most expensive way to not decide." },
+      ].map((p) => ({ ...p, v: p.held ? "held" : "broke", col: p.held ? "#79b791" : "#d07a6a" })),
+      bMeter0: bMeter(m0),
+      bMeter1: bMeter(m1, m0),
+      bSteps0: bSteps(0),
+      bSteps1: bSteps(1),
+      deciders: ["The Doctor · Priya", "The Security Guard · Dana", "The Money Manager · Luis", "The AI Guru · Sam", "The Competitive Marketing Leader · Jo", "The group", "Other…"].map((label, i) => ({
+        label,
+        bs: i === 6 ? "dashed" : "solid",
+        bc: i === 1 ? "#2F2E78" : "#c9c6bd",
+        bg: i === 1 ? "#2F2E78" : "#fff",
+        c: i === 1 ? "#F7F6F3" : i === 6 ? "#6c7196" : "#10122D",
+      })),
+      moved: [
+        { label: "Clinician goodwill", dir: "Higher is better", fromTo: "10 → 8", delta: "−2", c: WORSE },
+        { label: "Risk exposure", dir: "Lower is better", fromTo: "4 → 3", delta: "−1", c: "#387DB7" },
+        { label: "Dollars committed", dir: "Lower is better", fromTo: "3 → 3", delta: "—", c: "#8a8fae" },
+        { label: "Time to first value", dir: "Lower is better", fromTo: "5 → 6", delta: "+1", c: WORSE },
+      ],
+      pathRest: LABELS.slice(2).map((label, i) => ({ n: "0" + (i + 3), label })),
+    };
+  }
+}
+</script>
+</body>
+</html>

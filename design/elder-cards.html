@@ -1,0 +1,21 @@
+<!-- @dsCard group="Elders" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Elder cards</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--accent:#1d5c63;--serif:Georgia,serif;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+h1{font-size:22px;margin:0 0 4px}.note{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:600px}
+.elder-turn{display:flex;gap:16px;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:12px;background:var(--card);max-width:640px}
+.avatar{flex-shrink:0;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:14px}
+.elder-name{font-weight:800;margin-right:8px}
+.elder-seat{font-size:12px;color:var(--muted)}
+.elder-text{font-family:var(--serif);font-size:17px;margin:6px 0 0}
+.cursor{color:var(--accent);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.unavailable .elder-text{font-style:italic;color:var(--muted)}
+.steward .avatar{background:#d6e4ec}.caretaker .avatar{background:#dcead2}.cartographer .avatar{background:#e6def2}.ledger .avatar{background:#f0e4c8}.decoupler .avatar{background:#d4ebe6}
+</style></head><body>
+<h1>Elder challenge cards</h1>
+<p class="note">Up to two Elders respond in character to what the room actually wrote, streaming word by word. They remember earlier nodes and get less accommodating if ignored. Five Elders, each with a monogram avatar and its own tint: Steward (security), Caretaker (operations), Cartographer (governance), Ledger (finance), Decoupler (measurement). A failed call degrades to the italic unavailable line.</p>
+<div class="elder-turn steward"><span class="avatar">S</span><div><span class="elder-name">The Steward</span><span class="elder-seat">Security and risk</span><p class="elder-text">A name in writing is a start — Dr. Vasquez should know the last person who signed one of these is still explaining it. Sixty days is generous; I'll co-sign if the trigger is any unreviewed model change, not just this one.<span class="cursor">▋</span></p></div></div>
+<div class="elder-turn caretaker"><span class="avatar">C</span><div><span class="elder-name">The Caretaker</span><span class="elder-seat">Operations and sustainment</span><p class="elder-text">Everyone owns the launch; nobody owns month fourteen. Who is watching the feed on the day your kill-switch owner is on vacation?</p></div></div>
+<div class="elder-turn ledger unavailable"><span class="avatar">L</span><div><span class="elder-name">The Ledger</span><span class="elder-seat">Finance</span><p class="elder-text">The Ledger is unavailable — continue.</p></div></div>
+</body></html>
