@@ -1,6 +1,7 @@
-// Tabletop server — Phase 2: four scenarios, Villager beats, role cards,
-// printable worksheets. Single room, in-memory state; Postgres, facilitator
-// codes, and the admin dashboard arrive in Phase 3.
+// Tabletop server — Phase 3: four rooms behind pre-defined facilitator codes,
+// admin dashboard with live consolidation, exports, full game reset, and
+// Postgres persistence. Access is deliberately simple: the app's short life
+// is the security model (PRD §4).
 import "dotenv/config";
 import express from "express";
 import path from "node:path";
@@ -18,16 +19,25 @@ import {
 } from "./content/index.js";
 import { streamElderTurn } from "./npc.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
+import { initStore, saveRooms, clearStore } from "./store.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
+// ---------- codes (pre-defined; override via env) ----------
+
+const ROOM_CODES = (process.env.ROOM_CODES || "OAK-1,ELM-2,ASH-3,FIR-4")
+  .split(",")
+  .map((c) => c.trim().toUpperCase());
+const ADMIN_CODE = (process.env.ADMIN_CODE || "DUARTE-LEAD").toUpperCase();
+const ROOM_NUMBERS = [1, 2, 3, 4];
+
 // ---------- state ----------
 
-function freshState() {
+function freshRoom() {
   return {
-    scenarioId: null, // chosen with the group at the start of the breakout
+    scenarioId: null,
     nodeIndex: 0,
     phase: "posed",
     epilogue: null,
@@ -41,12 +51,16 @@ function freshState() {
   };
 }
 
-let state = freshState();
+let rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
 
-const currentScenario = () => (state.scenarioId ? scenarios[state.scenarioId] : null);
-const currentNode = () => currentScenario()?.nodes[state.nodeIndex];
-const record = (nodeId) =>
-  (state.records[nodeId] ??= {
+const restored = await initStore();
+if (restored) for (const n of ROOM_NUMBERS) if (restored[n]) rooms[n] = restored[n];
+const persist = () => saveRooms(rooms);
+
+const currentScenario = (room) => (room.scenarioId ? scenarios[room.scenarioId] : null);
+const currentNode = (room) => currentScenario(room)?.nodes[room.nodeIndex];
+const getRecord = (room, nodeId) =>
+  (room.records[nodeId] ??= {
     firstAnswer: null,
     revisedAnswer: null,
     held: false,
@@ -54,20 +68,69 @@ const record = (nodeId) =>
     score: null,
     consequence: null,
     villager: null,
-    timings: { posedAt: state.posedAt, firstAnswerAt: null, lockedAt: null },
+    timings: { posedAt: room.posedAt, firstAnswerAt: null, lockedAt: null },
   });
 const finalAnswer = (r) => r.revisedAnswer ?? r.firstAnswer;
 
-function publicState() {
-  const scenario = currentScenario();
-  const node = scenario && !state.epilogue ? currentNode() : null;
+const scenarioClaims = () => {
+  const claims = {};
+  for (const n of ROOM_NUMBERS) if (rooms[n].scenarioId) claims[rooms[n].scenarioId] = n;
+  return claims;
+};
+
+function roomProgress(room, scenario) {
+  return scenario.nodes.map((n, i) => {
+    const r = room.records[n.id];
+    return {
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      status: room.epilogue
+        ? r?.skipped
+          ? "skipped"
+          : "done"
+        : i < room.nodeIndex
+          ? r?.skipped
+            ? "skipped"
+            : "done"
+          : i === room.nodeIndex
+            ? "current"
+            : "upcoming",
+      score: r?.score ?? null,
+    };
+  });
+}
+
+function roomRecords(room, scenario) {
+  return Object.fromEntries(
+    Object.entries(room.records).map(([id, r]) => {
+      const a = finalAnswer(r);
+      const n = scenario?.nodes.find((x) => x.id === id);
+      return [
+        id,
+        {
+          score: r.score,
+          skipped: r.skipped,
+          answer: a && n ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
+        },
+      ];
+    }),
+  );
+}
+
+function publicState(room, roomNumber) {
+  const scenario = currentScenario(room);
+  const node = scenario && !room.epilogue ? currentNode(room) : null;
+  const claims = scenarioClaims();
   return {
+    roomNumber,
     scenarios: Object.values(scenarios).map((s) => ({
       id: s.id,
       title: s.title,
       entersAt: s.entersAt,
       tagline: s.tagline,
       nodeCount: s.nodes.length,
+      claimedBy: claims[s.id] ?? null,
     })),
     scenario: scenario
       ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt, brief: scenario.brief, evidence: scenario.evidence }
@@ -75,43 +138,9 @@ function publicState() {
     decidedByPrompt,
     villagerStandingLine,
     roles,
-    roleAssignments: state.roleAssignments,
-    progress: scenario
-      ? scenario.nodes.map((n, i) => {
-          const r = state.records[n.id];
-          return {
-            id: n.id,
-            type: n.type,
-            title: n.title,
-            status: state.epilogue
-              ? r?.skipped
-                ? "skipped"
-                : "done"
-              : i < state.nodeIndex
-                ? r?.skipped
-                  ? "skipped"
-                  : "done"
-                : i === state.nodeIndex
-                  ? "current"
-                  : "upcoming",
-            score: r?.score ?? null,
-          };
-        })
-      : [],
-    records: Object.fromEntries(
-      Object.entries(state.records).map(([id, r]) => {
-        const a = finalAnswer(r);
-        const n = scenario?.nodes.find((x) => x.id === id);
-        return [
-          id,
-          {
-            score: r.score,
-            skipped: r.skipped,
-            answer: a && n ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
-          },
-        ];
-      }),
-    ),
+    roleAssignments: room.roleAssignments,
+    progress: scenario ? roomProgress(room, scenario) : [],
+    records: roomRecords(room, scenario),
     node: node
       ? {
           id: node.id,
@@ -121,25 +150,42 @@ function publicState() {
           freeTextPrompt: node.freeTextPrompt,
           options: node.options,
           elders: node.elders.map((id) => ({ id, name: elders[id].name, seat: elders[id].seat })),
-          inject: node.inject(state.records),
-          index: state.nodeIndex,
+          inject: node.inject(room.records),
+          index: room.nodeIndex,
           count: scenario.nodes.length,
         }
       : null,
     state: {
-      phase: !state.scenarioId ? "select" : state.epilogue ? "epilogue" : state.phase,
-      briefed: state.briefed,
-      record: node ? state.records[node.id] ?? null : null,
-      meter: state.meter,
-      epilogue: state.epilogue,
-      startedAt: state.startedAt,
+      phase: !room.scenarioId ? "select" : room.epilogue ? "epilogue" : room.phase,
+      briefed: room.briefed,
+      record: node ? room.records[node.id] ?? null : null,
+      meter: room.meter,
+      epilogue: room.epilogue,
+      startedAt: room.startedAt,
     },
   };
 }
 
-// ---------- api ----------
+// ---------- auth ----------
 
-app.get("/api/state", (_req, res) => res.json(publicState()));
+function roomAuth(req, res, next) {
+  const code = (req.get("x-room-code") || "").trim().toUpperCase();
+  const idx = ROOM_CODES.indexOf(code);
+  if (idx === -1) return res.status(401).json({ error: "invalid room code" });
+  req.roomNumber = ROOM_NUMBERS[idx];
+  req.room = rooms[req.roomNumber];
+  next();
+}
+
+function adminAuth(req, res, next) {
+  const code = (req.get("x-admin-code") || "").trim().toUpperCase();
+  if (code !== ADMIN_CODE) return res.status(401).json({ error: "invalid admin code" });
+  next();
+}
+
+// ---------- room api ----------
+
+app.get("/api/state", roomAuth, (req, res) => res.json(publicState(req.room, req.roomNumber)));
 
 app.get("/api/elders", (_req, res) =>
   res.json(
@@ -147,56 +193,64 @@ app.get("/api/elders", (_req, res) =>
   ),
 );
 
-// The group chooses its scenario at the start of the breakout (PRD §5.1).
-app.post("/api/scenario", (req, res) => {
+// The group chooses its case; once chosen it is unavailable to the other
+// rooms (PRD §5.1). The admin dashboard shows who has claimed what.
+app.post("/api/scenario", roomAuth, (req, res) => {
   const { id } = req.body ?? {};
   if (!scenarios[id]) return res.status(400).json({ error: "unknown scenario" });
-  if (state.scenarioId) return res.status(409).json({ error: "scenario already chosen — reset to change" });
-  state.scenarioId = id;
-  state.posedAt = Date.now();
-  res.json(publicState());
+  if (req.room.scenarioId) return res.status(409).json({ error: "scenario already chosen — reset to change" });
+  const claimedBy = scenarioClaims()[id];
+  if (claimedBy) return res.status(409).json({ error: `already claimed by Room ${claimedBy}` });
+  req.room.scenarioId = id;
+  req.room.posedAt = Date.now();
+  persist();
+  res.json(publicState(req.room, req.roomNumber));
 });
 
-app.post("/api/roles", (req, res) => {
+app.post("/api/roles", roomAuth, (req, res) => {
   const { assignments } = req.body ?? {};
   if (assignments && typeof assignments === "object") {
     for (const role of roles) {
       const name = assignments[role];
-      if (typeof name === "string") state.roleAssignments[role] = name.trim();
+      if (typeof name === "string") req.room.roleAssignments[role] = name.trim();
     }
   }
-  state.briefed = true;
-  res.json(publicState());
+  req.room.briefed = true;
+  persist();
+  res.json(publicState(req.room, req.roomNumber));
 });
 
-app.post("/api/answer", (req, res) => {
-  const node = currentNode();
-  if (!node || state.epilogue) return res.status(409).json({ error: "no active node" });
+app.post("/api/answer", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue) return res.status(409).json({ error: "no active node" });
   const { choice, freeText, decidedBy } = req.body ?? {};
   if (!node.options.some((o) => o.id === choice)) return res.status(400).json({ error: "unknown choice" });
   if (!freeText?.trim() || !decidedBy?.trim()) {
     return res.status(400).json({ error: "freeText and decidedBy are required" });
   }
-  const r = record(node.id);
+  const r = getRecord(room, node.id);
   const answer = { choice, freeText: freeText.trim(), decidedBy: decidedBy.trim(), at: Date.now() };
-  if (state.phase === "posed") {
+  if (room.phase === "posed") {
     r.firstAnswer = answer;
     r.timings.firstAnswerAt = answer.at;
-    state.phase = "challenge";
-  } else if (state.phase === "revise") {
+    room.phase = "challenge";
+  } else if (room.phase === "revise") {
     r.revisedAnswer = answer;
-    state.phase = "score";
+    room.phase = "score";
   } else {
-    return res.status(409).json({ error: `cannot answer in phase ${state.phase}` });
+    return res.status(409).json({ error: `cannot answer in phase ${room.phase}` });
   }
-  res.json(publicState());
+  persist();
+  res.json(publicState(room, req.roomNumber));
 });
 
-app.post("/api/npc", async (_req, res) => {
-  const scenario = currentScenario();
-  const node = currentNode();
-  if (!node || state.epilogue || state.phase !== "challenge") {
-    return res.status(409).json({ error: `cannot run NPC in phase ${state.phase}` });
+app.post("/api/npc", roomAuth, async (req, res) => {
+  const room = req.room;
+  const scenario = currentScenario(room);
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "challenge") {
+    return res.status(409).json({ error: `cannot run NPC in phase ${room.phase}` });
   }
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -204,13 +258,13 @@ app.post("/api/npc", async (_req, res) => {
   res.flushHeaders();
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
-  const r = record(node.id);
+  const r = getRecord(room, node.id);
   const answer = r.firstAnswer;
   const option = node.options.find((o) => o.id === answer.choice);
   const pathSummary = scenario.nodes
-    .slice(0, state.nodeIndex)
+    .slice(0, room.nodeIndex)
     .map((n) => {
-      const pr = state.records[n.id];
+      const pr = room.records[n.id];
       if (!pr || pr.skipped) return `${n.type}: skipped`;
       const a = finalAnswer(pr);
       return `${n.type}: chose "${n.options.find((o) => o.id === a.choice)?.label}" — "${a.freeText}" (decided by: ${a.decidedBy}; scored ${pr.score})`;
@@ -219,7 +273,7 @@ app.post("/api/npc", async (_req, res) => {
 
   for (const elderId of node.elders) {
     const elder = elders[elderId];
-    const priorTurns = (state.elderTurns[elderId] ?? []).filter((t) => t.live);
+    const priorTurns = (room.elderTurns[elderId] ?? []).filter((t) => t.live);
     send({ type: "elder-start", elder: { id: elder.id, name: elder.name, seat: elder.seat } });
     try {
       const text = await streamElderTurn({
@@ -232,11 +286,11 @@ app.post("/api/npc", async (_req, res) => {
         priorTurns,
         onDelta: (t) => send({ type: "delta", text: t }),
       });
-      (state.elderTurns[elderId] ??= []).push({ nodeId: node.id, text, live: true, at: Date.now() });
+      (room.elderTurns[elderId] ??= []).push({ nodeId: node.id, text, live: true, at: Date.now() });
       send({ type: "elder-done" });
     } catch (err) {
       console.error(`${elder.name} turn failed:`, err?.message ?? err);
-      (state.elderTurns[elderId] ??= []).push({
+      (room.elderTurns[elderId] ??= []).push({
         nodeId: node.id,
         text: `(${elder.name} could not be reached.)`,
         live: false,
@@ -245,99 +299,206 @@ app.post("/api/npc", async (_req, res) => {
       send({ type: "elder-unavailable", message: `${elder.name} is unavailable — continue.` });
     }
   }
-  state.phase = "revise";
+  room.phase = "revise";
+  persist();
   send({ type: "done" });
   res.end();
 });
 
-app.post("/api/hold", (_req, res) => {
-  if (state.epilogue || state.phase !== "revise") {
-    return res.status(409).json({ error: `cannot hold in phase ${state.phase}` });
+app.post("/api/hold", roomAuth, (req, res) => {
+  const room = req.room;
+  if (room.epilogue || room.phase !== "revise") {
+    return res.status(409).json({ error: `cannot hold in phase ${room.phase}` });
   }
-  record(currentNode().id).held = true;
-  state.phase = "score";
-  res.json(publicState());
+  getRecord(room, currentNode(room).id).held = true;
+  room.phase = "score";
+  persist();
+  res.json(publicState(room, req.roomNumber));
 });
 
-app.post("/api/lock", (req, res) => {
-  const scenario = currentScenario();
-  const node = currentNode();
-  if (!node || state.epilogue || state.phase !== "score") {
-    return res.status(409).json({ error: `cannot lock in phase ${state.phase}` });
+app.post("/api/lock", roomAuth, (req, res) => {
+  const room = req.room;
+  const scenario = currentScenario(room);
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "score") {
+    return res.status(409).json({ error: `cannot lock in phase ${room.phase}` });
   }
   const { score } = req.body ?? {};
   if (!["specific", "generic", "absent"].includes(score)) {
     return res.status(400).json({ error: "score must be specific | generic | absent" });
   }
-  const r = record(node.id);
+  const r = getRecord(room, node.id);
   r.score = score;
   r.timings.lockedAt = Date.now();
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
-  for (const k of Object.keys(deltas)) state.meter[k] += deltas[k];
+  for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
   r.consequence = node.consequences[choice];
-  // Villager beat: one short first-person line after this decision locks (PRD §7.2).
   r.villager = scenario.villagers?.[node.id] ?? null;
-  state.phase = "consequence";
-  res.json(publicState());
+  room.phase = "consequence";
+  persist();
+  res.json(publicState(room, req.roomNumber));
 });
 
-app.post("/api/skip", (_req, res) => {
-  const node = currentNode();
-  if (!node || state.epilogue || state.phase === "consequence") {
+app.post("/api/skip", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase === "consequence") {
     return res.status(409).json({ error: "cannot skip now" });
   }
-  const r = record(node.id);
+  const r = getRecord(room, node.id);
   r.skipped = true;
   r.timings.lockedAt = Date.now();
-  advance();
-  res.json(publicState());
+  advance(room);
+  persist();
+  res.json(publicState(room, req.roomNumber));
 });
 
-app.post("/api/advance", (_req, res) => {
-  if (state.epilogue || state.phase !== "consequence") {
-    return res.status(409).json({ error: `cannot advance in phase ${state.phase}` });
+app.post("/api/advance", roomAuth, (req, res) => {
+  const room = req.room;
+  if (room.epilogue || room.phase !== "consequence") {
+    return res.status(409).json({ error: `cannot advance in phase ${room.phase}` });
   }
-  advance();
-  res.json(publicState());
+  advance(room);
+  persist();
+  res.json(publicState(room, req.roomNumber));
 });
 
-function advance() {
-  const scenario = currentScenario();
-  if (state.nodeIndex + 1 < scenario.nodes.length) {
-    state.nodeIndex += 1;
-    state.phase = "posed";
-    state.posedAt = Date.now();
-    record(currentNode().id).timings.posedAt = state.posedAt;
+function advance(room) {
+  const scenario = currentScenario(room);
+  if (room.nodeIndex + 1 < scenario.nodes.length) {
+    room.nodeIndex += 1;
+    room.phase = "posed";
+    room.posedAt = Date.now();
+    getRecord(room, currentNode(room).id).timings.posedAt = room.posedAt;
   } else {
-    state.epilogue = {
-      parts: buildEpilogue(scenario, state.records),
-      meter: { ...state.meter },
+    room.epilogue = {
+      parts: buildEpilogue(scenario, room.records),
+      meter: { ...room.meter },
       finishedAt: Date.now(),
-      minutes: Math.round((Date.now() - state.startedAt) / 60000),
+      minutes: Math.round((Date.now() - room.startedAt) / 60000),
     };
   }
 }
 
-app.post("/api/reset", (_req, res) => {
-  state = freshState();
-  res.json(publicState());
+// Facilitator reset: this room only (rehearsal convenience).
+app.post("/api/reset", roomAuth, (req, res) => {
+  rooms[req.roomNumber] = freshRoom();
+  persist();
+  res.json(publicState(rooms[req.roomNumber], req.roomNumber));
 });
 
-app.get("/api/export", (_req, res) => {
+app.get("/api/export", roomAuth, (req, res) => {
+  res.json(exportRoom(req.room, req.roomNumber));
+});
+
+function exportRoom(room, roomNumber) {
+  return {
+    exportedAt: new Date().toISOString(),
+    roomNumber,
+    scenario: room.scenarioId,
+    roleAssignments: room.roleAssignments,
+    records: room.records,
+    elderTurns: room.elderTurns,
+    meter: room.meter,
+    epilogue: room.epilogue,
+    startedAt: room.startedAt,
+  };
+}
+
+// ---------- admin api (lead facilitator) ----------
+
+// All nine node types, in lifecycle order, for the consolidation matrix.
+const TYPE_ORDER = ["purpose", "tier", "risk_accept", "decide", "proof", "funding", "retier", "stop", "represent"];
+
+app.get("/api/admin/overview", adminAuth, (_req, res) => {
+  const claims = scenarioClaims();
+  const roomSummaries = ROOM_NUMBERS.map((n) => {
+    const room = rooms[n];
+    const scenario = currentScenario(room);
+    return {
+      roomNumber: n,
+      code: ROOM_CODES[n - 1],
+      scenario: scenario ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt } : null,
+      phase: !room.scenarioId ? "select" : room.epilogue ? "epilogue" : room.phase,
+      briefed: room.briefed,
+      nodeIndex: room.nodeIndex,
+      meter: room.meter,
+      roleAssignments: room.roleAssignments,
+      progress: scenario ? roomProgress(room, scenario) : [],
+      records: scenario ? roomRecords(room, scenario) : {},
+      currentNode: scenario && !room.epilogue ? { id: currentNode(room).id, type: currentNode(room).type, title: currentNode(room).title } : null,
+      startedAt: room.startedAt,
+      epilogue: room.epilogue ? { minutes: room.epilogue.minutes } : null,
+    };
+  });
+
+  // Class C, computed where computable (PRD §8): per node type across rooms.
+  const matrix = TYPE_ORDER.map((type) => {
+    const cells = roomSummaries.map((rs) => {
+      const scenario = rooms[rs.roomNumber].scenarioId ? scenarios[rooms[rs.roomNumber].scenarioId] : null;
+      const nodeInScenario = scenario?.nodes.find((x) => x.type === type) ?? null;
+      if (!nodeInScenario) return { present: false };
+      const rec = rs.records[nodeInScenario.id];
+      return {
+        present: true,
+        nodeId: nodeInScenario.id,
+        answered: !!rec?.answer && !!rec?.score,
+        skipped: rec?.skipped ?? false,
+        score: rec?.score ?? null,
+        short: rec?.answer?.short ?? null,
+        freeText: rec?.answer?.freeText ?? null,
+        decidedBy: rec?.answer?.decidedBy ?? null,
+        declined: rec?.answer?.choice === "decline",
+      };
+    });
+    const presented = cells.filter((c) => c.present);
+    const settled = presented.filter((c) => c.answered || c.skipped);
+    const absentish = settled.filter((c) => c.skipped || c.declined || c.score === "absent");
+    return {
+      type,
+      cells,
+      orphan: presented.length >= 3 && absentish.length >= 3,
+      friction:
+        settled.filter((c) => c.score).length >= 2 &&
+        new Set(settled.filter((c) => c.score).map((c) => c.score)).size > 1,
+      alignment:
+        settled.filter((c) => c.score === "specific").length >= 3,
+    };
+  });
+
+  // Decider emergence across rooms (PRD §8 Class C).
+  const deciders = roomSummaries.map((rs) => {
+    const tally = {};
+    for (const rec of Object.values(rs.records)) {
+      if (rec.answer?.decidedBy) tally[rec.answer.decidedBy] = (tally[rec.answer.decidedBy] ?? 0) + 1;
+    }
+    return { roomNumber: rs.roomNumber, tally };
+  });
+
+  res.json({ rooms: roomSummaries, matrix, deciders, claims, typeOrder: TYPE_ORDER });
+});
+
+app.get("/api/admin/export", adminAuth, (_req, res) => {
   res.json({
     exportedAt: new Date().toISOString(),
-    scenario: state.scenarioId,
-    roleAssignments: state.roleAssignments,
-    records: state.records,
-    elderTurns: state.elderTurns,
-    meter: state.meter,
-    epilogue: state.epilogue,
-    startedAt: state.startedAt,
+    rooms: ROOM_NUMBERS.map((n) => exportRoom(rooms[n], n)),
   });
 });
 
-// ---------- printables (PRD Phase 2: worksheets + role cards) ----------
+// Full game reset: wipes all rooms back to pristine while keeping scenario
+// content. Type-to-confirm; the client offers an export first (PRD §9).
+app.post("/api/admin/reset", adminAuth, async (req, res) => {
+  if (req.body?.confirm !== "RESET") {
+    return res.status(400).json({ error: 'confirmation required: send { "confirm": "RESET" }' });
+  }
+  rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
+  await clearStore();
+  persist();
+  res.json({ ok: true, resetAt: new Date().toISOString() });
+});
+
+// ---------- printables ----------
 
 app.get("/print", (_req, res) => res.type("html").send(printIndexPage(scenarios)));
 app.get("/print/worksheet/:sid", (req, res) => {
@@ -351,7 +512,7 @@ app.get("/print/rolecards/:sid", (req, res) => {
   res.type("html").send(roleCardsPage(s, roles));
 });
 
-// ---------- static client (production build) ----------
+// ---------- static client ----------
 
 const dist = path.join(here, "..", "dist");
 if (fs.existsSync(dist)) {
@@ -362,6 +523,7 @@ if (fs.existsSync(dist)) {
 const port = Number(process.env.PORT) || 4600;
 app.listen(port, () => {
   console.log(`Tabletop server on http://localhost:${port}`);
+  console.log(`Rooms: ${ROOM_CODES.join(" ")} · Admin: ${ADMIN_CODE} (override via ROOM_CODES / ADMIN_CODE env)`);
   console.log(
     process.env.ANTHROPIC_API_KEY
       ? "Anthropic key: present"

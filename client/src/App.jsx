@@ -7,13 +7,20 @@ import React, { useEffect, useRef, useState } from "react";
 // evidence + AI Council available everywhere, score-at-lock in the
 // facilitator bar, decision-path strip, segmented meters.
 
+const ROOM_CODE_KEY = "tt-room-code";
+
 async function api(path, body) {
   const res = await fetch(`/api/${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "",
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error((await res.json()).error ?? res.statusText);
+  if (!res.ok) {
+    throw Object.assign(new Error((await res.json()).error ?? res.statusText), { status: res.status });
+  }
   return res.json();
 }
 
@@ -197,9 +204,45 @@ function PathStrip({ progress, records, currentIndex, epilogue }) {
   );
 }
 
+function RoomLogin({ onEnter }) {
+  const scale = useStageScale();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(null);
+  const tryEnter = async () => {
+    localStorage.setItem(ROOM_CODE_KEY, code.trim());
+    try {
+      await api("state");
+      onEnter();
+    } catch {
+      setError("That code doesn't open a room. Check the card from the lead facilitator.");
+    }
+  };
+  return (
+    <div className="viewport">
+      <div className="stage login-center" style={{ transform: `scale(${scale})` }}>
+        <div className="login-card">
+          <span className="eyebrow">Tabletop · breakout room</span>
+          <h1>Enter the room code</h1>
+          <input
+            className="code-input"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && tryEnter()}
+            placeholder="ROOM CODE"
+            autoFocus
+          />
+          {error && <p className="login-error">{error}</p>}
+          <button className="primary-dark" onClick={tryEnter}>Open the room</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const scale = useStageScale();
   const [data, setData] = useState(null);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [turns, setTurns] = useState([]);
   const [prevMeter, setPrevMeter] = useState(null);
   const [recording, setRecording] = useState(false);
@@ -213,9 +256,13 @@ export default function App() {
   const npcForNode = useRef(null);
 
   useEffect(() => {
-    api("state").then(setData);
-    api("elders").then(setCouncil);
-  }, []);
+    api("state")
+      .then(setData)
+      .catch((e) => {
+        if (e.status === 401) setNeedsLogin(true);
+      });
+    api("elders").then(setCouncil).catch(() => {});
+  }, [needsLogin]);
 
   const state = data?.state;
   const { scenario, scenarios, node, progress, decidedByPrompt, villagerStandingLine, roles, roleAssignments, records } = data ?? {};
@@ -266,6 +313,8 @@ export default function App() {
   }, [state?.phase, node?.id]);
 
   useEffect(() => setSkipArmed(false), [state?.phase, node?.id]);
+
+  if (needsLogin) return <RoomLogin onEnter={() => setNeedsLogin(false)} />;
 
   if (!data)
     return (
@@ -410,9 +459,21 @@ export default function App() {
     facbar = (
       <>
         {commonFacBtns}
-        <a className="fac-btn" href="/api/export" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+        <button
+          className="fac-btn"
+          onClick={async () => {
+            const rec = await api("export");
+            const blob = new Blob([JSON.stringify(rec, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `tabletop-room-${rec.roomNumber}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           Export the record
-        </a>
+        </button>
         <button className="fac-primary" onClick={reset}>Close the file and reset</button>
       </>
     );
@@ -428,10 +489,13 @@ export default function App() {
           {scenarios.map((s) => (
             <button
               key={s.id}
-              className="case-card"
+              className={`case-card ${s.claimedBy ? "claimed" : ""}`}
+              disabled={!!s.claimedBy}
               onClick={async () => refresh(await api("scenario", { id: s.id }))}
             >
-              <span className="eyebrow" style={{ fontSize: 12 }}>Enters at {s.entersAt} · {s.nodeCount} decisions</span>
+              <span className="eyebrow" style={{ fontSize: 12 }}>
+                {s.claimedBy ? `Claimed by Room ${s.claimedBy}` : `Enters at ${s.entersAt} · ${s.nodeCount} decisions`}
+              </span>
               <span className="case-title">{s.title}</span>
               <span className="case-tagline">{s.tagline}</span>
             </button>
