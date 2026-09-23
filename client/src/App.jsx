@@ -485,18 +485,6 @@ export default function App() {
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
-          {!recording && (
-            <div className="evidence-block">
-              <div className="evidence-label">EVIDENCE FOLDER</div>
-              <div className="evidence-grid">
-                {scenario.evidence.map((doc) => (
-                  <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
-                    {doc.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         {recording ? (
           <RecordPanel
@@ -713,51 +701,62 @@ export default function App() {
         <div className="facbar">{facbar}</div>
 
         {evidenceOpen && (
-          <div className="overlay" onClick={() => setEvidenceOpen(null)}>
-            <div className="panel" onClick={(e) => e.stopPropagation()}>
-              {evidenceOpen === "menu" ? (
-                <>
+          <>
+            <div className="drawer-scrim" onClick={() => setEvidenceOpen(null)} />
+            <div className="drawer">
+              <div className="drawer-head">
+                <div>
                   <span className="eyebrow">From the case file</span>
-                  <h3>Evidence folder</h3>
-                  <div className="evidence-grid" style={{ marginTop: 14 }}>
-                    {scenario.evidence.map((doc) => (
-                      <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
-                        {doc.title}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="eyebrow">From the case file</span>
-                  <h3>{evidenceOpen.title}</h3>
-                  <pre>{evidenceOpen.body}</pre>
-                </>
-              )}
-              <div className="close-row">
-                <button className="panel-btn" onClick={() => setEvidenceOpen(null)}>Return to the table</button>
+                  <h3>{evidenceOpen === "menu" ? "Evidence folder" : evidenceOpen.title}</h3>
+                </div>
+                <div className="drawer-actions">
+                  {evidenceOpen !== "menu" && (
+                    <button className="panel-btn" onClick={() => setEvidenceOpen("menu")}>
+                      All documents
+                    </button>
+                  )}
+                  <button className="panel-btn" onClick={() => setEvidenceOpen(null)}>Close</button>
+                </div>
               </div>
+              {evidenceOpen === "menu" ? (
+                <div className="drawer-grid">
+                  {scenario.evidence.map((doc) => (
+                    <button key={doc.id} className="evidence-cell" onClick={() => setEvidenceOpen(doc)}>
+                      {doc.title}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <pre className="drawer-doc">{evidenceOpen.body}</pre>
+              )}
             </div>
-          </div>
+          </>
         )}
 
         {councilOpen && (
-          <div className="overlay" onClick={() => setCouncilOpen(false)}>
-            <div className="panel" onClick={(e) => e.stopPropagation()}>
-              <span className="eyebrow">At this table</span>
-              <h3>The AI Council</h3>
-              {council.map((e) => (
-                <div key={e.id} className="council-row">
-                  <div className="council-name">{e.name}</div>
-                  <div className="council-seat">ELDER · {e.seat}</div>
-                  <div className="council-fires">Fires on: {e.firesOn}</div>
+          <>
+            <div className="drawer-scrim" onClick={() => setCouncilOpen(false)} />
+            <div className="drawer">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">At this table</span>
+                  <h3>The AI Council</h3>
                 </div>
-              ))}
-              <div className="close-row">
-                <button className="panel-btn" onClick={() => setCouncilOpen(false)}>Return to the table</button>
+                <div className="drawer-actions">
+                  <button className="panel-btn" onClick={() => setCouncilOpen(false)}>Close</button>
+                </div>
+              </div>
+              <div className="council-grid">
+                {council.map((e) => (
+                  <div key={e.id} className="council-row">
+                    <div className="council-name">{e.name}</div>
+                    <div className="council-seat">ELDER · {e.seat}</div>
+                    <div className="council-fires">Fires on: {e.firesOn}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
