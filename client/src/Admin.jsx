@@ -5,6 +5,8 @@ import React, { useEffect, useRef, useState } from "react";
 // judgment is needed), scenario claims, exports, and the full game reset.
 // Polls every 2.5s — well inside the "within seconds" acceptance criterion.
 
+import { MEASURES } from "./measures.js";
+
 const CODE_KEY = "tt-admin-code";
 const TYPE_LABELS = {
   purpose: "Purpose", tier: "Tier", risk_accept: "Risk", decide: "Decider",
@@ -197,7 +199,10 @@ export default function Admin() {
             <tbody>
               {data.matrix.map((row) => (
                 <tr key={row.type}>
-                  <td className="mx-type">{TYPE_LABELS[row.type]}</td>
+                  <td className="mx-type" title={MEASURES[row.type].def}>
+                    <span className="mx-mid">{MEASURES[row.type].id}</span> {MEASURES[row.type].name}
+                    <span className="mx-def">{MEASURES[row.type].def}</span>
+                  </td>
                   {row.cells.map((cell, i) => (
                     <td key={i} title={cell.freeText ? `“${cell.freeText}” — final call: ${cell.decidedBy}` : undefined}>
                       <ScoreChip cell={cell} />

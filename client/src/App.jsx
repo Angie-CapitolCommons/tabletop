@@ -3,9 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 // Tabletop room screen — Virtual Insights brand v2 (design handoff).
 // Fixed 1280×800 stage scaled to fit. Server phases unchanged:
 // posed → challenge → revise → score → consequence → … → epilogue.
-// Client adds: briefing (role roster), recording/revising sub-states,
+// Client adds: briefing (role roster), a revising sub-state,
 // evidence + AI Council available everywhere, score-at-lock in the
 // facilitator bar, decision-path strip, segmented meters.
+
+import { MEASURES } from "./measures.js";
 
 const ROOM_CODE_KEY = "tt-room-code";
 
@@ -109,9 +111,15 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
     return () => setCommit(null);
   }, [choice, freeText, decidedBy, ready]);
 
+  const missing = [
+    !choice && "choose an answer",
+    !freeText.trim() && "write the record",
+    !decidedBy && "name who decided",
+  ].filter(Boolean);
+
   return (
     <div className="record-panel">
-      <span className="eyebrow">Recording the room's answer</span>
+      <span className="eyebrow">The room's answer</span>
       <div className="rp-choices">
         {node.options.map((o, i) => (
           <button
@@ -120,7 +128,10 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
             onClick={() => setChoice(o.id)}
           >
             <span className="letter">{optLetter(o, i)}</span>
-            <span>{o.label}</span>
+            <span>
+              {o.label}
+              <small className="rp-hint">{o.hint}</small>
+            </span>
           </button>
         ))}
       </div>
@@ -154,6 +165,9 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
           )}
         </div>
       </div>
+      {missing.length > 0 && (
+        <p className="rp-missing">Before the answer can be committed: {missing.join(" · ")}</p>
+      )}
     </div>
   );
 }
@@ -245,7 +259,6 @@ export default function App() {
   const [needsLogin, setNeedsLogin] = useState(false);
   const [turns, setTurns] = useState([]);
   const [prevMeter, setPrevMeter] = useState(null);
-  const [recording, setRecording] = useState(false);
   const [revising, setRevising] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(null);
   const [councilOpen, setCouncilOpen] = useState(false);
@@ -500,28 +513,22 @@ export default function App() {
         </button>
       </>
     );
-  else if (phase === "posed" && !recording)
+  else if (phase === "posed")
     facbar = (
       <>
         {commonFacBtns}
         {skipBtn}
-        <button className="fac-primary" onClick={() => setRecording(true)}>
-          Record the room's answer
+        <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
+          {commit?.label ?? "Commit the room's answer"}
         </button>
       </>
     );
-  else if ((phase === "posed" && recording) || (phase === "revise" && revising))
+  else if (phase === "revise" && revising)
     facbar = (
       <>
         {commonFacBtns}
-        <button
-          className="fac-btn"
-          onClick={() => {
-            setRecording(false);
-            setRevising(false);
-          }}
-        >
-          Back to discussion
+        <button className="fac-btn" onClick={() => setRevising(false)}>
+          Back to the challenge
         </button>
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
           {commit?.label ?? "Commit"}
@@ -627,7 +634,7 @@ export default function App() {
     );
   } else if (phase === "posed" && node) {
     main = (
-      <div className={`discuss ${recording ? "recording" : ""}`}>
+      <div className="discuss recording">
         <div className="d-left">
           {node.inject && (
             <div className="inject">
@@ -636,46 +643,26 @@ export default function App() {
             </div>
           )}
           <span className="eyebrow" style={{ fontSize: 15 }}>
-            {nn(node.index)} / {LONG_NAMES[node.type]}
+            {nn(node.index)} / {MEASURES[node.type].id} · {MEASURES[node.type].name}
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
+          <p className="measure-def">
+            <b>{MEASURES[node.type].name}</b> reads: {MEASURES[node.type].def}. Specific means a
+            name and a trigger — that is the bar.
+          </p>
         </div>
-        {recording ? (
-          <RecordPanel
-            node={node}
-            decidedByPrompt={decidedByPrompt}
-            roles={roles}
-            roleAssignments={roleAssignments}
-            initial={null}
-            onCommit={commitAnswer}
-            commitLabel="Commit the room's answer"
-            setCommit={setCommit}
-          />
-        ) : (
-          <div className="options-col">
-            <div className="opt-stack">
-              {node.options.filter((o) => o.id !== "decline" && o.id !== "writein").map((o, i) => (
-                <div key={o.id} className="opt">
-                  <span className="letter">{LETTERS[i]}</span>
-                  <span>
-                    <span className="opt-label">{o.label}</span>
-                    <span className="opt-hint">{o.hint}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-            {node.options.filter((o) => o.id === "writein" || o.id === "decline").map((o) => (
-              <div key={o.id} className={`opt special ${o.id}-opt`}>
-                <span className="letter">{o.id === "writein" ? "✎" : "–"}</span>
-                <span>
-                  <span className="opt-label">{o.label}</span>
-                  <span className="opt-hint">{o.hint}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <RecordPanel
+          key={node.id}
+          node={node}
+          decidedByPrompt={decidedByPrompt}
+          roles={roles}
+          roleAssignments={roleAssignments}
+          initial={null}
+          onCommit={commitAnswer}
+          commitLabel="Commit the room's answer"
+          setCommit={setCommit}
+        />
       </div>
     );
   } else if ((phase === "challenge" || phase === "revise" || phase === "score") && node) {
@@ -683,10 +670,14 @@ export default function App() {
       <div className="discuss recording">
         <div className="d-left">
           <span className="eyebrow" style={{ fontSize: 15 }}>
-            {nn(node.index)} / {LONG_NAMES[node.type]}
+            {nn(node.index)} / {MEASURES[node.type].id} · {MEASURES[node.type].name}
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
+          <p className="measure-def">
+            <b>{MEASURES[node.type].name}</b> reads: {MEASURES[node.type].def}. Specific means a
+            name and a trigger — that is the bar.
+          </p>
         </div>
         <RecordPanel
           node={node}
@@ -845,7 +836,11 @@ export default function App() {
         </div>
         <div className="steprail">
           {progress.map((p, i) => (
-            <div key={p.id} className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}>
+            <div
+              key={p.id}
+              className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}
+              title={`${MEASURES[p.type].id} ${MEASURES[p.type].name} — ${MEASURES[p.type].def}`}
+            >
               <span className="num">{nn(i)}</span>
               {RAIL_LABELS[p.type]}
             </div>

@@ -192,7 +192,9 @@ h1, h2, h3, p { margin: 0; }
   background: var(--warm);
 }
 .matrix td { padding: 10px 14px; border-bottom: 1px solid var(--hair3); vertical-align: top; }
-.mx-type { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.mx-type { font-weight: 700; font-size: 14px; max-width: 200px; }
+.mx-mid { font-family: var(--mono); font-size: 11px; color: var(--blue); font-weight: 500; margin-right: 2px; }
+.mx-def { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); line-height: 1.35; margin-top: 3px; }
 .mx-chip {
   display: inline-block; font-family: var(--mono); font-size: 10.5px; text-transform: uppercase;
   letter-spacing: 0.08em; padding: 3px 8px; border-radius: 2px; border: 1px solid;
@@ -273,6 +275,11 @@ h1, h2, h3, p { margin: 0; }
 .recording .node-title { font-size: 54px; }
 .node-question { font-size: 23px; line-height: 1.5; color: var(--deep); }
 .recording .node-question { font-size: 21px; }
+.measure-def {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hair);
+  font-size: 15px; line-height: 1.5; color: var(--slate); max-width: 480px;
+}
+.measure-def b { color: var(--deep); }
 .inject { background: var(--warm); padding: 16px 20px; margin-bottom: 18px; }
 .inject .eyebrow { font-size: 12px; display: block; margin-bottom: 6px; }
 .inject p { font-size: 20px; line-height: 1.4; }
@@ -310,6 +317,8 @@ h1, h2, h3, p { margin: 0; }
 }
 .rp-choice .letter { font-family: var(--mono); font-size: 14px; color: var(--blue); }
 .rp-choice.selected { border: 2px solid var(--purple); background: var(--paper); padding: 9px 13px; }
+.rp-hint { display: block; font-size: 13px; color: var(--slate); margin-top: 3px; line-height: 1.4; }
+.rp-missing { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rust); margin: 0; }
 .rp-field label { display: block; font-size: 16px; color: var(--slate); margin-bottom: 8px; }
 .rp-field textarea {
   width: 100%; font-family: var(--sans); font-size: 20px; line-height: 1.45; min-height: 88px;
@@ -349,10 +358,7 @@ h1, h2, h3, p { margin: 0; }
 }
 .elder-name { font-family: var(--serif); font-size: 42px; line-height: 1; }
 .elder-seat { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-top: 6px; }
-.elder-text { font-size: 30px; line-height: 1.45; margin-top: 24px; }
-.elder.secondary .elder-text { font-size: 24px; margin-top: 16px; }
-.elder.secondary .elder-mark { width: 48px; height: 48px; font-size: 26px; }
-.elder.secondary .elder-name { font-size: 32px; }
+.elder-text { font-size: 27px; line-height: 1.45; margin-top: 20px; }
 .elder.unavailable .elder-text { color: var(--muted); }
 .cursor { color: var(--blue); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
