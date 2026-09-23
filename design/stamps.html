@@ -1,0 +1,30 @@
+<!-- @dsCard group="Stamps & Memos" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Stamps</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--gold:#b98a2f;--held:#2f7d4f;--broke:#b0503c;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+h1{font-size:22px;margin:0 0 4px}.note{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:560px}
+h2{font-size:14px;margin:22px 0 10px}
+.stamp-row{display:flex;gap:18px;flex-wrap:wrap}
+.stamp-btn{font-family:var(--mono);font-weight:800;text-transform:uppercase;letter-spacing:.12em;font-size:15px;padding:16px 26px;border-radius:8px;background:var(--card);border:3px double var(--muted);color:var(--muted);transform:rotate(-2deg);cursor:pointer;transition:transform .12s,border-color .12s,color .12s}
+.stamp-btn:hover{transform:rotate(-6deg) scale(1.06)}
+.stamp-btn.specific:hover{border-color:var(--held);color:var(--held)}
+.stamp-btn.generic:hover{border-color:var(--gold);color:var(--gold)}
+.stamp-btn.absent:hover{border-color:var(--broke);color:var(--broke)}
+.stamp{display:inline-block;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.12em;padding:4px 10px;border-radius:6px;transform:rotate(-4deg);font-size:12px;border:3px double;opacity:.85;margin-right:14px}
+.stamp.held{color:var(--held);border-color:var(--held)}
+.stamp.broke{color:var(--broke);border-color:var(--broke)}
+.stamp.file{color:var(--broke);border-color:var(--broke);font-size:13px;padding:6px 14px}
+</style></head><body>
+<h1>Rubber stamps</h1>
+<p class="note">The facilitator scores every locked decision by stamping the record: Specific (names a person/role plus a trigger) is the only stamp that counts as an answer. Stamps reappear in the after-action report as HELD / BROKE verdicts, and on the case-file cover.</p>
+<h2>Facilitator scoring (buttons)</h2>
+<div class="stamp-row">
+<button class="stamp-btn specific">specific</button>
+<button class="stamp-btn generic">generic</button>
+<button class="stamp-btn absent">absent</button>
+</div>
+<h2>Report verdicts</h2>
+<span class="stamp held">held</span><span class="stamp broke">broke</span>
+<h2>Cover stamp</h2>
+<span class="stamp file">14 months since approval</span>
+</body></html>

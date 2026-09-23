@@ -1,0 +1,19 @@
+<!-- @dsCard group="Report" -->
+<!doctype html><html><head><meta charset="utf-8"><title>After-action report</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--accent:#1d5c63;--accent-soft:#e4eeec;--held:#2f7d4f;--broke:#b0503c;--serif:Georgia,serif;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+.result-tag{display:inline-block;background:var(--accent-soft);color:var(--accent);padding:8px 15px;border-radius:30px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+h1{font-size:34px;margin:0 0 20px;letter-spacing:-.02em}
+.epi-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 130px 20px 24px;margin-bottom:12px;max-width:640px}
+.node-tag{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.epi-card p{font-family:var(--serif);font-size:16px;margin:8px 0 0}
+.stamp{position:absolute;top:18px;right:20px;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.12em;border:3px double;padding:4px 10px;border-radius:6px;transform:rotate(-4deg);font-size:12px;opacity:.85}
+.held .stamp{color:var(--held);border-color:var(--held)}
+.broke .stamp{color:var(--broke);border-color:var(--broke)}
+</style></head><body>
+<span class="result-tag">After-action report</span>
+<h1>Twelve months later</h1>
+<div class="epi-card held"><span class="node-tag">risk_accept</span><span class="stamp">held</span><p>The risk had a name on it all year. When CP-4.1 shipped with a regression, the acceptor's standing review caught it in nine days.</p></div>
+<div class="epi-card broke"><span class="node-tag">decide</span><span class="stamp">broke</span><p>&ldquo;It went to committee&rdquo; remained a complete sentence. The re-review concluded in June with a recommendation to review further.</p></div>
+<div class="epi-card broke"><span class="node-tag">tier</span><span class="stamp">broke</span><p>Never asked. The question did not go away for being unasked — it answered itself off-screen, on nobody's terms.</p></div>
+</body></html>

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Game Table" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Cost meter</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--accent:#1d5c63;--gold:#b98a2f;--held:#2f7d4f;--broke:#b0503c;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+h1{font-size:22px;margin:0 0 4px}.note{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:560px}
+.sidecard{background:#ecefe4;border:1px solid #dfe2d4;padding:20px 22px;border-radius:18px;max-width:300px}
+.sidecard h3{font-size:15px;margin:0 0 12px}
+.gauge{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-top:1px solid #dde0d1;font-size:13px}
+.gauge:first-of-type{border-top:0}
+.gauge-value{font-family:var(--mono);font-weight:700;font-size:16px}
+.gauge-delta{font-family:var(--mono);font-size:12px;margin-left:5px}
+.worse .gauge-delta{color:var(--broke)}.better .gauge-delta{color:var(--held)}
+</style></head><body>
+<h1>The cost meter</h1>
+<p class="note">Four currencies, always visible, moved by every locked decision: the fast path spends goodwill, the safe path spends time, the thorough path spends money. No win threshold — it exists to make trade-offs concrete and kill the "let's do both" answer. <strong>This is the component most worth redesigning:</strong> current form is a plain gauge list. Directions worth exploring — dials, ink-well levels, a ledger strip, spend animations when a decision locks, a tension view showing the four in opposition.</p>
+<div class="sidecard">
+<h3>The cost meter</h3>
+<div class="gauge better"><span>Clinician goodwill</span><span><span class="gauge-value">8</span><span class="gauge-delta">-2</span></span></div>
+<div class="gauge better"><span>Risk exposure</span><span><span class="gauge-value">3</span><span class="gauge-delta">-1</span></span></div>
+<div class="gauge"><span>Dollars committed</span><span><span class="gauge-value">3</span></span></div>
+<div class="gauge worse"><span>Time to first value</span><span><span class="gauge-value">6</span><span class="gauge-delta">+1</span></span></div>
+</div>
+</body></html>

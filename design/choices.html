@@ -1,0 +1,33 @@
+<!-- @dsCard group="Game Table" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Choices and the record</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--accent:#1d5c63;--accent-ink:#fff;--accent-soft:#e4eeec;--serif:Georgia,serif;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+h1{font-size:22px;margin:0 0 4px}.note{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:560px}
+.choices{display:grid;gap:10px;max-width:640px;margin-bottom:20px}
+.choice{display:flex;text-align:left;align-items:flex-start;gap:14px;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:16px;color:var(--ink);cursor:pointer;font:inherit}
+.choice:hover{border-color:var(--accent);background:#f4f7f3}
+.choice.chosen{border:2px solid var(--accent);background:var(--accent-soft);padding:15px}
+.choice.decline-opt{border-style:dashed}
+.letter{width:28px;height:28px;flex-shrink:0;border-radius:9px;border:1px solid var(--line);text-align:center;font-family:var(--mono);font-size:12px;line-height:26px;font-weight:800;background:#f2f3ea}
+.choice.chosen .letter{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.choice strong{display:block;line-height:1.35}
+.choice small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.record-block{background:#f4f4ea;border-radius:15px;padding:20px 22px;max-width:640px}
+.record-title{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.field{display:block;margin-bottom:14px}
+.field>span{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field textarea,.field input{width:100%;box-sizing:border-box;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:16px var(--serif)}
+</style></head><body>
+<h1>Choices + &ldquo;For the record&rdquo;</h1>
+<p class="note">The room converges out loud and the facilitator enters one collective answer: a lettered choice, the written specifics (who/trigger/threshold), and who at the table made the final call. Decline is always available, dashed, and never free.</p>
+<div class="choices">
+<button class="choice"><span class="letter">A</span><span><strong>Keep it running everywhere while an expedited re-review happens</strong><small>Fastest for users. The risk stays live and someone must own it.</small></span></button>
+<button class="choice chosen"><span class="letter">B</span><span><strong>Restrict to the originally approved clinic; switch it off in Clinics B and C today</strong><small>Honors the approval. Two clinics lose a tool they now depend on.</small></span></button>
+<button class="choice decline-opt"><span class="letter">–</span><span><strong>We cannot answer this today</strong><small>Recorded as an explicit gap, not a failure. It is also not free.</small></span></button>
+</div>
+<div class="record-block">
+<div class="record-title">For the record</div>
+<label class="field"><span>Name the specific person or role who accepts the residual risk, and what triggers revisiting it.</span><textarea rows="2">Dr. Vasquez, CMIO, accepts in writing for Clinic A only; revisit at the CP-3.4 release review or 60 days.</textarea></label>
+<label class="field"><span>Who at the table made that final decision? A role, a first name, or &ldquo;the group.&rdquo;</span><input value="The Doctor (Priya)"></label>
+</div>
+</body></html>
