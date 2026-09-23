@@ -116,6 +116,23 @@ h1, h2, h3, p { margin: 0; }
 .fac-score:disabled { opacity: 0.45; }
 .fac-score:not(:disabled):hover { background: rgba(247, 246, 243, 0.12); }
 
+/* ---------- scenario select ---------- */
+.select-screen { height: 100%; display: flex; flex-direction: column; }
+.select-screen .b-title { font-family: var(--serif); font-size: 56px; line-height: 1.02; letter-spacing: -0.02em; margin: 12px 0 24px; }
+.case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hair); flex: 1; min-height: 0; }
+.case-card {
+  background: #fff; padding: 26px 30px; text-align: left; display: flex; flex-direction: column; gap: 10px;
+}
+.case-card:hover { background: var(--paper); }
+.case-title { font-family: var(--serif); font-size: 30px; line-height: 1.08; }
+.case-tagline { font-size: 17px; color: var(--slate); line-height: 1.4; }
+
+/* ---------- villager beat ---------- */
+.villager { margin-top: 26px; border-top: 1px solid var(--hair); padding-top: 16px; max-width: 560px; }
+.villager-name { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); }
+.villager-line { font-family: var(--serif); font-size: 24px; line-height: 1.35; font-style: italic; margin: 8px 0 8px; }
+.villager-standing { font-size: 12px; color: var(--faint); line-height: 1.4; display: block; }
+
 /* ---------- briefing ---------- */
 .briefing { display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; height: 100%; }
 .briefing .b-title { font-family: var(--serif); font-size: 56px; line-height: 1.02; letter-spacing: -0.02em; margin: 12px 0 20px; }

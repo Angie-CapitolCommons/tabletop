@@ -26,12 +26,14 @@ const METER_FULL = {
 };
 const COST_UP = { goodwill: false, risk: true, dollars: true, time: true };
 const RAIL_LABELS = {
-  risk_accept: "Risk", stop: "Off switch", tier: "Tier", decide: "Decider",
-  proof: "Proof", retier: "Re-review", funding: "Funding",
+  purpose: "Purpose", risk_accept: "Risk", stop: "Off switch", tier: "Tier",
+  decide: "Decider", proof: "Proof", retier: "Re-review", funding: "Funding",
+  represent: "The story",
 };
 const LONG_NAMES = {
-  risk_accept: "Risk acceptance", stop: "The off switch", tier: "Tiering",
-  decide: "The decider", proof: "Proof", retier: "Re-review", funding: "Funding",
+  purpose: "Purpose", risk_accept: "Risk acceptance", stop: "The off switch",
+  tier: "Tiering", decide: "The decider", proof: "Proof", retier: "Re-review",
+  funding: "Funding", represent: "Representation",
 };
 const LETTERS = ["A", "B", "C"];
 const optLetter = (o, i) => (o.id === "decline" ? "–" : o.id === "writein" ? "✎" : LETTERS[i]);
@@ -216,7 +218,7 @@ export default function App() {
   }, []);
 
   const state = data?.state;
-  const { scenario, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
+  const { scenario, scenarios, node, progress, decidedByPrompt, villagerStandingLine, roles, roleAssignments, records } = data ?? {};
 
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
@@ -275,7 +277,7 @@ export default function App() {
   const refresh = (d) => setData(d);
   const record = state.record;
   const phase = state.phase;
-  const briefed = state.briefed || phase !== "posed" || node?.index > 0;
+  const briefed = phase === "select" ? false : state.briefed || phase !== "posed" || node?.index > 0;
 
   const doSkip = async () => {
     if (!skipArmed) return setSkipArmed(true);
@@ -335,7 +337,18 @@ export default function App() {
 
   // ---------- facilitator bar per phase ----------
   let facbar;
-  if (!briefed)
+  if (phase === "select")
+    facbar = (
+      <>
+        <span className="fac-label">FACILITATOR</span>
+        <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
+        <a className="fac-btn" href="/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+          Printables
+        </a>
+        <span className="fac-score-label">THE GROUP CHOOSES THE CASE</span>
+      </>
+    );
+  else if (!briefed)
     facbar = (
       <>
         {commonFacBtns}
@@ -406,11 +419,31 @@ export default function App() {
 
   // ---------- main content per phase ----------
   let main;
-  if (!briefed) {
+  if (phase === "select") {
+    main = (
+      <div className="select-screen">
+        <span className="eyebrow" style={{ fontSize: 15 }}>Four cases · one room · the group decides</span>
+        <h1 className="b-title">Choose the case</h1>
+        <div className="case-grid">
+          {scenarios.map((s) => (
+            <button
+              key={s.id}
+              className="case-card"
+              onClick={async () => refresh(await api("scenario", { id: s.id }))}
+            >
+              <span className="eyebrow" style={{ fontSize: 12 }}>Enters at {s.entersAt} · {s.nodeCount} decisions</span>
+              <span className="case-title">{s.title}</span>
+              <span className="case-tagline">{s.tagline}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  } else if (!briefed) {
     main = (
       <div className="briefing">
         <div>
-          <span className="eyebrow" style={{ fontSize: 15 }}>Case file · scenario 4 · enters at {scenario.entersAt}</span>
+          <span className="eyebrow" style={{ fontSize: 15 }}>Case file · enters at {scenario.entersAt}</span>
           <h1 className="b-title">{scenario.title}</h1>
           {scenario.brief.split("\n\n").map((p, i) => (
             <p key={i} className="b-para">{p}</p>
@@ -596,6 +629,13 @@ export default function App() {
             LOCKED · <span className="score">{record.score}</span>
             {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
           </p>
+          {record.villager && (
+            <div className="villager">
+              <span className="villager-name">{record.villager.name}</span>
+              <p className="villager-line">“{record.villager.line}”</p>
+              <span className="villager-standing">{villagerStandingLine}</span>
+            </div>
+          )}
         </div>
         <div>
           <div className="moved-label">WHAT MOVED</div>
@@ -649,8 +689,10 @@ export default function App() {
       <div className="stage" style={{ transform: `scale(${scale})` }}>
         <div className="topbar">
           <div>
-            <div className="eyebrow">TABLETOP · ENTERS AT {scenario.entersAt.toUpperCase()}</div>
-            <div className="title">{scenario.title}</div>
+            <div className="eyebrow">
+              TABLETOP{scenario ? ` · ENTERS AT ${scenario.entersAt.toUpperCase()}` : " · BREAKOUT SESSION"}
+            </div>
+            <div className="title">{scenario ? scenario.title : "Choose the case"}</div>
           </div>
           <div className="meters">
             {Object.keys(METER_LABELS).map((k) => (
@@ -665,6 +707,7 @@ export default function App() {
               {RAIL_LABELS[p.type]}
             </div>
           ))}
+          {progress.length === 0 && <div className="step">The docket fills when a case is chosen</div>}
         </div>
         <div className="main">{main}</div>
         <div className="facbar">{facbar}</div>
