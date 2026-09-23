@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// Phase 0 vertical slice: one room, one node, the full beat.
-// posed -> answer -> Steward challenge (streamed) -> revise or hold -> score -> lock -> consequence.
+// Phase 1: Scenario 4 end to end, single room.
+// Per node: pose (with caused inject) -> answer -> Elder challenges (streamed,
+// up to two, with memory) -> revise or hold -> facilitator scores -> lock ->
+// consequence -> next node. After the last node: the twelve-month epilogue.
 
 async function api(path, body) {
   const res = await fetch(`/api/${path}`, {
@@ -19,8 +21,6 @@ const METER_LABELS = {
   dollars: "Dollars committed",
   time: "Time to first value",
 };
-// Which direction is "cost" for each currency (goodwill going down is bad;
-// the others going up is bad). Used only to color movement.
 const COST_UP = { goodwill: false, risk: true, dollars: true, time: true };
 
 function Meter({ meter, prev }) {
@@ -35,11 +35,7 @@ function Meter({ meter, prev }) {
             <span className="meter-label">{METER_LABELS[k]}</span>
             <span className="meter-value">
               {meter[k]}
-              {moved && (
-                <em className="meter-delta">
-                  {delta > 0 ? ` +${delta}` : ` ${delta}`}
-                </em>
-              )}
+              {moved && <em className="meter-delta">{delta > 0 ? ` +${delta}` : ` ${delta}`}</em>}
             </span>
           </div>
         );
@@ -48,7 +44,19 @@ function Meter({ meter, prev }) {
   );
 }
 
-function AnswerForm({ node, initial, submitLabel, onSubmit }) {
+function Progress({ progress }) {
+  return (
+    <div className="progress">
+      {progress.map((p) => (
+        <div key={p.id} className={`prog-node ${p.status} ${p.score ?? ""}`} title={p.title}>
+          <span className="prog-type">{p.type}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnswerForm({ node, decidedByPrompt, initial, submitLabel, onSubmit }) {
   const [choice, setChoice] = useState(initial?.choice ?? null);
   const [freeText, setFreeText] = useState(initial?.freeText ?? "");
   const [decidedBy, setDecidedBy] = useState(initial?.decidedBy ?? "");
@@ -79,7 +87,7 @@ function AnswerForm({ node, initial, submitLabel, onSubmit }) {
         />
       </label>
       <label className="field">
-        <span>{node.decidedByPrompt}</span>
+        <span>{decidedByPrompt}</span>
         <input
           value={decidedBy}
           onChange={(e) => setDecidedBy(e.target.value)}
@@ -120,9 +128,7 @@ function Evidence({ scenario }) {
           <div className="evidence-doc" onClick={(e) => e.stopPropagation()}>
             <h3>{open.title}</h3>
             <pre>{open.body}</pre>
-            <button className="quiet" onClick={() => setOpen(null)}>
-              Close
-            </button>
+            <button className="quiet" onClick={() => setOpen(null)}>Close</button>
           </div>
         </div>
       )}
@@ -130,25 +136,52 @@ function Evidence({ scenario }) {
   );
 }
 
+function Epilogue({ epilogue, onReset }) {
+  return (
+    <section className="epilogue">
+      <span className="tag">Twelve months later</span>
+      <h1>What held, and what broke</h1>
+      <div className="epilogue-parts">
+        {epilogue.parts.map((p) => (
+          <div key={p.nodeId} className={`epi-part ${p.held ? "held" : "broke"}`}>
+            <div className="epi-head">
+              <span className="node-type">{p.type}</span>
+              <span className={`epi-verdict ${p.held ? "held" : "broke"}`}>
+                {p.held ? "held" : "broke"}
+              </span>
+            </div>
+            <p>{p.line}</p>
+          </div>
+        ))}
+      </div>
+      <p className="epi-meta">
+        Session ran {epilogue.minutes} minutes ·{" "}
+        <a href="/api/export" target="_blank" rel="noreferrer">export JSON</a>
+      </p>
+      <button className="quiet" onClick={onReset}>Reset the scenario</button>
+    </section>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(null);
-  const [npcText, setNpcText] = useState("");
-  const [npcStatus, setNpcStatus] = useState("idle"); // idle | streaming | done | unavailable
+  const [turns, setTurns] = useState([]); // [{elder, text, status: streaming|done|unavailable}]
   const [prevMeter, setPrevMeter] = useState(null);
-  const npcStarted = useRef(false);
+  const npcForNode = useRef(null);
 
   useEffect(() => {
     api("state").then(setData);
   }, []);
 
   const state = data?.state;
-  const { scenario, node } = data ?? {};
+  const { scenario, node, progress, decidedByPrompt } = data ?? {};
 
-  // Kick off the Steward automatically when the first answer lands.
+  // Kick off the Elders automatically when the first answer lands on a node.
   useEffect(() => {
-    if (!state || state.phase !== "challenge" || npcStarted.current) return;
-    npcStarted.current = true;
-    setNpcStatus("streaming");
+    if (!state || state.phase !== "challenge" || !node) return;
+    if (npcForNode.current === node.id) return;
+    npcForNode.current = node.id;
+    setTurns([]);
     (async () => {
       const res = await fetch("/api/npc", { method: "POST" });
       const reader = res.body.getReader();
@@ -164,27 +197,53 @@ export default function App() {
           const line = ev.split("\n").find((l) => l.startsWith("data: "));
           if (!line) continue;
           const msg = JSON.parse(line.slice(6));
-          if (msg.type === "delta") setNpcText((t) => t + msg.text);
-          if (msg.type === "done") setNpcStatus("done");
-          if (msg.type === "unavailable") {
-            setNpcText(msg.message);
-            setNpcStatus("unavailable");
-          }
+          setTurns((ts) => {
+            const next = [...ts];
+            if (msg.type === "elder-start")
+              next.push({ elder: msg.elder, text: "", status: "streaming" });
+            else if (msg.type === "delta" && next.length)
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                text: next[next.length - 1].text + msg.text,
+              };
+            else if (msg.type === "elder-done" && next.length)
+              next[next.length - 1] = { ...next[next.length - 1], status: "done" };
+            else if (msg.type === "elder-unavailable" && next.length)
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                text: msg.message,
+                status: "unavailable",
+              };
+            return next;
+          });
         }
       }
       setData(await api("state"));
     })().catch(async () => {
-      setNpcText("The Steward is unavailable — continue.");
-      setNpcStatus("unavailable");
+      setTurns((ts) =>
+        ts.length
+          ? ts.map((t) => (t.status === "streaming" ? { ...t, status: "unavailable", text: "The Elder is unavailable — continue." } : t))
+          : [{ elder: { id: "npc", name: "The Elders", seat: "" }, text: "The Elders are unavailable — continue.", status: "unavailable" }],
+      );
       setData(await api("state"));
     });
-  }, [state?.phase]);
+  }, [state?.phase, node?.id]);
 
   if (!data) return <div className="shell loading">Loading…</div>;
 
-  const refresh = (d) => {
-    setData(d);
-  };
+  const refresh = (d) => setData(d);
+  const record = state.record;
+
+  const skipButton =
+    !state.epilogue && ["posed", "challenge", "revise", "score"].includes(state.phase) ? (
+      <button
+        className="quiet skip"
+        onClick={async () => refresh(await api("skip", {}))}
+        title="Facilitator: skip this node under time pressure (recorded as skipped, distinct from declined)"
+      >
+        Skip this node
+      </button>
+    ) : null;
 
   return (
     <div className="shell">
@@ -196,53 +255,84 @@ export default function App() {
         </div>
         <Meter meter={state.meter} prev={prevMeter} />
       </header>
+      <Progress progress={progress} />
 
       <main>
-        {state.phase === "posed" && (
+        {state.phase === "epilogue" && (
+          <Epilogue
+            epilogue={state.epilogue}
+            onReset={async () => {
+              npcForNode.current = null;
+              setTurns([]);
+              setPrevMeter(null);
+              refresh(await api("reset", {}));
+            }}
+          />
+        )}
+
+        {state.phase === "posed" && node && (
           <>
-            <section className="brief">
-              {scenario.brief.split("\n\n").map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-              <Evidence scenario={scenario} />
-            </section>
+            {node.index === 0 && (
+              <section className="brief">
+                {scenario.brief.split("\n\n").map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </section>
+            )}
+            {node.inject && (
+              <div className="inject">
+                <span className="tag">Meanwhile</span>
+                <p>{node.inject}</p>
+              </div>
+            )}
             <section className="node">
-              <span className="node-type">{node.type}</span>
+              <div className="node-head">
+                <span className="node-type">{node.type}</span>
+                <span className="node-count">
+                  node {node.index + 1} of {node.count}
+                </span>
+              </div>
               <h1>{node.title}</h1>
               <p className="question">{node.question}</p>
+              <Evidence scenario={scenario} />
               <AnswerForm
                 node={node}
+                decidedByPrompt={decidedByPrompt}
                 submitLabel="Commit the room's answer"
                 onSubmit={async (a) => refresh(await api("answer", a))}
               />
+              {skipButton}
             </section>
           </>
         )}
 
-        {(state.phase === "challenge" || state.phase === "revise") && (
+        {(state.phase === "challenge" || state.phase === "revise") && node && (
           <section className="challenge">
             <div className="committed">
               <span className="tag">The room committed</span>
               <p className="committed-choice">
-                {node.options.find((o) => o.id === state.firstAnswer.choice).label}
+                {node.options.find((o) => o.id === record.firstAnswer.choice).label}
               </p>
-              <p className="committed-free">“{state.firstAnswer.freeText}”</p>
-              <p className="committed-by">Final call: {state.firstAnswer.decidedBy}</p>
+              <p className="committed-free">“{record.firstAnswer.freeText}”</p>
+              <p className="committed-by">Final call: {record.firstAnswer.decidedBy}</p>
             </div>
-            <div className={`npc ${npcStatus}`}>
-              <span className="npc-name">The Steward</span>
-              <span className="npc-seat">Security and risk</span>
-              <p className="npc-text">
-                {npcText}
-                {npcStatus === "streaming" && <span className="cursor">▋</span>}
-              </p>
-            </div>
+            {turns.map((t, i) => (
+              <div key={i} className={`npc ${t.elder.id} ${t.status}`}>
+                <span className="npc-name">{t.elder.name}</span>
+                <span className="npc-seat">{t.elder.seat}</span>
+                <p className="npc-text">
+                  {t.text}
+                  {t.status === "streaming" && <span className="cursor">▋</span>}
+                </p>
+              </div>
+            ))}
             {state.phase === "revise" && (
               <div className="revise">
                 <h2>Revise, or hold your answer?</h2>
                 <AnswerForm
                   node={node}
-                  initial={state.firstAnswer}
+                  decidedByPrompt={decidedByPrompt}
+                  initial={record.firstAnswer}
                   submitLabel="Commit the revised answer"
                   onSubmit={async (a) => refresh(await api("answer", a))}
                 />
@@ -251,6 +341,7 @@ export default function App() {
                 </button>
               </div>
             )}
+            {skipButton}
           </section>
         )}
 
@@ -258,9 +349,9 @@ export default function App() {
           <section className="scoring">
             <h2>Facilitator: score this node</h2>
             <p className="rubric">
-              <strong>Specific</strong> names a role or person plus a trigger or
-              threshold · <strong>Generic</strong> names a function ·
-              <strong> Absent</strong> declined or named no one
+              <strong>Specific</strong> names a role or person plus a trigger or threshold ·{" "}
+              <strong>Generic</strong> names a function · <strong>Absent</strong> declined or
+              named no one
             </p>
             <div className="score-buttons">
               {["specific", "generic", "absent"].map((s) => (
@@ -276,28 +367,31 @@ export default function App() {
                 </button>
               ))}
             </div>
+            {skipButton}
           </section>
         )}
 
-        {state.phase === "locked" && (
+        {state.phase === "consequence" && (
           <section className="consequence">
-            <span className="tag">Three months later</span>
-            <p className="consequence-text">{state.consequence}</p>
+            <span className="tag">What this sets in motion</span>
+            <p className="consequence-text">{record.consequence}</p>
             <p className="locked-meta">
-              Locked · scored <strong>{state.score}</strong>
-              {state.held ? " · held after challenge" : state.revisedAnswer ? " · revised after challenge" : ""}
+              Locked · scored <strong>{record.score}</strong>
+              {record.held
+                ? " · held after challenge"
+                : record.revisedAnswer
+                  ? " · revised after challenge"
+                  : ""}
             </p>
             <button
-              className="quiet"
+              className="primary"
               onClick={async () => {
-                npcStarted.current = false;
-                setNpcText("");
-                setNpcStatus("idle");
-                setPrevMeter(null);
-                refresh(await api("reset", {}));
+                npcForNode.current = null;
+                setTurns([]);
+                refresh(await api("advance", {}));
               }}
             >
-              Reset the slice
+              Continue
             </button>
           </section>
         )}
