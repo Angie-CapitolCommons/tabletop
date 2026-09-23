@@ -1,0 +1,32 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Tabletop tokens</title><style>
+:root{--paper:#f5f3ec;--card:#fffefa;--ink:#1f2a33;--muted:#5d6a72;--line:#ddddd2;--accent:#1d5c63;--accent-ink:#fff;--accent-soft:#e4eeec;--gold:#b98a2f;--memo:#fdf6ea;--memo-edge:#e3c793;--held:#2f7d4f;--broke:#b0503c;--serif:Georgia,serif;--sans:'Segoe UI',system-ui,sans-serif;--mono:Consolas,monospace}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding:28px}
+h1{font-size:22px;margin:0 0 4px}.note{color:var(--muted);font-size:13px;margin:0 0 20px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:26px}
+.sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.sw i{display:block;height:52px}.sw b{display:block;font-family:var(--mono);font-size:11px;padding:8px 10px 2px}.sw span{display:block;font-size:11px;color:var(--muted);padding:0 10px 8px}
+.spec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+.spec>div{padding:8px 0;border-top:1px solid var(--line)}.spec>div:first-child{border-top:0}
+</style></head><body>
+<h1>Tabletop — brand tokens</h1>
+<p class="note">Placeholder palette awaiting the Virtual Insights design system. Every value is a CSS custom property; the app swaps one :root block.</p>
+<div class="swatches">
+<div class="sw"><i style="background:#f5f3ec"></i><b>--paper</b><span>desk background</span></div>
+<div class="sw"><i style="background:#fffefa;border-bottom:1px solid #ddddd2"></i><b>--card</b><span>scene card</span></div>
+<div class="sw"><i style="background:#1f2a33"></i><b>--ink</b><span>body text</span></div>
+<div class="sw"><i style="background:#5d6a72"></i><b>--muted</b><span>secondary text</span></div>
+<div class="sw"><i style="background:#1d5c63"></i><b>--accent</b><span>actions, current state</span></div>
+<div class="sw"><i style="background:#e4eeec"></i><b>--accent-soft</b><span>chosen fills</span></div>
+<div class="sw"><i style="background:#b98a2f"></i><b>--gold</b><span>consequence, generic</span></div>
+<div class="sw"><i style="background:#fdf6ea;border-bottom:1px solid #e3c793"></i><b>--memo</b><span>memo paper</span></div>
+<div class="sw"><i style="background:#2f7d4f"></i><b>--held</b><span>specific / held</span></div>
+<div class="sw"><i style="background:#b0503c"></i><b>--broke</b><span>absent / broke / stamps</span></div>
+</div>
+<div class="spec">
+<div style="font:750 34px/1.1 var(--sans);letter-spacing:-.02em">Display — Segoe UI 750</div>
+<div style="font:19px var(--serif);color:#33414c">Question serif — Georgia, used for scenario voice</div>
+<div style="font:italic 16px var(--serif);color:#1d5c63">Accent italic — the case-file voice</div>
+<div style="font:700 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#1d5c63">Eyebrow mono · 11px · tracked</div>
+</div>
+</body></html>
