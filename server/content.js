@@ -388,11 +388,47 @@ const WRITE_IN_CONSEQUENCES = {
     "An arrangement the budget office has never seen. It will be honored precisely as written, including everything it doesn't say.",
 };
 
+// Short labels for the decision-path strip (design handoff 2d).
+const SHORTS = {
+  risk_accept: { a: "Run everywhere", b: "Restrict to Clinic A", c: "Suspend all" },
+  stop: { a: "Named kill switch", b: "Contract is the switch", c: "Review decides" },
+  tier: { a: "Tier the uses", b: "Tier the tool once", c: "Vendor's rating" },
+  decide: { a: "One named decider", b: "Joint committee", c: "Escalate up" },
+  proof: { a: "Omission ceiling", b: "Validation study", c: "Clinics judge" },
+  retier: { a: "Defined triggers", b: "Annual calendar", c: "Vendor must notify" },
+  funding: { a: "One budget owner", b: "Split three ways", c: "Bridge funds" },
+};
+
 for (const n of nodes) {
   n.options.splice(n.options.length - 1, 0, { ...WRITE_IN_OPTION });
   n.meterDeltas.writein = { goodwill: 0, risk: 0, dollars: 0, time: +1 };
   n.consequences.writein = WRITE_IN_CONSEQUENCES[n.id];
+  for (const o of n.options) {
+    o.short =
+      o.id === "writein" ? "The room's own path" : o.id === "decline" ? "Declined" : SHORTS[n.id][o.id];
+  }
 }
+
+// The five seated roles (PRD §6). First names are recorded against these at
+// the briefing screen; they never reach the model or the reports.
+export const roles = [
+  "The Doctor",
+  "The Security Guard",
+  "The Money Manager",
+  "The AI Guru",
+  "The Competitive Marketing Leader",
+];
+
+// Public "fires on" lines for the AI Council panel (PRD §7.1). These are safe
+// for the client; the personas above never leave the server.
+export const elderFiresOn = {
+  steward: "A control called an obstacle; “safe to try” undefined; no named risk-acceptor",
+  caretaker:
+    "Launch treated as the finish line; no monitoring owner; no update path; run cost unassigned",
+  cartographer: "Passive voice about a decision; “it went to committee”; two bodies claimed",
+  ledger: "No stated cost; a decision described as free; no renewal answer",
+  decoupler: "An aspiration with no owner; no threshold; no evidence",
+};
 
 export const decidedByPrompt = DECIDED_BY_PROMPT;
 
