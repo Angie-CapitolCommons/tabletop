@@ -1,6 +1,6 @@
 # PRD — AI Integration Environment Tabletop
 
-*Virtual Insights LLC · City of Hope HCD session · Draft v0.6, September 23, 2026*
+*Virtual Insights LLC · City of Hope HCD session · Draft v0.7, September 23, 2026*
 
 > Canonical live copy: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k — this file is the repo mirror; update both together.
 
@@ -117,7 +117,7 @@ Six to eight nodes per scenario. Not every scenario uses every node; coverage is
 
 1. **Pose.** The node question appears on the room screen, in scenario context.
 2. **Discuss.** The room works it out loud, role mandates in tension, until it converges on one answer it owns. This is the exercise; the facilitator holds the room to it.
-3. **Answer.** The facilitator enters the room's answer: multiple choice, plus a required free-text field naming the specific person, role, trigger, or threshold, plus a second required field — **who made that final decision?** A role, a first name, or "the group," recorded verbatim. The room's own decision process is data (§8). "We cannot answer this today" is always an option and is recorded as an explicit gap, not a failure.
+3. **Answer.** The facilitator enters the room's answer: multiple choice, plus a required free-text field naming the specific person, role, trigger, or threshold, plus a second required field — **who made that final decision?** A role, a first name, or “the group,” recorded verbatim. The room's own decision process is data (§8). Two standing options exist on every node: “We cannot answer this today” (recorded as an explicit gap, not a failure) and a **write-in** — “we choose a different path” — where the room's answer is the free text itself, honored verbatim: the consequence engine and the Elders hold the room to exactly what it wrote.
 4. **NPC challenge.** One or two NPCs respond in character to what was actually written. If the call fails, the beat is skipped and the room continues.
 5. **Revise or hold.** Both the first and revised answers are recorded.
 6. **Lock.** The facilitator scores the node (see §8), the flowchart grows, the cost meter moves.
@@ -292,7 +292,7 @@ Scenario detail, injects, and node emphasis are derived from the internal scout 
 - A room can complete a scenario in 90 minutes including setup and extraction
 - Every locked node records: choice, free text, **who made the final decision**, first and revised answer, specificity score, timing
 - NPC responses are in character and respond to the room's actual free text; the prompt provably contains no CoH source material
-- A room can decline any node and have that recorded as a gap without penalty; a facilitator can skip a node and have that recorded as skipped
+- A room can decline any node and have that recorded as a gap without penalty; a facilitator can skip a node and have that recorded as skipped; a room can write in its own answer at any node and have it recorded, challenged, and carried forward verbatim
 - A failed or stalled NPC call surfaces a plain message and never blocks the room from advancing
 - The admin dashboard reflects all four rooms within seconds of a node locking
 - Printed worksheets exist for all four scenarios, mirroring the node questions and answer options
