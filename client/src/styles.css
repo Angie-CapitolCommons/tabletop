@@ -115,6 +115,17 @@ h1, h2, h3, p { margin: 0; }
 }
 .fac-score:disabled { opacity: 0.45; }
 .fac-score:not(:disabled):hover { background: rgba(247, 246, 243, 0.12); }
+.fac-btn.transcribe-on { border-color: var(--blue); color: #9ec8e8; }
+.transcribe-chip {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  color: var(--on-dark-dim); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+}
+.transcribe-chip i {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--rust);
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rec-pulse { 50% { opacity: 0.25; } }
+.transcribe-error { font-size: 12px; color: #e8b49e; }
 
 /* ---------- room login ---------- */
 .login-center { display: flex; align-items: center; justify-content: center; }
