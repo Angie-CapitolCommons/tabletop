@@ -12,6 +12,8 @@ import {
   decidedByPrompt,
   buildEpilogue,
   meterStart,
+  roles,
+  elderFiresOn,
 } from "./content.js";
 import { streamElderTurn } from "./npc.js";
 
@@ -30,6 +32,8 @@ function freshState() {
     records: {}, // nodeId -> { firstAnswer, revisedAnswer, held, skipped, score, consequence, npc: [elderIds], timings }
     meter: { ...meterStart },
     elderTurns: {}, // elderId -> [{ nodeId, text, live, at }]
+    roleAssignments: {}, // role name -> first name (recorded at briefing; never sent to the model)
+    briefed: false,
     startedAt: Date.now(),
     posedAt: Date.now(),
   };
@@ -93,8 +97,25 @@ function publicState() {
           count: nodes.length,
         }
       : null,
+    roles,
+    roleAssignments: state.roleAssignments,
+    records: Object.fromEntries(
+      Object.entries(state.records).map(([id, r]) => {
+        const a = r.revisedAnswer ?? r.firstAnswer;
+        const n = nodes.find((x) => x.id === id);
+        return [
+          id,
+          {
+            score: r.score,
+            skipped: r.skipped,
+            answer: a ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
+          },
+        ];
+      }),
+    ),
     state: {
       phase: state.epilogue ? "epilogue" : state.phase,
+      briefed: state.briefed,
       record: node ? state.records[node.id] ?? null : null,
       meter: state.meter,
       epilogue: state.epilogue,
@@ -106,6 +127,31 @@ function publicState() {
 // ---------- api ----------
 
 app.get("/api/state", (_req, res) => res.json(publicState()));
+
+// AI Council panel: public profile only — name, seat, fires-on. Never personas.
+app.get("/api/elders", (_req, res) =>
+  res.json(
+    Object.values(elders).map((e) => ({
+      id: e.id,
+      name: e.name,
+      seat: e.seat,
+      firesOn: elderFiresOn[e.id],
+    })),
+  ),
+);
+
+// Briefing screen: record role assignments (first names only) and start node 1.
+app.post("/api/roles", (req, res) => {
+  const { assignments } = req.body ?? {};
+  if (assignments && typeof assignments === "object") {
+    for (const role of roles) {
+      const name = assignments[role];
+      if (typeof name === "string") state.roleAssignments[role] = name.trim();
+    }
+  }
+  state.briefed = true;
+  res.json(publicState());
+});
 
 app.post("/api/answer", (req, res) => {
   const node = currentNode();
