@@ -89,10 +89,12 @@ function AnswerForm({ node, decidedByPrompt, initial, submitLabel, onSubmit }) {
         {node.options.map((o, i) => (
           <button
             key={o.id}
-            className={`choice ${choice === o.id ? "chosen" : ""} ${o.id === "decline" ? "decline-opt" : ""}`}
+            className={`choice ${choice === o.id ? "chosen" : ""} ${o.id === "decline" ? "decline-opt" : ""} ${o.id === "writein" ? "writein-opt" : ""}`}
             onClick={() => setChoice(o.id)}
           >
-            <span className="letter">{o.id === "decline" ? "–" : LETTERS[i]}</span>
+            <span className="letter">
+              {o.id === "decline" ? "–" : o.id === "writein" ? "✎" : LETTERS[i]}
+            </span>
             <span>
               <strong>{o.label}</strong>
               <small>{o.hint}</small>
@@ -103,12 +105,16 @@ function AnswerForm({ node, decidedByPrompt, initial, submitLabel, onSubmit }) {
       <div className="record-block">
         <div className="record-title">For the record</div>
         <label className="field">
-          <span>{node.freeTextPrompt}</span>
+          <span>
+            {choice === "writein"
+              ? "Write the room's answer: the path, the named owner, and the trigger. This text is the decision — it will be honored verbatim."
+              : node.freeTextPrompt}
+          </span>
           <textarea
-            rows={2}
+            rows={choice === "writein" ? 3 : 2}
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
-            placeholder="A name or role, and a trigger…"
+            placeholder={choice === "writein" ? "The room's own path, in full…" : "A name or role, and a trigger…"}
           />
         </label>
         <label className="field">

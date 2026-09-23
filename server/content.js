@@ -362,6 +362,38 @@ export const nodes = [
   },
 ];
 
+// ---------- write-in: every node accepts the room's own path ----------
+// The write-in is honored VERBATIM: its consequence and epilogue hold the room
+// to exactly what it wrote, so specificity carries all the weight. Custom paths
+// spend time (nobody has built them yet); everything else depends on the words.
+
+const WRITE_IN_OPTION = {
+  id: "writein",
+  label: "We choose a different path — written for the record below",
+  hint: "The room writes its own answer. It goes on the record verbatim, and the Elders will hold you to every word.",
+};
+
+const WRITE_IN_CONSEQUENCES = {
+  risk_accept:
+    "The room's own arrangement goes on the record verbatim. Risk doesn't care how novel the plan is — only whether the name and the trigger in it are real.",
+  stop: "An off-switch nobody has built before. It works exactly as well as the words the room just wrote — the record is the spec now.",
+  tier: "A tiering scheme of the room's own design. The governance office files it verbatim, and will apply it literally.",
+  decide:
+    "A decision path no chart shows. It exists only in the sentence the room wrote — people will follow it exactly as far as that sentence is clear.",
+  proof:
+    "A homemade threshold. If the number and its owner are in the writing, it will function; if not, it will comfort.",
+  retier:
+    "A custom tripwire. It fires only if someone builds it — and the record now says who.",
+  funding:
+    "An arrangement the budget office has never seen. It will be honored precisely as written, including everything it doesn't say.",
+};
+
+for (const n of nodes) {
+  n.options.splice(n.options.length - 1, 0, { ...WRITE_IN_OPTION });
+  n.meterDeltas.writein = { goodwill: 0, risk: 0, dollars: 0, time: +1 };
+  n.consequences.writein = WRITE_IN_CONSEQUENCES[n.id];
+}
+
 export const decidedByPrompt = DECIDED_BY_PROMPT;
 
 export function buildEpilogue(records) {
