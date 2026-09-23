@@ -253,7 +253,62 @@ export default function App() {
   const [skipArmed, setSkipArmed] = useState(false);
   const [commit, setCommit] = useState(null); // surfaced from RecordPanel
   const [roster, setRoster] = useState({});
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcribeError, setTranscribeError] = useState(null);
   const npcForNode = useRef(null);
+  const recRef = useRef(null);
+  const transcribingRef = useRef(false);
+
+  // Live discussion transcription (facilitator-controlled). Browser speech
+  // recognition: text only, no audio stored by the app, no speaker
+  // attribution — the engine has no diarization at all.
+  const stopTranscription = () => {
+    transcribingRef.current = false;
+    setTranscribing(false);
+    try {
+      recRef.current?.stop();
+    } catch {}
+    recRef.current = null;
+  };
+
+  const startTranscription = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setTranscribeError("Speech recognition needs Chrome on this laptop.");
+      return;
+    }
+    setTranscribeError(null);
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const text = e.results[i][0].transcript.trim();
+          if (text) api("discussion", { text }).catch(() => {});
+        }
+      }
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setTranscribeError("Microphone permission was denied.");
+        stopTranscription();
+      }
+    };
+    // The engine stops itself after silence; restart while the toggle is on.
+    rec.onend = () => {
+      if (transcribingRef.current && recRef.current === rec) {
+        try {
+          rec.start();
+        } catch {}
+      }
+    };
+    recRef.current = rec;
+    transcribingRef.current = true;
+    rec.start();
+    setTranscribing(true);
+  };
 
   useEffect(() => {
     api("state")
@@ -314,6 +369,15 @@ export default function App() {
 
   useEffect(() => setSkipArmed(false), [state?.phase, node?.id]);
 
+  // A discussion belongs to one decision: it ends when the node locks
+  // (consequence), when the node changes, and with the scenario.
+  useEffect(() => {
+    if (["consequence", "epilogue"].includes(state?.phase) && transcribingRef.current) stopTranscription();
+  }, [state?.phase]);
+  useEffect(() => {
+    if (transcribingRef.current) stopTranscription();
+  }, [node?.id]);
+
   if (needsLogin) return <RoomLogin onEnter={() => setNeedsLogin(false)} />;
 
   if (!data)
@@ -341,6 +405,7 @@ export default function App() {
   };
 
   const reset = async () => {
+    stopTranscription();
     npcForNode.current = null;
     setTurns([]);
     setPrevMeter(null);
@@ -376,6 +441,21 @@ export default function App() {
       <span className="fac-label">FACILITATOR</span>
       <button className="fac-btn" onClick={() => setEvidenceOpen("menu")}>Evidence</button>
       <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
+      {briefed && node && ["posed", "challenge", "revise", "score"].includes(phase) && (
+        <button
+          className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
+          title="Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
+          onClick={() => (transcribing ? stopTranscription() : startTranscription())}
+        >
+          {transcribing ? "End discussion" : "Start discussion"}
+        </button>
+      )}
+      {transcribing && (
+        <span className="transcribe-chip">
+          <i /> TRANSCRIBING · TEXT ONLY · NO AUDIO STORED · NO VOICES ATTRIBUTED
+        </span>
+      )}
+      {transcribeError && <span className="transcribe-error">{transcribeError}</span>}
     </>
   );
   const skipBtn = (

@@ -68,6 +68,7 @@ const getRecord = (room, nodeId) =>
     score: null,
     consequence: null,
     villager: null,
+    discussion: [], // live-transcribed fragments, text only (PRD §8) — never sent to the model
     timings: { posedAt: room.posedAt, firstAnswerAt: null, lockedAt: null },
   });
 const finalAnswer = (r) => r.revisedAnswer ?? r.firstAnswer;
@@ -303,6 +304,25 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   persist();
   send({ type: "done" });
   res.end();
+});
+
+// Live discussion transcription (facilitator-controlled, PRD §8): text
+// fragments only. No audio is stored by the app, no voices are attributed,
+// and the transcript is never included in any model prompt.
+app.post("/api/discussion", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue) return res.status(409).json({ error: "no active node" });
+  if (!["posed", "challenge", "revise", "score"].includes(room.phase)) {
+    return res.status(409).json({ error: `cannot transcribe in phase ${room.phase}` });
+  }
+  const text = (req.body?.text ?? "").trim();
+  if (!text) return res.status(400).json({ error: "text required" });
+  // Fragments attach to the current node, tagged with the beat they came from
+  // (posed = pre-answer discussion, revise = after the Elder challenge).
+  getRecord(room, node.id).discussion.push({ text: text.slice(0, 2000), at: Date.now(), phase: room.phase });
+  persist();
+  res.json({ ok: true });
 });
 
 app.post("/api/hold", roomAuth, (req, res) => {

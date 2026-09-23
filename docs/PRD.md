@@ -1,6 +1,6 @@
 # PRD — AI Integration Environment Tabletop
 
-*Virtual Insights LLC · City of Hope HCD session · Draft v0.7, September 23, 2026*
+*Virtual Insights LLC · City of Hope HCD session · Draft v0.8, September 23, 2026*
 
 > Canonical live copy: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k — this file is the repo mirror; update both together.
 
@@ -125,6 +125,8 @@ Six to eight nodes per scenario. Not every scenario uses every node; coverage is
 
 The facilitator can compress or skip a node under time pressure; a skipped node is recorded as *skipped*, distinct from *declined*.
 
+**Discussion capture (per decision, facilitator-controlled).** Each node has a Start/End discussion control. While on, the room’s spoken discussion is *live-transcribed as text* and attached to that decision’s record, tagged by beat (before the answer vs. after the Elder challenge) — because the lived tensions in the argument are where the problems are, not only in the verdict. Three hard properties: **no audio is ever stored** by the application; **no voices are attributed** — the transcription engine has no speaker identification at all; and the transcript **never reaches the model** — it goes to the record and the export only. A standing indicator is visible on the room screen whenever transcription is on, and it stops automatically when the decision locks. Transcription uses the browser’s built-in speech engine (Chrome), which processes audio transiently through the browser vendor’s service; noted to InfoSec as a one-line addendum. Transcripts of group discussion will be fragmentary — that is acceptable; they are mined for tension language, not minutes.
+
 ### 5.4 Consequence engine
 
 Injects are not on a timer. They are caused. A vague `tier` answer produces, three months on, a tool doing something nobody approved. A deferred `risk_accept` produces a stalled vendor and continued unapproved use. A specific named owner at `decide` means someone is there to catch drift at `stop`. Declining a node has consequences too — a decline is never free.
@@ -216,7 +218,7 @@ Recorded by the application, reported in aggregate with no room or person identi
 - Reversal under inject: where an answer changes once a cost appears
 - Role assignment: who volunteered for what (shared, doubled) — as recorded by the facilitator; reported without names
 - **Decider emergence:** who made each final call — a named role, a person, or "the group" — and whether authority settles on one seat, rotates node to node, or never lands. This is the exercise's mirror of the org's own open question.
-- Language: unprompted appearance of terms like unwind, stalemate, roulette, chasing, it depends — *in typed free text only*; the app does not hear the room
+- Language: unprompted appearance of terms like unwind, stalemate, roulette, chasing, it depends — in typed free text, and in the per-decision discussion transcript when the facilitator turns transcription on (text only, no audio stored, no voices attributed; see §5.3)
 
 ### Class C — cross-room, at consolidation
 
@@ -229,7 +231,7 @@ Computed where computable (choices, scores, timings); judged by the lead facilit
 - **Drop-off:** which lifecycle step the rooms answer well and where specificity collapses
 - **Decider emergence across rooms:** which seat ended up making the calls in each room — four rooms, same five roles, do the same seats take (or dodge) authority?
 
-**Disclosure.** Class B is disclosed at the start: we are tracking how decisions get made, not only what gets decided, and it is reported without identifying rooms or individuals.
+**Disclosure.** Class B is disclosed at the start: we are tracking how decisions get made, not only what gets decided, and it is reported without identifying rooms or individuals. When discussion transcription is on, the room screen says so the entire time — text only, no audio stored, no voices attributed.
 
 ---
 
@@ -294,6 +296,7 @@ Scenario detail, injects, and node emphasis are derived from the internal scout 
 - NPC responses are in character and respond to the room's actual free text; the prompt provably contains no CoH source material
 - A room can decline any node and have that recorded as a gap without penalty; a facilitator can skip a node and have that recorded as skipped; a room can write in its own answer at any node and have it recorded, challenged, and carried forward verbatim
 - A failed or stalled NPC call surfaces a plain message and never blocks the room from advancing
+- Discussion transcription is per-decision and facilitator-controlled; while on, an indicator is visible on the room screen; no audio is stored; no voices are attributed; the transcript appears in the record and export and never in a model prompt
 - The admin dashboard reflects all four rooms within seconds of a node locking
 - Printed worksheets exist for all four scenarios, mirroring the node questions and answer options
 - The room screen is legible when projected — large type, high contrast, no interaction required to read the current state
