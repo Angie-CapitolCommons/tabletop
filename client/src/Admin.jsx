@@ -125,6 +125,9 @@ export default function Admin() {
           <span className="admin-title">Consolidation</span>
         </div>
         <div className="admin-actions">
+          <a className="fac-btn" href="/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+            Worksheets &amp; role cards
+          </a>
           <button
             className="fac-btn"
             onClick={async () => download(await adminApi("export"), `tabletop-export-${Date.now()}.json`)}
