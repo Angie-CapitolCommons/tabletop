@@ -16,18 +16,18 @@ facilitator's consolidation dashboard, exports, and the full game reset.
 
 ## Access (PRD §4: five logins in the world)
 
-| Who | Where | Code (default — override via env) |
+| Who | Where | Code |
 |---|---|---|
-| Room facilitators | `/` | `OAK-1` `ELM-2` `ASH-3` `FIR-4` (`ROOM_CODES`) |
-| Lead facilitator | `/admin` | `DUARTE-LEAD` (`ADMIN_CODE`) |
+| Room facilitators | `/` | Four distinct secret values in `ROOM_CODES` |
+| Lead facilitator | `/admin` | A separate secret value in `ADMIN_CODE` |
 
-Participants touch no device. Printables (worksheets + role cards) at `/print`.
+Participants touch no device. Printables (worksheets + role cards) at `/api/print`.
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env   # add ANTHROPIC_API_KEY; set real codes before the session
+cp .env.example .env   # set DATABASE_URL, all access codes, and ANTHROPIC_API_KEY
 npm run dev            # server :4600 + vite dev :4700 → open http://localhost:4700
 ```
 
