@@ -47,7 +47,7 @@ export function printIndexPage(scenarios) {
     .map(
       (s) =>
         `<div class="node"><h2>${esc(s.title)}</h2><p class="tagline">${esc(s.tagline)} (enters at ${esc(s.entersAt)})</p>
-         <p><a href="/print/worksheet/${s.id}">Worksheet</a> &middot; <a href="/print/rolecards/${s.id}">Role cards</a></p></div>`,
+         <p><a href="/api/print/worksheet/${s.id}">Worksheet</a> &middot; <a href="/api/print/rolecards/${s.id}">Role cards</a></p></div>`,
     )
     .join("");
   return page(

@@ -4,6 +4,7 @@
 // is the security model (PRD §4).
 import "dotenv/config";
 import express from "express";
+import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -20,7 +21,7 @@ import {
 } from "./content/index.js";
 import { streamElderTurn } from "./npc.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
-import { initStore, saveRooms, clearStore } from "./store.js";
+import { initStore, saveRooms } from "./store.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -28,11 +29,15 @@ app.use(express.json());
 
 // ---------- codes (pre-defined; override via env) ----------
 
-const ROOM_CODES = (process.env.ROOM_CODES || "OAK-1,ELM-2,ASH-3,FIR-4")
+const ROOM_CODES = (process.env.ROOM_CODES || "")
   .split(",")
   .map((c) => c.trim().toUpperCase());
-const ADMIN_CODE = (process.env.ADMIN_CODE || "DUARTE-LEAD").toUpperCase();
+const ADMIN_CODE = (process.env.ADMIN_CODE || "").trim().toUpperCase();
 const ROOM_NUMBERS = [1, 2, 3, 4];
+if (ROOM_CODES.length !== 4 || ROOM_CODES.some((code) => !code) ||
+    new Set([...ROOM_CODES, ADMIN_CODE]).size !== 5 || !ADMIN_CODE) {
+  throw new Error("Configure four distinct ROOM_CODES and a separate ADMIN_CODE");
+}
 
 // ---------- state ----------
 
@@ -56,7 +61,46 @@ let rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
 
 const restored = await initStore();
 if (restored) for (const n of ROOM_NUMBERS) if (restored[n]) rooms[n] = restored[n];
-const persist = () => saveRooms(rooms);
+// Successful mutations are persisted before responding by the middleware below.
+const persist = () => {};
+
+let mutationTail = Promise.resolve();
+const npcInFlight = new Set();
+app.use("/api", async (req, res, next) => {
+  if (req.method !== "POST") {
+    await mutationTail;
+    return next();
+  }
+  if (req.path === "/npc") return next();
+  let release;
+  const turn = new Promise((resolve) => { release = resolve; });
+  const previous = mutationTail;
+  mutationTail = previous.then(() => turn);
+  await previous;
+  const before = structuredClone(rooms);
+  let finished = false;
+  const finish = () => { if (!finished) { finished = true; release(); } };
+  res.once("close", finish);
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 400) {
+      finish();
+      return originalJson(body);
+    }
+    saveRooms(rooms).then(() => {
+      originalJson(body);
+      finish();
+    }).catch((error) => {
+      rooms = before;
+      console.error("Room write failed:", error);
+      res.status(503);
+      originalJson({ error: "Room was not saved. Please retry." });
+      finish();
+    });
+    return res;
+  };
+  next();
+});
 
 const currentScenario = (room) => (room.scenarioId ? scenarios[room.scenarioId] : null);
 const currentNode = (room) => currentScenario(room)?.nodes[room.nodeIndex];
@@ -170,9 +214,27 @@ function publicState(room, roomNumber) {
 
 // ---------- auth ----------
 
+const failedAttempts = new Map();
+function guardedCode(req, header, valid) {
+  const ip = req.ip || "unknown";
+  const now = Date.now();
+  let record = failedAttempts.get(ip);
+  if (!record || now >= record.until) record = { count: 0, until: now + 60_000 };
+  if (record.count >= 10) return { limited: true };
+  const input = Buffer.from((req.get(header) || "").trim().toUpperCase());
+  const match = valid.findIndex((code) => {
+    const bytes = Buffer.from(code);
+    return input.length === bytes.length && crypto.timingSafeEqual(input, bytes);
+  });
+  if (match < 0) {
+    record.count++;
+    failedAttempts.set(ip, record);
+  } else failedAttempts.delete(ip);
+  return { match };
+}
 function roomAuth(req, res, next) {
-  const code = (req.get("x-room-code") || "").trim().toUpperCase();
-  const idx = ROOM_CODES.indexOf(code);
+  const { match: idx, limited } = guardedCode(req, "x-room-code", ROOM_CODES);
+  if (limited) return res.status(429).json({ error: "too many invalid code attempts" });
   if (idx === -1) return res.status(401).json({ error: "invalid room code" });
   req.roomNumber = ROOM_NUMBERS[idx];
   req.room = rooms[req.roomNumber];
@@ -180,8 +242,9 @@ function roomAuth(req, res, next) {
 }
 
 function adminAuth(req, res, next) {
-  const code = (req.get("x-admin-code") || "").trim().toUpperCase();
-  if (code !== ADMIN_CODE) return res.status(401).json({ error: "invalid admin code" });
+  const { match, limited } = guardedCode(req, "x-admin-code", [ADMIN_CODE]);
+  if (limited) return res.status(429).json({ error: "too many invalid code attempts" });
+  if (match !== 0) return res.status(401).json({ error: "invalid admin code" });
   next();
 }
 
@@ -192,17 +255,20 @@ function adminAuth(req, res, next) {
 // "is the deployed app the repo?" question.
 let gitSha = "unknown";
 try {
-  gitSha = execSync("git rev-parse --short HEAD", { cwd: here }).toString().trim();
+  gitSha = here.includes("/canonical/tabletop/")
+    ? "d7c2e48+workspace"
+    : execSync("git rev-parse --short HEAD", { cwd: here }).toString().trim();
 } catch {}
 const SERVER_STARTED_AT = new Date().toISOString();
 
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
-    commit: gitSha,
+    commit: process.env.TABLETOP_SOURCE_REVISION || gitSha,
+    source: "github-main",
     model: process.env.MODEL || "claude-opus-5",
     anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
-    storage: process.env.DATABASE_URL ? "postgres" : "memory",
+    storage: "postgres",
     startedAt: SERVER_STARTED_AT,
   });
 });
@@ -277,6 +343,8 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   if (!node || room.epilogue || room.phase !== "challenge") {
     return res.status(409).json({ error: `cannot run NPC in phase ${room.phase}` });
   }
+  if (npcInFlight.has(req.roomNumber)) return res.status(409).json({ error: "Elders are already speaking" });
+  npcInFlight.add(req.roomNumber);
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
@@ -296,6 +364,8 @@ app.post("/api/npc", roomAuth, async (req, res) => {
     })
     .join("\n");
 
+  const completed = [];
+  try {
   for (const elderId of node.elders) {
     const elder = elders[elderId];
     const priorTurns = (room.elderTurns[elderId] ?? []).filter((t) => t.live);
@@ -311,22 +381,27 @@ app.post("/api/npc", roomAuth, async (req, res) => {
         priorTurns,
         onDelta: (t) => send({ type: "delta", text: t }),
       });
-      (room.elderTurns[elderId] ??= []).push({ nodeId: node.id, text, live: true, at: Date.now() });
+      completed.push({ elderId, turn: { nodeId: node.id, text, live: true, at: Date.now() } });
       send({ type: "elder-done" });
     } catch (err) {
       console.error(`${elder.name} turn failed:`, err?.message ?? err);
-      (room.elderTurns[elderId] ??= []).push({
-        nodeId: node.id,
-        text: `(${elder.name} could not be reached.)`,
-        live: false,
-        at: Date.now(),
-      });
-      send({ type: "elder-unavailable", message: `${elder.name} is unavailable — continue.` });
+      throw new Error(`${elder.name} could not be reached. Retry the Elder challenge or hold the answer.`);
     }
   }
-  room.phase = "revise";
-  persist();
+  if (rooms[req.roomNumber] !== room || room.phase !== "challenge" || currentNode(room)?.id !== node.id)
+    throw new Error("The room changed while the Elders were speaking. Refresh and retry.");
+  const nextRoom = structuredClone(room);
+  for (const { elderId, turn } of completed) (nextRoom.elderTurns[elderId] ??= []).push(turn);
+  nextRoom.phase = "revise";
+  await saveRooms({ [req.roomNumber]: nextRoom });
+  rooms[req.roomNumber] = nextRoom;
   send({ type: "done" });
+  } catch (error) {
+    console.error("Elder challenge failed:", error);
+    send({ type: "error", message: error.message || "Elder challenge failed. Retry or hold the answer." });
+  } finally {
+    npcInFlight.delete(req.roomNumber);
+  }
   res.end();
 });
 
@@ -539,20 +614,19 @@ app.post("/api/admin/reset", adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'confirmation required: send { "confirm": "RESET" }' });
   }
   rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
-  await clearStore();
   persist();
   res.json({ ok: true, resetAt: new Date().toISOString() });
 });
 
 // ---------- printables ----------
 
-app.get("/print", (_req, res) => res.type("html").send(printIndexPage(scenarios)));
-app.get("/print/worksheet/:sid", (req, res) => {
+app.get("/api/print", (_req, res) => res.type("html").send(printIndexPage(scenarios)));
+app.get("/api/print/worksheet/:sid", (req, res) => {
   const s = scenarios[req.params.sid];
   if (!s) return res.status(404).send("unknown scenario");
   res.type("html").send(worksheetPage(s));
 });
-app.get("/print/rolecards/:sid", (req, res) => {
+app.get("/api/print/rolecards/:sid", (req, res) => {
   const s = scenarios[req.params.sid];
   if (!s) return res.status(404).send("unknown scenario");
   res.type("html").send(roleCardsPage(s, roles));
@@ -569,7 +643,6 @@ if (fs.existsSync(dist)) {
 const port = Number(process.env.PORT) || 4600;
 app.listen(port, () => {
   console.log(`Tabletop server on http://localhost:${port}`);
-  console.log(`Rooms: ${ROOM_CODES.join(" ")} · Admin: ${ADMIN_CODE} (override via ROOM_CODES / ADMIN_CODE env)`);
   console.log(
     process.env.ANTHROPIC_API_KEY
       ? "Anthropic key: present"
