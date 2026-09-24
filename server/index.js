@@ -4,6 +4,7 @@
 // is the security model (PRD §4).
 import "dotenv/config";
 import express from "express";
+import { execSync } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -185,6 +186,26 @@ function adminAuth(req, res, next) {
 }
 
 // ---------- room api ----------
+
+// Deploy fingerprint: which code is actually running, and can the Elders
+// speak. No auth — nothing sensitive, and it exists precisely for the
+// "is the deployed app the repo?" question.
+let gitSha = "unknown";
+try {
+  gitSha = execSync("git rev-parse --short HEAD", { cwd: here }).toString().trim();
+} catch {}
+const SERVER_STARTED_AT = new Date().toISOString();
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    commit: gitSha,
+    model: process.env.MODEL || "claude-opus-5",
+    anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
+    storage: process.env.DATABASE_URL ? "postgres" : "memory",
+    startedAt: SERVER_STARTED_AT,
+  });
+});
 
 app.get("/api/state", roomAuth, (req, res) => res.json(publicState(req.room, req.roomNumber)));
 
