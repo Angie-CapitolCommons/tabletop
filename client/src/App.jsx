@@ -227,8 +227,11 @@ function RoomLogin({ onEnter }) {
     try {
       await api("state");
       onEnter();
-    } catch {
-      setError("That code doesn't open a room. Check the card from the lead facilitator.");
+    } catch (e) {
+      localStorage.removeItem(ROOM_CODE_KEY);
+      setError(e.status === 401
+        ? "That code doesn't open a room. Check the card from the lead facilitator."
+        : e.message || "Unable to open the room. Try again.");
     }
   };
   return (
@@ -271,6 +274,8 @@ export default function App() {
   const [rosterEdit, setRosterEdit] = useState({});
   const [dmOpen, setDmOpen] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [elderError, setElderError] = useState(null);
+  const [elderRetry, setElderRetry] = useState(0);
   const npcForNode = useRef(null);
   const recRef = useRef(null);
   const transcribingRef = useRef(false);
@@ -341,18 +346,25 @@ export default function App() {
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
     if (!state || state.phase !== "challenge" || !node) return;
-    if (npcForNode.current === node.id) return;
-    npcForNode.current = node.id;
+    const attempt = `${node.id}:${elderRetry}`;
+    if (npcForNode.current === attempt) return;
+    npcForNode.current = attempt;
+    setElderError(null);
     setTurns([]);
     (async () => {
       const res = await fetch("/api/npc", {
         method: "POST",
         headers: { "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
       });
-      if (!res.ok) throw new Error(`npc ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Elder request failed (${res.status})`);
+      }
+      if (!res.body) throw new Error("Elder stream unavailable");
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
+      let completed = false;
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -363,6 +375,8 @@ export default function App() {
           const line = ev.split("\n").find((l) => l.startsWith("data: "));
           if (!line) continue;
           const msg = JSON.parse(line.slice(6));
+          if (msg.type === "error") throw new Error(msg.message);
+          if (msg.type === "done") completed = true;
           setTurns((ts) => {
             const next = [...ts];
             if (msg.type === "elder-start") next.push({ elder: msg.elder, text: "", status: "streaming" });
@@ -376,16 +390,14 @@ export default function App() {
           });
         }
       }
+      if (!completed) throw new Error("The Elder connection closed before completion.");
       setData(await api("state"));
-    })().catch(async () => {
-      setTurns((ts) =>
-        ts.length
-          ? ts.map((t) => (t.status === "streaming" ? { ...t, status: "unavailable", text: "The Elder is unavailable — continue." } : t))
-          : [{ elder: { id: "npc", name: "The Elders", seat: "" }, text: "The Elders are unavailable — continue.", status: "unavailable" }],
-      );
-      setData(await api("state"));
+    })().catch((error) => {
+      setElderError(error.message || "Elder challenge failed. Try again.");
+      setTurns((ts) => ts.map((turn) => turn.status === "streaming"
+        ? { ...turn, status: "unavailable", text: "This response was interrupted." } : turn));
     });
-  }, [state?.phase, node?.id]);
+  }, [state?.phase, node?.id, elderRetry]);
 
   useEffect(() => {
     setSkipArmed(false);
@@ -517,7 +529,7 @@ export default function App() {
       <>
         <span className="fac-label">FACILITATOR</span>
         <button className="fac-btn" onClick={() => setCouncilOpen(true)}>AI Council</button>
-        <a className="fac-btn" href="/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+        <a className="fac-btn" href="/api/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
           Printables
         </a>
         <span className="fac-score-label">THE GROUP CHOOSES THE CASE</span>
@@ -736,6 +748,17 @@ export default function App() {
           </div>
         </div>
         <div className="elder-col">
+          {phase === "challenge" && elderError && (
+            <div className="elder-retry" role="alert">
+              <p>{elderError}</p>
+              <button className="panel-btn" onClick={() => setElderRetry((value) => value + 1)}>
+                Retry Elders
+              </button>
+              <button className="panel-btn" onClick={guard(async () => refresh(await api("hold", {})))}>
+                Hold the answer instead
+              </button>
+            </div>
+          )}
           {turns.map((t, i) => (
             <div key={i} className={`elder ${i > 0 ? "secondary" : ""} ${t.status}`}>
               <div className="elder-head">
@@ -751,8 +774,7 @@ export default function App() {
               </p>
             </div>
           ))}
-          {(phase === "revise" ||
-            (phase === "challenge" && turns.some((t) => t.status === "unavailable"))) && (
+          {phase === "revise" && (
             <div className="hold-revise">
               <button className="hr-cell" onClick={guard(async () => refresh(await api("hold", {})))}>
                 <span className="hr-title">Hold</span>

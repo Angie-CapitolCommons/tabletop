@@ -38,10 +38,13 @@ npm run build
 npm start
 ```
 
-Without an API key the app still runs — Elder beats degrade to
-"unavailable — continue," the designed in-session failure behavior. With
-Replit's Postgres attached (`DATABASE_URL`), room state survives restarts
-and redeploys; the admin full reset clears it.
+Set four distinct `ROOM_CODES`, a separate `ADMIN_CODE`, and `DATABASE_URL`
+before starting. No default codes or in-memory room storage are used.
+The existing `tabletop_rooms` records are preserved; legacy `data` rows are
+migrated in place to `state` without a reset. Failed writes return an error
+instead of acknowledging a decision that was not saved. Without an Anthropic
+key or on an interrupted Elder stream, the challenge remains retryable, with
+an explicit option to hold the answer and continue.
 
 ## Session-day runbook
 

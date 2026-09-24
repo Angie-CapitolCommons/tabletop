@@ -126,6 +126,9 @@ h1, h2, h3, p { margin: 0; }
 }
 @keyframes rec-pulse { 50% { opacity: 0.25; } }
 .transcribe-error { font-size: 12px; color: #e8b49e; }
+.elder-retry { padding: 16px; border: 1px solid #b65f44; color: #fff; background: #542f33; }
+.elder-retry p { margin: 0 0 12px; }
+.elder-retry button { margin-right: 10px; }
 
 /* ---------- room login ---------- */
 .login-center { display: flex; align-items: center; justify-content: center; }

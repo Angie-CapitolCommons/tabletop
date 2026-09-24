@@ -125,7 +125,7 @@ export default function Admin() {
           <span className="admin-title">Consolidation</span>
         </div>
         <div className="admin-actions">
-          <a className="fac-btn" href="/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+          <a className="fac-btn" href="/api/print" target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
             Worksheets &amp; role cards
           </a>
           <button
