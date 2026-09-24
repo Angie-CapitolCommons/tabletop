@@ -52,6 +52,7 @@ export async function streamElderTurn({
       `Respond in character. If the answer names a real person or role with a real trigger or threshold, be movable — offer a conditional path or your sponsorship. If it is vague, press exactly where it is vague. If they ignored what you told them at an earlier node, show it. 2–4 sentences.`,
   });
 
+  console.log(`[npc] live call → ${elder.id} @ ${node.id} (model ${MODEL})`);
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 400,
