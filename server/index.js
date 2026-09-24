@@ -349,9 +349,11 @@ app.post("/api/discussion", roomAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// Hold is also the escape valve if the Elder beat never completed
+// (challenge phase): the first answer locks as written and play continues.
 app.post("/api/hold", roomAuth, (req, res) => {
   const room = req.room;
-  if (room.epilogue || room.phase !== "revise") {
+  if (room.epilogue || !["revise", "challenge"].includes(room.phase)) {
     return res.status(409).json({ error: `cannot hold in phase ${room.phase}` });
   }
   getRecord(room, currentNode(room).id).held = true;

@@ -270,6 +270,7 @@ export default function App() {
   const [transcribeError, setTranscribeError] = useState(null);
   const [rosterEdit, setRosterEdit] = useState({});
   const [dmOpen, setDmOpen] = useState(false);
+  const [actionError, setActionError] = useState(null);
   const npcForNode = useRef(null);
   const recRef = useRef(null);
   const transcribingRef = useRef(false);
@@ -344,7 +345,11 @@ export default function App() {
     npcForNode.current = node.id;
     setTurns([]);
     (async () => {
-      const res = await fetch("/api/npc", { method: "POST" });
+      const res = await fetch("/api/npc", {
+        method: "POST",
+        headers: { "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
+      });
+      if (!res.ok) throw new Error(`npc ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
@@ -382,7 +387,10 @@ export default function App() {
     });
   }, [state?.phase, node?.id]);
 
-  useEffect(() => setSkipArmed(false), [state?.phase, node?.id]);
+  useEffect(() => {
+    setSkipArmed(false);
+    setActionError(null);
+  }, [state?.phase, node?.id]);
 
   // A discussion belongs to one decision: it ends when the node locks
   // (consequence), when the node changes, and with the scenario.
@@ -407,34 +415,47 @@ export default function App() {
   const phase = state.phase;
   const briefed = phase === "select" ? false : state.briefed || phase !== "posed" || node?.index > 0;
 
-  const doSkip = async () => {
+  // Every facilitator action runs guarded: a failure surfaces in the bar
+  // instead of dying silently, and the state stays put so retry just works.
+  const guard = (fn) => async (...args) => {
+    try {
+      setActionError(null);
+      return await fn(...args);
+    } catch (e) {
+      setActionError(
+        e.message === "Failed to fetch"
+          ? "Couldn't reach the server — check the connection and press it again."
+          : e.message,
+      );
+    }
+  };
+
+  const doSkip = guard(async () => {
     if (!skipArmed) return setSkipArmed(true);
     setSkipArmed(false);
     refresh(await api("skip", {}));
-  };
+  });
 
-  const advance = async () => {
+  const advance = guard(async () => {
     npcForNode.current = null;
     setTurns([]);
     refresh(await api("advance", {}));
-  };
+  });
 
-  const reset = async () => {
+  const reset = guard(async () => {
     stopTranscription();
     npcForNode.current = null;
     setTurns([]);
     setPrevMeter(null);
-    setRecording(false);
     setRevising(false);
     refresh(await api("reset", {}));
-  };
+  });
 
-  const commitAnswer = async (a) => {
+  const commitAnswer = guard(async (a) => {
     const d = await api("answer", a);
-    setRecording(false);
     setRevising(false);
     refresh(d);
-  };
+  });
 
   const scoreBtns = ["specific", "generic", "absent"].map((s) => (
     <button
@@ -444,7 +465,7 @@ export default function App() {
       title="Specific names a role or person plus a trigger or threshold · Generic names a function · Absent declined or named no one"
       onClick={async () => {
         setPrevMeter(state.meter);
-        refresh(await api("lock", { score: s }));
+        await guard(async () => refresh(await api("lock", { score: s })))();
       }}
     >
       {s[0].toUpperCase() + s.slice(1)}
@@ -480,6 +501,7 @@ export default function App() {
         </span>
       )}
       {transcribeError && <span className="transcribe-error">{transcribeError}</span>}
+      {actionError && <span className="transcribe-error">{actionError}</span>}
     </>
   );
   const skipBtn = (
@@ -507,7 +529,7 @@ export default function App() {
         {commonFacBtns}
         <button
           className="fac-primary"
-          onClick={async () => refresh(await api("roles", { assignments: roster, start: true }))}
+          onClick={guard(async () => refresh(await api("roles", { assignments: roster, start: true })))}
         >
           Start node 1
         </button>
@@ -589,7 +611,7 @@ export default function App() {
               key={s.id}
               className={`case-card ${s.claimedBy ? "claimed" : ""}`}
               disabled={!!s.claimedBy}
-              onClick={async () => refresh(await api("scenario", { id: s.id }))}
+              onClick={guard(async () => refresh(await api("scenario", { id: s.id })))}
             >
               <span className="eyebrow" style={{ fontSize: 12 }}>
                 {s.claimedBy ? `Claimed by Room ${s.claimedBy}` : `Enters at ${s.entersAt} · ${s.nodeCount} decisions`}
@@ -729,9 +751,10 @@ export default function App() {
               </p>
             </div>
           ))}
-          {phase === "revise" && (
+          {(phase === "revise" ||
+            (phase === "challenge" && turns.some((t) => t.status === "unavailable"))) && (
             <div className="hold-revise">
-              <button className="hr-cell" onClick={async () => refresh(await api("hold", {}))}>
+              <button className="hr-cell" onClick={guard(async () => refresh(await api("hold", {})))}>
                 <span className="hr-title">Hold</span>
                 <span className="hr-sub">The first answer locks as written.</span>
               </button>
