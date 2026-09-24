@@ -67,7 +67,11 @@ const persist = () => {};
 let mutationTail = Promise.resolve();
 const npcInFlight = new Set();
 app.use("/api", async (req, res, next) => {
-  if (req.method !== "POST" || req.path === "/npc") return next();
+  if (req.method !== "POST") {
+    await mutationTail;
+    return next();
+  }
+  if (req.path === "/npc") return next();
   let release;
   const turn = new Promise((resolve) => { release = resolve; });
   const previous = mutationTail;
