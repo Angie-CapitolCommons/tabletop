@@ -1,453 +1,625 @@
 // Scenario 3 — "Worked at One Site, Now Being Scaled" (enters at Deployment).
-// Fictional composite. The four properties: unstated purpose (Site H's success
-// was never defined, so "scaling it" scales an ambiguity), a mis-tiered object
-// (Site H's tier never migrated), an entity/system split (site autonomy vs
-// enterprise authority; grant budget vs operating budget), and an ambiguous
-// evidence base (one site's results, entangled with one person, no ending).
-import { choiceOf } from "./common.js";
+// Fictional composite. The vendor is mostly offstage; the pressure is the
+// schedule, a grant ending, and one charge nurse. The four properties: an
+// unstated purpose (the community campus's success was never defined, so
+// scaling it scales an ambiguity); a mis-rated object (rated low risk on the
+// assumption a charge nurse checks every prediction, never revisited); a
+// split (campus autonomy vs the program's schedule; grant money vs operating
+// budget); an ambiguous evidence base (one campus, no comparison, entangled
+// with one person, no ending).
+import { choiceOf, decline } from "./common.js";
 
 export default {
   id: "s3",
   title: "Worked at One Site, Now Being Scaled",
   entersAt: "Deployment",
-  tagline: "It worked. Nobody can say exactly why. Ship it everywhere.",
-  brief: `BedFlow predicts next-day discharge readiness and drives the morning bed huddle at Site H, a 90-bed community campus. Eighteen months in, Site H's length-of-stay is down 0.6 days and its huddle is famous — executives visit it like a shrine.
-
-The scale plan: main campus next quarter, two regional sites after. Main campus runs a different EHR configuration, has four times the beds, and its own bed-management culture. And an open secret travels with the plan: half of BedFlow's magic at Site H is Marisol, the charge nurse who tunes its thresholds by hand every morning and overrides it without logging why.
-
-The vendor has drafted a press release about “enterprise expansion.” The grant that paid for Site H ends at fiscal year-end.`,
+  tagline: "It worked at one community campus. Main campus goes live in June.",
+  opening: [
+    { text: "Wednesday, 6:10 a.m., main campus." },
+    {
+      channel: "Email",
+      when: "6:10 a.m.",
+      from: "Main campus bed command center director",
+      to: "Rollout program manager",
+      text: "I just saw the go-live date for the discharge-prediction tool on the schedule: June 2. This is the first I've heard of it. Who do I talk to about how it fits our command center?",
+    },
+    {
+      channel: "Email",
+      when: "7:30 a.m.",
+      from: "Rollout program manager",
+      to: "Main campus bed command center director",
+      text: "Sorry, you should have been on the invite. The plan is to copy what the community campus does. Their charge nurse, Marisol, runs the huddle. I'll connect you.",
+    },
+    {
+      channel: "Text",
+      when: "7:52 a.m.",
+      from: "Marisol, charge nurse, community campus",
+      to: "Rollout program manager",
+      text: "Happy to talk. Heads up: I adjust the tool's cut-offs by hand most mornings. It's in my notebook, not in the system.",
+    },
+  ],
+  modelBrief: `The tool: a discharge-prediction tool that predicts which patients are likely ready to go home tomorrow. At the 90-bed community campus it drives the morning bed huddle, and has for 18 months.
+Results there: length of stay down about half a day compared with the campus's own prior year (no comparison site); huddle attendance up from about 60% to 96%. The charge nurse, Marisol, adjusts the tool's cut-offs by hand most mornings and overrides about 30% of its predictions; the override reason field is optional and is filled in about 12% of the time. Her notebook of adjustments is not in any system. The tool was rated low risk at launch, on the assumption a charge nurse reviews every prediction; the rating has never been revisited.
+The rollout plan: main campus (about 380 beds, a central bed command center, a different EHR setup where 14 fields the tool reads are mapped differently or empty) goes live June 2; two regional hospitals follow. Main campus has retired two bed-management dashboards in three years. The command center director was not invited to planning.
+A grant paid for the community campus; it ends at fiscal year-end, about four months away. Enterprise pricing requires four campuses. Communications has drafted a story, "AI cuts hospital stays across the system," to run two weeks before main campus goes live.`,
   evidence: [
     {
-      id: "site-h-results",
-      title: "Site H results one-pager",
-      body: `BedFlow at Site H, 18 months:
-- Length of stay: -0.6 days (vs. own baseline; no control site)
-- Morning huddle attendance: 96% (was 61%)
-- Prediction acceptance rate: 71% (29% overridden by charge nurse)
-- Override log completeness: 12% ("reason" field optional)
-- Not measured: whether predictions or the huddle itself drive the gain.`,
+      id: "results",
+      title: "Community campus results, 18 months",
+      body: `DISCHARGE PREDICTION — COMMUNITY CAMPUS (90 BEDS)
+
+Length of stay: down 0.6 days vs. our own prior year (no comparison site)
+Morning huddle attendance: 96% (was 61%)
+Predictions accepted: 71%
+Overridden by charge nurse: 29%
+Override reason recorded: 12% (field is optional)
+
+Risk rating: low — assigned at launch, assuming a charge nurse reviews every prediction.
+
+Not measured: whether the gain came from the predictions or from the huddle.`,
     },
     {
-      id: "marisol-notes",
-      title: "The tuning notebook (photographed pages)",
-      body: `Handwritten, spiral-bound, Marisol R., charge nurse:
-"Mondays: model runs hot after weekend discharges — knock threshold down 5."
-"Oncology stepdown: never trust it on neutropenic pts, check labs yourself."
-"If census > 84, predictions lag reality by half a day. Huddle fixes it."
-43 pages of this. The vendor has not seen it. It is not in any system.`,
+      id: "notebook",
+      title: "Marisol's notebook (photos of three pages)",
+      body: `Handwritten:
+
+“Mondays: runs high after weekend discharges. Knock the cut-off down 5.”
+“Oncology step-down: don't trust it on neutropenic patients. Check labs yourself.”
+“Census over 84: predictions lag about half a day. Huddle catches it.”
+
+43 pages like this. Not in any system. The vendor has never seen it.`,
     },
     {
-      id: "press-draft",
-      title: "Vendor press release (draft)",
-      body: `"Following breakthrough results, [health system] expands BedFlow
-enterprise-wide, bringing AI-powered capacity intelligence to every campus."
-Quote attributed to "[EXECUTIVE NAME TBD]".
-Embargo date: two weeks before main-campus go-live.
-Nobody at main campus has seen the tool yet.`,
-    },
-    {
-      id: "config-memo",
+      id: "integration-memo",
       title: "Main campus integration memo",
-      body: `EHR config divergence: 14 fields BedFlow reads at Site H are mapped
-differently or unpopulated at main campus. Vendor estimate to remap: 6 weeks.
-Main campus bed management: centralized command center (Site H has none).
-Prior tool history at main campus: 2 capacity dashboards retired in 3 years.
-The command center director has not been invited to a single scale-planning
-meeting. This memo is the invitation.`,
+      body: `EHR setup: 14 fields the tool reads at the community campus are mapped differently or empty at main campus. Vendor estimate to remap: 6 weeks.
+Bed management: a central command center (the community campus has none).
+History: 2 bed-management dashboards retired at main campus in the last 3 years.
+Planning invite list: does not include the command center director.`,
+    },
+    {
+      id: "draft-story",
+      title: "Draft story from Communications",
+      body: `Headline: AI helps cut hospital stays across the system
+“Following strong results at our community campus, the discharge-prediction tool is now being rolled out to every campus.”
+Quote: [executive name to be confirmed]
+Planned run date: May 19 (two weeks before main campus go-live)`,
     },
   ],
   nodes: [
     {
       id: "tier",
       type: "tier",
-      title: "Does Site H's tier travel?",
+      title: "Does the community campus's risk rating still apply?",
       question:
-        "BedFlow was tiered (lightly) for a 90-bed site with a human in the loop named Marisol. Does that tier travel to a 380-bed campus with a command center — or is scale itself a re-tiering event?",
-      freeTextPrompt:
-        "State whether scale re-tiers the tool, who assigns the new tier, and what the tier attaches to (tool, site, or use).",
-      elders: ["steward", "caretaker"],
+        "The tool was rated low risk for a 90-bed campus where a charge nurse checks every prediction. Main campus has 380 beds and a command center. Does the rating carry over?",
+      freeTextPrompt: "Does a new campus mean a new rating? Who sets it? Does it follow the tool or each campus?",
+      elders: ["steward"],
       options: [
         {
           id: "a",
-          label: "Scale is a re-tiering event: each new site gets its own tier before go-live",
-          hint: "The honest reading. Adds a gate in front of a schedule that has a press date.",
-          short: "Re-tier per site",
+          label: "“Each campus gets its own rating before it goes live.”",
+          hint: "Adds about three weeks before main campus's June go-live.",
+          short: "Rate each campus",
         },
         {
           id: "b",
-          label: "The tier travels: same tool, same tier, faster rollout",
-          hint: "Same tool on paper. Site H's tier quietly assumed Marisol.",
-          short: "Tier travels",
+          label: "“Rate it once for the whole system, based on main campus.”",
+          hint: "One review. The regional hospitals work more like the community campus than main.",
+          short: "One system rating",
         },
         {
           id: "c",
-          label: "Tier the enterprise deployment once, centrally, covering all sites",
-          hint: "One decision. Regional sites inherit assumptions made for main campus.",
-          short: "One enterprise tier",
+          label: "“Keep the current rating. It's the same tool.”",
+          hint: "No delay. The rating assumed a charge nurse reviews every prediction.",
+          short: "Keep the rating",
         },
-        {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The rollout schedule becomes the de facto tiering authority.",
-          short: "Declined",
-        },
+        decline("The June date stands on the current rating."),
       ],
       meterDeltas: {
         a: { goodwill: 0, risk: -2, dollars: 0, time: +2 },
-        b: { goodwill: 0, risk: +2, dollars: 0, time: -1 },
-        c: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
         decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "Main campus's tier review surfaces the config memo's fourteen divergent fields in week one — before they could become fourteen quiet inaccuracies in a live tool.",
-        b: "The traveling tier arrives at main campus missing its most important dependency. The paperwork says “same tool.” The notebook in Marisol's locker disagrees.",
-        c: "The enterprise tier is written at main-campus scale. The regionals — smaller, Site-H-like, huddle-capable — inherit controls designed for a command center they don't have.",
-        decline: "Untiered scale proceeds on schedule. The schedule was set by the press embargo.",
+      events: {
+        a: {
+          when: "Week 2",
+          text: "Main campus's review starts with the integration memo. The 14 fields that read differently are the first item on the list.",
+        },
+        b: {
+          when: "Week 2",
+          text: "The system-wide review is written around the command center. The two regional hospitals, which have no command center, fall under the same rating.",
+        },
+        c: {
+          when: "Week 1",
+          text: "The rating is copied into the main campus plan. The line “charge nurse reviews every prediction” is copied with it.",
+        },
+        decline: {
+          when: "Week 1",
+          text: "June 2 stays on the schedule. The rating question goes on a list for after launch.",
+        },
       },
-      epilogue: {
-        held: "Re-tier-per-site felt like bureaucracy in month one and looked like foresight by month six: each site's tier caught exactly the assumption that site would have broken.",
-        broke: "One tier stretched across four sites like a fitted sheet on the wrong bed. Every corner that popped loose did so at 6 a.m., during a huddle, in front of nurses.",
+      owner: {
+        when: "Week 4",
+        named:
+          "Main campus IT finds that 3 of the 14 fields are simply empty there. The finding goes to the person you named, who adds a check before the rating is signed.",
+        missing:
+          "Main campus IT finds that 3 of the 14 fields are simply empty there. The finding goes into the integration tracker as low priority.",
+      },
+      later: {
+        month: 5,
+        named:
+          "The first regional hospital's own rating turns up something main campus didn't have: its night shift handles discharges differently. It's fixed before go-live.",
+        missing:
+          "Main campus's predictions turn out to have run on three empty fields since go-live. Nobody had been asked to look.",
       },
     },
     {
       id: "risk_accept",
       type: "risk_accept",
-      title: "Who accepts the risk, site by site?",
+      title: "Who signs for it on each campus?",
       question:
-        "Site H's risk was accepted, implicitly, by the people standing in its huddle. Main campus is someone else's floor. Who accepts BedFlow's residual risk at each new site — the enterprise, or the site that lives with it?",
-      freeTextPrompt:
-        "Name the risk acceptor for main campus (a person), and state the rule for the regionals.",
-      elders: ["steward", "adoption_realist"],
-      inject: (records) =>
-        choiceOf(records, "tier") === "b" || choiceOf(records, "tier") === null
-          ? "The main-campus command center director, invited at last, reads the Site H one-pager and asks the room: “Who signs for this here? Because my floor, my signature — or it doesn't run on my floor.”"
-          : "The main-campus command center director, invited at last, asks the room: “Who signs for this here? My floor, my signature — or it doesn't run on my floor.” The re-tiering answer gives her question somewhere to land.",
+        "At the community campus, nobody ever signed for the tool's risk; the huddle just used it. Who signs for it at main campus, and at each regional hospital?",
+      freeTextPrompt: "Who signs at main campus (a name or a role)? What's the rule for the regional hospitals?",
+      elders: [],
+      inject: (records) => {
+        const c = choiceOf(records, "tier");
+        const ask = "“Who signs for this on my floor? If it's not me, it doesn't run here.”";
+        if (c === "c" || c === "decline" || c === null)
+          return `Because the old rating carried over unchanged, the command center director has read it. She writes: “It says a charge nurse reviews every prediction. We don't have one.” Then: ${ask}`;
+        return `The command center director writes to the program: ${ask}`;
+      },
       options: [
         {
           id: "a",
-          label: "Site acceptors: a named person at each site signs before their go-live",
-          hint: "The director gets her signature. Each signature can also say no.",
-          short: "Per-site signature",
+          label: "“One executive signs once for all four campuses.”",
+          hint: "One signature, from above the campuses, covers all four.",
+          short: "One executive",
         },
         {
           id: "b",
-          label: "Enterprise acceptance: one executive signs once for all sites",
-          hint: "Efficient. The person signing has never stood in any of the huddles.",
-          short: "One enterprise signer",
+          label: "“Write it into the vendor contract: the vendor shares the risk at new campuses.”",
+          hint: "Legal estimates six weeks to negotiate. Vendor liability is usually capped at fees paid.",
+          short: "Vendor shares it",
         },
         {
           id: "c",
-          label: "The vendor contractually shares deployment risk at new sites",
-          hint: "Sounds strong. Read what “shares” means in vendor legalese.",
-          short: "Vendor shares risk",
+          label: "“A named person at each campus signs before that campus goes live.”",
+          hint: "Each campus can say no. Main campus's director will add conditions.",
+          short: "Each campus signs",
         },
-        {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The director's question stays open. So does her floor's door — barely.",
-          short: "Declined",
-        },
+        decline("The director's question stays open."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: -2, dollars: 0, time: +1 },
-        b: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
-        c: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
+        a: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
+        b: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
+        c: { goodwill: +1, risk: -2, dollars: 0, time: +1 },
         decline: { goodwill: -1, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "The director signs — with two conditions that improve the deployment. A regional site director, watching, starts drafting her own conditions. This is the system working.",
-        b: "One signature covers four sites. At the first main-campus incident review, the question “who accepted this risk?” gets an answer nobody in the room has met.",
-        c: "The vendor's risk-sharing rider arrives: liability capped at fees paid, excludes “configuration and workflow factors” — which is to say, excludes everything on the memo.",
-        decline: "No signature, and the director quietly de-prioritizes BedFlow's command-center integration. Deployment proceeds; adoption doesn't.",
+      events: {
+        a: {
+          when: "Week 2",
+          text: "The executive signs. The command center director asks for a copy and for a name to call if it goes wrong.",
+        },
+        b: {
+          when: "Week 6",
+          text: "The vendor's draft rider caps its liability at fees paid and excludes problems caused by “local configuration or workflow.”",
+        },
+        c: {
+          when: "Week 2",
+          text: "The director signs with two conditions: a way to switch it off from the command center, and a named contact at the vendor. A regional hospital's nurse manager asks for a copy of her conditions.",
+        },
+        decline: {
+          when: "Week 3",
+          text: "The command center director moves the tool's integration to the bottom of her team's project list.",
+        },
       },
-      epilogue: {
-        held: "Signatures with conditions became the pattern, and the conditions became the deployment checklist. The right to say no, exercised once, made every yes real.",
-        broke: "Risk pooled at the enterprise level like water on a flat roof. It found the seam eighteen months later, at the site with the least say and the least support.",
+      owner: {
+        when: "Week 7",
+        named:
+          "A main campus unit asks to start early. It's sent to the person you named for that campus, who says not until the conditions are met.",
+        missing:
+          "A main campus unit turns on the predictions early to try them out. The command center hears about it at the next huddle.",
+      },
+      later: {
+        month: 8,
+        named:
+          "A regional hospital's signer holds its go-live for three weeks over night-shift staffing. It goes live after that; the program absorbs the delay.",
+        missing:
+          "A patient at a regional hospital is discharged a day too early. The incident review asks who accepted the tool's risk there. The answer is a signature from the system office.",
       },
     },
     {
       id: "decide",
       type: "decide",
-      title: "Who decides a site is ready?",
+      title: "Who decides a campus is ready?",
       question:
-        "Between “the rollout schedule says June” and “this site is actually ready” stands a decision. Who makes the go-live call for each site — the enterprise program, or someone at the site — and against what readiness bar?",
-      freeTextPrompt:
-        "Name who makes each site's go-live call and the readiness bar that binds it (not the calendar).",
-      elders: ["cartographer", "adoption_realist"],
+        "The schedule says main campus goes live June 2. Someone has to decide whether it's actually ready. Who makes that call for each campus, and what do they check?",
+      freeTextPrompt: "Who decides each campus is ready? What has to be true before go-live, besides the date?",
+      elders: ["adoption_realist"],
       options: [
         {
           id: "a",
-          label: "Site readiness owner decides against a published bar; the program owns the schedule, not the go",
-          hint: "Sites can slip the calendar. That is the feature, not the bug.",
-          short: "Site owns the go",
+          label: "“The program decides. Keeping the schedule is the program's job.”",
+          hint: "Dates hold. Campuses raise concerns through the program.",
+          short: "Program decides",
         },
         {
           id: "b",
-          label: "The enterprise program decides: schedule integrity is the point of a program",
-          hint: "Predictable. Main campus retired its last two tools on schedule too.",
-          short: "Program owns the go",
+          label: "“Each campus's readiness lead decides, using a published checklist. The program sets dates, not go-lives.”",
+          hint: "Campuses can move their date. June 2 may slip.",
+          short: "Campus decides",
         },
         {
           id: "c",
-          label: "Joint go: program and site must both agree, either can hold",
-          hint: "Balanced. Two keys can also mean two excuses.",
-          short: "Joint go",
+          label: "“Both have to agree. Either the program or the campus can hold it.”",
+          hint: "Two sign-offs. Disagreements go to the executive sponsor.",
+          short: "Both agree",
         },
-        {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The calendar decides. The calendar was set by the embargo.",
-          short: "Declined",
-        },
+        decline("The schedule decides."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: -1, dollars: 0, time: +1 },
-        b: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
-        c: { goodwill: 0, risk: 0, dollars: 0, time: +1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: -1 },
+        a: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
+        b: { goodwill: +1, risk: -1, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: 0, dollars: 0, time: +2 },
+        decline: { goodwill: -1, risk: +1, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "Main campus's readiness owner promptly slips go-live five weeks — citing the fourteen fields. The program absorbs it. The press date does not survive; the deployment does.",
-        b: "June holds. The fourteen unmapped fields hold too. BedFlow goes live at main campus predicting discharges from data that isn't there.",
-        c: "The joint-go works until it doesn't: week three, program says go, site says hold, and the escalation lands on an executive with a press date in their calendar.",
-        decline: "With no owner of “ready,” the schedule inherits the decision. Schedules never met a floor they couldn't overestimate.",
+      events: {
+        a: {
+          when: "June 2",
+          text: "Main campus goes live on schedule. The remapping of the 14 fields is about two-thirds done.",
+        },
+        b: {
+          when: "Week 3",
+          text: "Main campus's readiness lead moves go-live back five weeks, citing the field remapping. The program updates the schedule.",
+        },
+        c: {
+          when: "Week 5",
+          text: "The program says go; main campus says hold. The question goes to the executive sponsor, whose calendar opens in eight days.",
+        },
+        decline: {
+          when: "June 2",
+          text: "Main campus goes live on the scheduled date. Nobody was asked to confirm it was ready.",
+        },
       },
-      epilogue: {
-        held: "“The site owns the go” survived its first collision with a press date, which is the only test that counts. Sites stopped gaming readiness because readiness was theirs.",
-        broke: "Go-lives happened to sites, on time. The main-campus command center ran BedFlow in a browser tab nobody enlarged, and the regionals learned from watching.",
+      owner: {
+        when: "Week 8",
+        named:
+          "The first regional hospital asks what it needs to have in place. The person you named sends the checklist that afternoon.",
+        missing:
+          "The first regional hospital asks what it needs to have in place. The program manager sends the community campus's huddle slides.",
+      },
+      later: {
+        month: 6,
+        named:
+          "The main campus command center uses the predictions at every morning huddle.",
+        missing:
+          "The main campus command center has the tool open in a browser tab. Most mornings nobody looks at it.",
       },
     },
     {
       id: "stop",
       type: "stop",
-      title: "What ends BedFlow at a site that it's failing?",
+      title: "Who can turn it off at a campus?",
       question:
-        "Site H can't imagine life without it; main campus hasn't met it. If BedFlow misleads a site's huddle — wrong census regime, wrong config, no Marisol — who can turn it off at that site, and what triggers the question?",
-      freeTextPrompt:
-        "Name the per-site off-switch holder and the trigger that forces the stop conversation.",
+        "If the tool starts misleading a campus's huddle — wrong data, a busier hospital, no Marisol — who can turn it off there, and what would make them do it?",
+      freeTextPrompt: "Who can turn it off at each campus? What would make them do it?",
       elders: ["caretaker"],
       inject: () =>
-        "Marisol, asked to help train main campus, declines the travel but offers her notebook. Reading it, the integration team realizes the overrides aren't noise to eliminate — they're the safety system, unlogged. If BedFlow ships without a Marisol-equivalent, what stands where she stood?",
+        "Marisol emails the integration team: “I can't do the training trips, sorry. I've scanned my notebook. The Monday adjustment and the neutropenic patients are the big ones. I don't log my overrides — the reason box is optional.”",
       options: [
         {
           id: "a",
-          label: "Per-site kill authority with defined triggers: acceptance-rate floor, override-spike alarm, incident",
-          hint: "Marisol's notebook, formalized. The overrides finally get logged — as triggers.",
-          short: "Per-site switch + triggers",
+          label: "“Each campus can switch it off, on set triggers: acceptance drops, overrides spike, or an incident.”",
+          hint: "Overrides must be logged with reasons for the triggers to work.",
+          short: "Campus switch + triggers",
         },
         {
           id: "b",
-          label: "Enterprise off-switch only: sites request, the program decides",
-          hint: "Consistent. A site in trouble files a ticket and keeps huddling around bad numbers.",
-          short: "Enterprise switch",
+          label: "“Only the program can switch it off. Campuses ask; the program decides.”",
+          hint: "One switch, run centrally. Requests go through the program's queue.",
+          short: "Program switch",
         },
         {
           id: "c",
-          label: "No formal switch: sites can simply stop using it — adoption is voluntary",
-          hint: "True and useless. Tools nobody turned off run for years, misleading quietly.",
-          short: "Voluntary fade",
+          label: "“No formal switch. If a campus stops finding it useful, it stops using it.”",
+          hint: "Nothing to build. The license keeps running either way.",
+          short: "No formal switch",
         },
-        {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The off-switch question waits for the incident that makes it urgent.",
-          short: "Declined",
-        },
+        decline("There's no switch at the campus level."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: -2, dollars: 0, time: +1 },
-        b: { goodwill: -1, risk: +1, dollars: 0, time: 0 },
-        c: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        a: { goodwill: -1, risk: -2, dollars: 0, time: +1 },
+        b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        c: { goodwill: 0, risk: +2, dollars: +1, time: 0 },
         decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "The trigger design has a side effect nobody predicted: to build the override-spike alarm, overrides must be logged with reasons — and Marisol's notebook becomes a data model.",
-        b: "The program holds the switch for sites it visits quarterly. The distance between the hand and the switch is measured in ticket queues.",
-        c: "Voluntary fade begins at main campus in week six — not as a decision, but as a browser tab that stops being opened. The license, of course, does not fade.",
-        decline: "No switch, no triggers. BedFlow will run at every site until something with a name makes it stop, and things with names arrive at 6 a.m.",
+      events: {
+        a: {
+          when: "Week 3",
+          text: "The override reason box becomes required. Marisol's notebook is typed up to make the list of reasons in the drop-down.",
+        },
+        b: {
+          when: "Week 2",
+          text: "The program sets up a request form for switching the tool off at a campus. The form's review target is three business days.",
+        },
+        c: {
+          when: "Month 2",
+          text: "The main campus huddle stops opening the predictions in week six. The license invoice arrives in month two as usual.",
+        },
+        decline: {
+          when: "Week 2",
+          text: "The go-live checklist has no line for switching the tool off.",
+        },
       },
-      epilogue: {
-        held: "The triggers fired once, at a regional site, exactly as designed: the huddle kept meeting (that part was never the tool), BedFlow paused for re-config, and came back trusted — because leaving was survivable.",
-        broke: "Nothing could end it, so nothing did. At year-end, BedFlow ran at four sites: beloved at one, ignored at two, and quietly miscalibrated at the fourth, where the huddle believes it.",
+      owner: {
+        when: "Week 9",
+        named:
+          "On the Monday after a holiday weekend, main campus's predictions are clearly off. The person you named pauses them for the day, and the huddle runs off the census board.",
+        missing:
+          "On the Monday after a holiday weekend, main campus's predictions are clearly off. The huddle uses them anyway; two discharges planned for that day slip to Tuesday.",
+      },
+      later: {
+        month: 10,
+        named:
+          "A regional hospital's predictions drift after a software update. The campus pauses the tool for two weeks, the vendor fixes it, and the huddle goes back to using it.",
+        missing:
+          "The tool runs at all four campuses: relied on at one, ignored at two, and wrong at the fourth, where the huddle still follows it.",
       },
     },
     {
       id: "represent",
       type: "represent",
-      title: "The press release is already drafted",
+      title: "What can we say about the results?",
       question:
-        "“Enterprise expansion, breakthrough results.” The embargo date is two weeks before a go-live main campus hasn't agreed to. What may be claimed, when — and does Site H's 0.6 days, one site, no control, carry an enterprise headline?",
-      freeTextPrompt:
-        "Name who approves the claim, what the claim may say about causality, and what date it may not precede.",
-      elders: ["beacon", "decoupler"],
+        "Communications wants to run “AI cuts hospital stays across the system” before main campus goes live. What can we say about one campus's results, and when?",
+      freeTextPrompt: "Who approves the story? What can it claim? What date can't it run before?",
+      elders: ["beacon"],
+      inject: (records) =>
+        choiceOf(records, "decide") === "b"
+          ? "Because main campus's readiness lead moved go-live, the story's May 19 run date now falls seven weeks before go-live, not two."
+          : "The story is scheduled for May 19. Main campus goes live June 2.",
       options: [
         {
           id: "a",
-          label: "Re-scope the claim to what's true: one site's results, expansion beginning; no enterprise claims until enterprise evidence",
-          hint: "The vendor's marketing team will grieve. Briefly.",
-          short: "Claim what's true",
-        },
-        {
-          id: "b",
-          label: "Run the release as drafted at embargo: momentum is part of change management",
-          hint: "Momentum, yes. It will also be exhibit A at every future setback.",
+          label: "“Run it as drafted. Good news builds support for the rollout.”",
+          hint: "Runs May 19. The claim covers campuses that haven't started.",
           short: "Run as drafted",
         },
         {
-          id: "c",
-          label: "No external claims until all four sites are live and measured",
-          hint: "Purist. Site H's team earned a story, and silence has costs too.",
-          short: "Silence till done",
+          id: "b",
+          label: "“Nothing public until all four campuses are live and measured.”",
+          hint: "About a year of silence. The community campus team's work isn't mentioned.",
+          short: "Wait for all four",
         },
         {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The embargo date decides. It's on the vendor's calendar, not yours.",
-          short: "Declined",
+          id: "c",
+          label: "“Tell the community campus's story as it is: one campus, early results, rollout starting.”",
+          hint: "Communications needs about a week to rewrite it. The headline gets smaller.",
+          short: "One campus's story",
         },
+        decline("The story stays on the May 19 schedule."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: -1, dollars: 0, time: 0 },
-        b: { goodwill: 0, risk: +2, dollars: 0, time: -1 },
-        c: { goodwill: -1, risk: -1, dollars: 0, time: +1 },
+        a: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
+        b: { goodwill: -1, risk: -1, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: -1, dollars: 0, time: +1 },
         decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "The re-scoped release runs: Site H's story, told true, with Marisol in the second paragraph. It reads smaller and lands bigger — peers can smell a real result.",
-        b: "“Breakthrough” ships at embargo. Five weeks later the main-campus slip (or stumble) is measured against a headline, and the delta is the story.",
-        c: "Silence holds. Site H's huddle team watches a peer institution announce something smaller with something louder, and asks why their work doesn't count.",
-        decline: "The embargo arrives; the release runs as drafted, because stopping it required a decision and there wasn't one. The institution learns its own news from the wire.",
+      events: {
+        a: {
+          when: "May 19",
+          text: "The story runs. A main campus hospitalist posts it in the physicians' group chat with the comment “news to us.”",
+        },
+        b: {
+          when: "Month 2",
+          text: "Communications drops the story. The community campus's nurse manager asks why their results can't be mentioned.",
+        },
+        c: {
+          when: "Week 2",
+          text: "The rewritten story names the community campus and its charge nurses, and says main campus starts later this year.",
+        },
+        decline: {
+          when: "May 19",
+          text: "The story runs as drafted. Nobody had told Communications to change it.",
+        },
       },
-      epilogue: {
-        held: "The external story stayed one step behind the truth, which meant it never had to walk anything back. In a year of peer-institution retractions, boring proved to be the brand.",
-        broke: "The headline arrived before the evidence and waited for it, publicly, tapping its foot. Every internal setback now had an external mirror, and the program spent its second year managing the story of its first.",
+      owner: {
+        when: "Week 6",
+        named:
+          "The state hospital association invites the system to present its results at a regional meeting. The invitation goes to the person you named, who sends the one-campus version.",
+        missing:
+          "The state hospital association invites the system to present its results at a regional meeting. Two people accept, one from the program and one from main campus.",
+      },
+      later: {
+        month: 9,
+        named:
+          "One regional hospital's rollout is behind schedule. Nothing said publicly needs changing, because nothing public promised dates.",
+        missing:
+          "A regional hospital's rollout stalls. The May story is still the top search result for the tool, describing it at every campus.",
       },
     },
     {
       id: "funding",
       type: "funding",
-      title: "The grant ends at fiscal year-end",
+      title: "Who pays for it after the grant?",
       question:
-        "Site H ran on grant money that dies in four months. Scale multiplies the license by four and adds integration, training, and a Marisol-shaped hole at every site. Whose budget owns BedFlow as an operating expense — forever?",
-      freeTextPrompt:
-        "Name the permanent budget owner, and what happens at Site H if no one claims it before the grant ends.",
+        "The grant that paid for the community campus ends in four months. Four campuses means four licenses, integration work, and training. Whose budget owns it from here on?",
+      freeTextPrompt: "Whose budget owns it, permanently? What happens at the community campus if nobody does before the grant ends?",
       elders: ["ledger", "recruiter"],
+      inject: (records) => {
+        const base =
+          "Marisol's manager emails the program: “Marisol has been offered a job at another hospital. Is there any way the huddle role becomes a real position?”";
+        if (choiceOf(records, "stop") === "a")
+          return `Because overrides are now logged, the program can see what the tool takes from Marisol: about 45 minutes every morning. ${base}`;
+        return base;
+      },
       options: [
         {
           id: "a",
-          label: "Operations owns it enterprise-wide from day one of scale: license, training, and a funded huddle-facilitator role per site",
-          hint: "Expensive and honest. The Marisol role becomes a job, not a miracle.",
-          short: "Ops owns it, staffed",
+          label: "“Each campus pays for its own, from its own budget.”",
+          hint: "Campuses decide for themselves. The regional hospitals have the tightest budgets.",
+          short: "Campuses pay",
         },
         {
           id: "b",
-          label: "Each site funds its own instance from its own budget",
-          hint: "Autonomy again. The sites that need it most can afford it least.",
-          short: "Sites self-fund",
+          label: "“Operations owns it for every campus: licenses, training, and a funded huddle lead at each.”",
+          hint: "The largest cost of the three. The huddle lead is a new position at each campus.",
+          short: "Operations owns it",
         },
         {
           id: "c",
-          label: "Bridge Site H on innovation funds while scale economics get modeled",
-          hint: "The bridge fund again. Site H becomes an orphan with a famous huddle.",
-          short: "Bridge Site H",
+          label: "“Cover the community campus from the Innovation Fund while we work out the numbers.”",
+          hint: "Covers up to 12 months. Nothing is decided for the other three campuses.",
+          short: "Innovation Fund",
         },
-        {
-          id: "decline",
-          label: "We cannot answer this today",
-          hint: "The grant clock doesn't attend meetings.",
-          short: "Declined",
-        },
+        decline("The grant ends in four months either way."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: -1, dollars: +3, time: 0 },
-        b: { goodwill: -1, risk: +1, dollars: +1, time: +1 },
+        a: { goodwill: -1, risk: +1, dollars: +1, time: 0 },
+        b: { goodwill: +1, risk: -1, dollars: +3, time: 0 },
         c: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
         decline: { goodwill: -1, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "The budget line makes the invisible visible: BedFlow costs more than its license, and the extra line item — a human per site — is the one that made Site H work.",
-        b: "Site-funded means site-optional. A regional CFO, reading main campus's adoption numbers, quietly zeroes the line for next year.",
-        c: "The bridge holds Site H for eight months. Marisol's role stays informal, unfunded, and hers alone — and she is interviewing elsewhere.",
-        decline: "The grant ends on schedule. Site H's license lapses into a vendor “courtesy period,” which is a countdown wearing a smile.",
+      events: {
+        a: {
+          when: "Month 2",
+          text: "A regional hospital's finance director asks for main campus's usage numbers before committing. The numbers aren't in yet.",
+        },
+        b: {
+          when: "Month 1",
+          text: "The budget line shows a huddle lead position at each campus next to the licenses. The first job posting is written from Marisol's notebook.",
+        },
+        c: {
+          when: "Month 1",
+          text: "The Innovation Fund covers the community campus for 12 months. The huddle role stays informal.",
+        },
+        decline: {
+          when: "Month 4",
+          text: "The grant ends. The vendor extends the community campus license for a 60-day courtesy period.",
+        },
       },
-      epilogue: {
-        held: "Funding the human next to the tool — a job title, a backup, a training path — turned out to be the whole ballgame. Marisol trained her successor and took the enterprise role. The notebook became a curriculum.",
-        broke: "The money never found a permanent home, so the tool lived hand-to-mouth across four budgets. When Marisol left in March, Site H's numbers regressed to baseline in nine weeks — the clearest evaluation BedFlow ever got, run by accident, at the worst possible time.",
+      owner: {
+        when: "Month 3",
+        named:
+          "Finance asks who will present the tool's budget in the fall planning cycle. The person you named is already on the list.",
+        missing:
+          "Finance asks who will present the tool's budget in the fall planning cycle. Nobody replies before the deadline.",
+      },
+      later: {
+        month: 11,
+        named:
+          "The tool is in next year's budget under one owner. The community campus's results hold through the change of fiscal year.",
+        missing:
+          "Marisol leaves for another hospital. Within nine weeks, the community campus's length of stay is back where it was before the tool.",
       },
     },
   ],
+  // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     risk_accept: {
       name: "The One Who Makes It Work Anyway",
-      line: "You're scaling my mornings. I tune it before you're awake. Put that in the plan or don't call it the plan.",
+      line: "I get in at 5:45 to adjust the numbers before huddle. On my days off, the night charge nurse texts me a photo of the screen.",
     },
     decide: {
       name: "The Last to Be Asked",
-      line: "The command center found out about its own go-live from a memo. We run beds for a living; we'd have had opinions.",
+      line: "I run the main campus bed command center. I found out our go-live date from the project schedule, the same morning as everyone else.",
     },
     stop: {
       name: "The Third Pilot This Year",
-      line: "Main campus retired two of me already. Nobody turned us off — they just stopped opening the tab. The licenses ran three more years.",
+      line: "Main campus has had two bed-management tools in three years. Nobody switched them off; we just stopped opening them. I sat through the training for both.",
     },
     funding: {
       name: "The Person in the Chair",
-      line: "My discharge got predicted by a tool a grant paid for. If the grant ends and the tool stays wrong, nobody bills anyone for the extra night. I just stay in it.",
+      line: "The plan said I'd go home Thursday. I went home Saturday. Nobody told me why the plan changed.",
     },
   },
+  // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
     "The Doctor": {
       mandate: [
-        "Responsible for: what discharge predictions do to clinical judgment at four different sites.",
-        "Cannot agree to: scale claims built on one site's uncontrolled before/after.",
-        "Measured on: outcomes, and whether huddles stay clinical or become dashboard-readings.",
+        "Your job: what discharge predictions do to clinical judgment at four very different hospitals.",
+        "You won't go along with: a rollout based on one campus's before-and-after, with no comparison.",
+        "You're judged on: patient outcomes, and whether huddles stay about patients.",
       ],
       asymmetric: [
-        "You know Site H's LOS drop began the month the huddle format changed — one month before BedFlow's thresholds were even tuned.",
-        "You know two main-campus hospitalists have already labeled BedFlow “the bed police” in group chat. Adoption is pre-poisoned.",
+        {
+          text: "The community campus's length of stay started dropping the month the huddle format changed, before the tool's cut-offs were tuned.",
+          cue: "someone says the tool cut length of stay",
+        },
+        {
+          text: "Two main campus hospitalists already call the tool “the bed police” in their group chat.",
+          cue: "the room talks about whether main campus is ready",
+        },
       ],
     },
     "The Security Guard": {
       mandate: [
-        "Responsible for: what scale multiplies — access, integration surface, config drift.",
-        "Cannot agree to: the Site H tier traveling unexamined to a different EHR configuration.",
-        "Measured on: incidents, and unlogged human overrides of automated recommendations.",
+        "Your job: what a bigger rollout multiplies — access, connections, and settings drifting apart.",
+        "You won't go along with: the community campus's rating being copied to a different EHR setup without a look.",
+        "You're judged on: incidents, and overrides of automated recommendations that nobody logs.",
       ],
       asymmetric: [
-        "You know the 12% override-log completeness at Site H would fail the audit standard applied to every other clinical decision tool in the building.",
-        "You know the vendor's remap estimate (6 weeks) excludes validation — mapped is not verified.",
+        {
+          text: "With only 12% of overrides explained, the community campus wouldn't pass the audit standard used for every other clinical decision tool here.",
+          cue: "overrides come up",
+        },
+        {
+          text: "The vendor's six-week remapping estimate covers building the new mappings, not testing them.",
+          cue: "the June date comes up",
+        },
       ],
     },
     "The Money Manager": {
       mandate: [
-        "Responsible for: the full scale bill — license ×4, integration, training, the human roles.",
-        "Cannot agree to: operating commitments made on grant money's ghost.",
-        "Measured on: variance, and orphaned licenses.",
+        "Your job: the full bill — four licenses, integration, training, and the people.",
+        "You won't go along with: ongoing commitments made on grant money that's about to end.",
+        "You're judged on: staying on budget, and licenses nobody uses.",
       ],
       asymmetric: [
-        "You know the vendor's enterprise pricing has a 4-site minimum — dropping a site later saves almost nothing.",
-        "You know the innovation fund already carries two bridged tools, and the bridge fund's own review calls it “the hospice.”",
+        {
+          text: "Enterprise pricing requires four campuses. Dropping one later saves almost nothing.",
+          cue: "someone suggests starting with fewer campuses",
+        },
+        {
+          text: "The Innovation Fund already carries two tools on bridge funding. Its own review says both are overdue for a permanent home.",
+          cue: "bridge funding comes up",
+        },
       ],
     },
     "The AI Guru": {
       mandate: [
-        "Responsible for: whether BedFlow's model survives a different config, census regime, and culture.",
-        "Cannot agree to: calling threshold-tuning-by-notebook “the same tool” as untuned deployment.",
-        "Measured on: whether what ships behaves like what was demonstrated.",
+        "Your job: whether the model works with different data, a busier hospital, and a different culture.",
+        "You won't go along with: calling the hand-tuned version and the untuned version the same tool.",
+        "You're judged on: whether what ships behaves like what was shown.",
       ],
       asymmetric: [
-        "You know the model was trained on community-hospital census patterns; main campus's census regime is outside its training distribution most winters.",
-        "You know Marisol's Monday adjustment corrects a real, reproducible model bias the vendor has never acknowledged.",
+        {
+          text: "The model was trained on community hospitals. Main campus's winter census is outside anything it has seen.",
+          cue: "main campus's size comes up",
+        },
+        {
+          text: "Marisol's Monday adjustment corrects a real, repeatable error in the model. The vendor has never acknowledged it.",
+          cue: "Marisol's notebook comes up",
+        },
       ],
     },
     "The Competitive Marketing Leader": {
       mandate: [
-        "Responsible for: the enterprise story, and the distance between it and the floor.",
-        "Cannot agree to: “breakthrough” as a description of one uncontrolled site result.",
-        "Measured on: peer credibility, which retracts louder than it prints.",
+        "Your job: the system's story about this tool, and how close it is to what's happening on the floor.",
+        "You won't go along with: a headline about the whole system based on one campus's results.",
+        "You're judged on: credibility with other hospitals.",
       ],
       asymmetric: [
-        "You know the executive quote in the draft is attributed to someone who hasn't seen the draft.",
-        "You know a health-tech reporter has been asking Site H nurses for interviews on LinkedIn. One said yes, then unsent it.",
+        {
+          text: "The executive the draft story will quote hasn't seen it.",
+          cue: "the story comes up",
+        },
+        {
+          text: "A health-tech writer has been messaging community campus nurses on LinkedIn asking for interviews.",
+          cue: "the room decides what can be said",
+        },
       ],
     },
   },

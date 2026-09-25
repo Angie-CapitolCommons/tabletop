@@ -138,7 +138,7 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
       <div className="rp-field">
         <label>
           {choice === "writein"
-            ? "Write the room's answer: the path, the named owner, and the trigger. This text is the decision — honored verbatim."
+            ? "Write the room's plan: what happens, who owns it, and what would make them act. It's recorded word for word."
             : node.freeTextPrompt}
         </label>
         <textarea value={freeText} onChange={(e) => setFreeText(e.target.value)} />
@@ -518,7 +518,7 @@ export default function App() {
   );
   const skipBtn = (
     <button className={`fac-btn ${skipArmed ? "armed" : ""}`} onClick={doSkip}>
-      {skipArmed ? "Confirm skip?" : "Skip node"}
+      {skipArmed ? "Confirm skip?" : "Skip this decision"}
     </button>
   );
 
@@ -543,7 +543,7 @@ export default function App() {
           className="fac-primary"
           onClick={guard(async () => refresh(await api("roles", { assignments: roster, start: true })))}
         >
-          Start node 1
+          Start decision 1
         </button>
       </>
     );
@@ -574,7 +574,9 @@ export default function App() {
       <>
         {commonFacBtns}
         {phase !== "score" && skipBtn}
-        <span className="fac-score-label">SCORE AT LOCK</span>
+        <span className="fac-score-label" title={`${MEASURES[node.type].id} ${MEASURES[node.type].name}: ${MEASURES[node.type].def}`}>
+          SCORE AT LOCK
+        </span>
         {scoreBtns}
       </>
     );
@@ -583,7 +585,11 @@ export default function App() {
       <>
         {commonFacBtns}
         <button className="fac-primary" onClick={advance}>
-          {node ? `Continue to node ${node.index + 2 > progress.length ? "— report" : node.index + 2}` : "Continue"}
+          {node
+            ? node.index + 2 > progress.length
+              ? "Continue to the 12-month report"
+              : `Continue to decision ${node.index + 2}`
+            : "Continue"}
         </button>
       </>
     );
@@ -641,9 +647,20 @@ export default function App() {
         <div>
           <span className="eyebrow" style={{ fontSize: 15 }}>Case file · enters at {scenario.entersAt}</span>
           <h1 className="b-title">{scenario.title}</h1>
-          {scenario.brief.split("\n\n").map((p, i) => (
-            <p key={i} className="b-para">{p}</p>
-          ))}
+          <div className="opening">
+            {scenario.opening.map((o, i) =>
+              o.from ? (
+                <div key={i} className="op-msg">
+                  <div className="op-meta">
+                    {o.channel} · {o.when} · {o.from} → {o.to}
+                  </div>
+                  <p className="op-text">{o.text}</p>
+                </div>
+              ) : (
+                <p key={i} className="op-narration">{o.text}</p>
+              ),
+            )}
+          </div>
         </div>
         <div>
           <div className="roster-label">The table · first names only</div>
@@ -677,14 +694,10 @@ export default function App() {
             </div>
           )}
           <span className="eyebrow" style={{ fontSize: 15 }}>
-            {nn(node.index)} / {MEASURES[node.type].id} · {MEASURES[node.type].name}
+            Decision {nn(node.index)} of {nn(node.count - 1)}
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
-          <p className="measure-def">
-            <b>{MEASURES[node.type].name}</b> reads: {MEASURES[node.type].def}. Specific means a
-            name and a trigger — that is the bar.
-          </p>
         </div>
         <RecordPanel
           key={node.id}
@@ -704,14 +717,10 @@ export default function App() {
       <div className="discuss recording">
         <div className="d-left">
           <span className="eyebrow" style={{ fontSize: 15 }}>
-            {nn(node.index)} / {MEASURES[node.type].id} · {MEASURES[node.type].name}
+            Decision {nn(node.index)} of {nn(node.count - 1)} · revising
           </span>
           <h1 className="node-title">{node.title}</h1>
           <p className="node-question">{node.question}</p>
-          <p className="measure-def">
-            <b>{MEASURES[node.type].name}</b> reads: {MEASURES[node.type].def}. Specific means a
-            name and a trigger — that is the bar.
-          </p>
         </div>
         <RecordPanel
           node={node}
@@ -748,6 +757,9 @@ export default function App() {
           </div>
         </div>
         <div className="elder-col">
+          {node.elders.length === 0 && (
+            <p className="no-elder">No Elder weighs in on this decision. The room's answer goes straight to scoring.</p>
+          )}
           {phase === "challenge" && elderError && (
             <div className="elder-retry" role="alert">
               <p>{elderError}</p>
@@ -790,7 +802,11 @@ export default function App() {
             <div className="hold-revise">
               <div className="hr-cell" style={{ gridColumn: "1 / -1" }}>
                 <span className="hr-title">Ready to lock</span>
-                <span className="hr-sub">Facilitator: stamp the score in the bar below.</span>
+                {/* The framework's measure appears at scoring, not during the room's discussion. */}
+                <span className="hr-sub">
+                  Score it as {MEASURES[node.type].id} {MEASURES[node.type].name}: {MEASURES[node.type].def}.
+                  Specific names a person or role plus a trigger or number. Stamp the score in the bar below.
+                </span>
               </div>
             </div>
           )}
@@ -802,12 +818,21 @@ export default function App() {
     main = (
       <div className="consequence">
         <div className="cq-left">
-          <span className="eyebrow">What this sets in motion</span>
-          <p className="cq-text">{record.consequence}</p>
+          <span className="eyebrow">What happens next</span>
+          <div className="cq-events">
+            {record.consequence.map((e, i) => (
+              <div key={i} className="cq-event">
+                <span className="cq-when">{e.when}</span>
+                <p className="cq-text">{e.text}</p>
+              </div>
+            ))}
+          </div>
           <p className="cq-meta">
             LOCKED · <span className="score">{record.score}</span>
             {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
           </p>
+        </div>
+        <div className="cq-right">
           {record.villager && (
             <div className="villager">
               <span className="villager-name">{record.villager.name}</span>
@@ -815,8 +840,6 @@ export default function App() {
               <span className="villager-standing">{villagerStandingLine}</span>
             </div>
           )}
-        </div>
-        <div>
           <div className="moved-label">WHAT MOVED</div>
           {Object.keys(METER_FULL).map((k) => {
             const before = prevMeter?.[k] ?? state.meter[k];
@@ -850,12 +873,12 @@ export default function App() {
         <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
         <h1 className="epi-head-title">Twelve months later</h1>
         <PathStrip progress={progress} records={records} currentIndex={-1} epilogue />
-        <div className="epi-rows" style={{ marginTop: 20 }}>
+        <div className="epi-rows" style={{ marginTop: 12 }}>
           {state.epilogue.parts.map((p) => (
             <div key={p.nodeId} className="epi-row">
+              <span className="epi-month">Month {p.month}</span>
               <span className="pc-eyebrow">{RAIL_LABELS[p.type]}</span>
-              <span className={`epi-verdict ${p.held ? "held" : "broke"}`}>{p.held ? "HELD" : "BROKE"}</span>
-              <span className="epi-line">{p.line}</span>
+              <span className="epi-line">{p.text}</span>
             </div>
           ))}
         </div>

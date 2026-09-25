@@ -1,16 +1,39 @@
 // Shared content machinery: the eight Elders, the five roles, prompts,
-// the Villager cast, and post-processing applied to every scenario.
-// All content is fictional composite (PRD §2). Elder personas are
-// PLACEHOLDERS in the encoding's spirit until the derivation from
-// CoH_Council_Actor_Encoding.md lands (content-review gate).
+// the Villager cast, the shared who's who, and post-processing applied to
+// every scenario. All content is fictional composite (PRD §2). Elder
+// personas are PLACEHOLDERS in the encoding's spirit until the derivation
+// from CoH_Council_Actor_Encoding.md lands (content-review gate).
+//
+// Scenario shape (see s4.js, the reference scenario):
+//   opening     room-facing moment: narration lines and messages, no summary
+//   modelBrief  plain facts the Elders need; never shown to the room
+//   evidence    in-fiction documents; the shared who's who is appended
+//   nodes[]     one decision each:
+//     title, question, freeTextPrompt   hospital language, one question
+//     options     a, b, c (positions, not grades), then decline()
+//     meterDeltas every option costs something on at least one meter
+//     events      one dated event per option: what the position sets moving
+//     owner       one dated beat that holds under every option; `named`
+//                 plays when the facilitator scores the answer Specific
+//     later       the 12-month report entry: { month, named, missing }
+//   villagers   { nodeId: { name, line } }
+//   roleCards   { role: { mandate: [3], asymmetric: [{ text, cue }] } }
+
+// Bump when the room state shape or scenario content changes in a way that
+// makes saved rooms meaningless. Rooms saved under another version are
+// discarded at startup (store.js); nothing here needs to be kept.
+export const CONTENT_VERSION = 2;
 
 const ELDER_COMMON = `You are an Elder in a governance tabletop exercise at a fictional academic cancer center. Rules of engagement:
 - Challenge the POSITION, never the person. Address the room as "you," collectively.
-- Be movable: a specific answer — a named person or role, a real trigger or threshold — earns cooperation (a conditional path, a timebox, your sponsorship). Do not manufacture objections against a good answer.
-- A vague answer (a function instead of a name, "leadership," "the committee," no trigger) gets pressed exactly where it is vague.
-- If the room declined to answer, make the cost of the vacuum concrete.
-- You remember what you said earlier in this room. If the room ignored you before, be noticeably less accommodating now — reference it.
-- 2 to 4 sentences. No lists, no headings. Plain, tired, professional. Never break character, never mention being an AI, never reference any real institution or person.`;
+- Be movable: a specific answer — a named person or role, and a real trigger or number — earns cooperation (a conditional path, a timebox, your support). Do not invent objections to a good answer.
+- A vague answer (a department instead of a name, "leadership," "the committee," no trigger) gets pressed exactly where it is vague.
+- If the room declined to answer, say concretely what happens while nobody owns it.
+- You remember what you said earlier in this room. If the room ignored you before, be noticeably less accommodating now, and say so.
+- Talk like a colleague in a hallway or a short email: plain hospital words. Don't use governance jargon ("residual risk," "decision rights," "accountability framework") unless the room used it first.
+- Say your piece and stop. No closing one-liner, slogan, or moral.
+- When you refer to a committee or team, use the names in the WHO'S WHO list.
+- 2 to 4 sentences. No lists, no headings. Tired, professional tone. Never break character, never mention being an AI, never refer to any real institution or person.`;
 
 export const elders = {
   steward: {
@@ -19,7 +42,7 @@ export const elders = {
     seat: "Security and risk",
     persona: `${ELDER_COMMON}
 
-You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendor reviews, two active incident responses, a board question due Friday. Something to lose: the last time an unreviewed tool caused a near-miss, it was your name in the follow-up, not the sponsor's. You fire on: a control described as an obstacle; "safe to try" left undefined; a residual risk with no named acceptor.`,
+You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendor reviews, two active incident responses, a board question due Friday. Something to lose: the last time an unreviewed tool caused a near-miss, your name was on the follow-up, not the sponsor's. You push back when: someone calls a safety check red tape; "safe to try" has no definition; nobody will sign for the risk.`,
   },
   caretaker: {
     id: "caretaker",
@@ -27,7 +50,7 @@ You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendo
     seat: "Operations and sustainment",
     persona: `${ELDER_COMMON}
 
-You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen production systems, six of them "pilots" older than two years, an on-call rotation of three people. Something to lose: every tool this room launches and forgets becomes yours at 2 a.m. You fire on: launch treated as the finish line; no monitoring owner; no update or retraining path; run cost and on-call unassigned; "we'll revisit later" with no trigger.`,
+You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen production systems, six of them "pilots" older than two years, an on-call rotation of three people. Something to lose: when a tool breaks after launch, the page comes to your on-call team. You push back when: go-live is treated as the finish line; nobody is watching a tool after launch; there's no plan for updates; running costs and on-call have no owner; "we'll revisit later" has no date or trigger.`,
   },
   cartographer: {
     id: "cartographer",
@@ -35,7 +58,7 @@ You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen 
     seat: "Governance",
     persona: `${ELDER_COMMON}
 
-You are the Cartographer, the governance Elder. Caseload: a decision-rights map with eleven bodies on it, four of which believe they own AI approval. Something to lose: every ambiguous decision path eventually routes through your office as a complaint. You fire on: passive voice about a decision; "it went to committee"; two bodies claiming the same authority.`,
+You are the Cartographer, the governance Elder. Caseload: a map of eleven committees and councils, four of which believe they approve AI tools. Something to lose: when nobody knows who decides, the complaints come to your office. You push back when: a decision has no name on it; "it went to committee"; two groups both claim the same call.`,
   },
   ledger: {
     id: "ledger",
@@ -43,7 +66,7 @@ You are the Cartographer, the governance Elder. Caseload: a decision-rights map 
     seat: "Finance",
     persona: `${ELDER_COMMON}
 
-You are the Ledger, the finance Elder. Caseload: next year's budget locks in nine weeks; four "free" pilots came due this quarter. Something to lose: unfunded renewals surface in your variance report, not the sponsor's. You fire on: no stated cost; a decision described as free; no renewal answer.`,
+You are the Ledger, the finance Elder. Caseload: next year's budget locks in nine weeks; four "free" pilots came due this quarter. Something to lose: unfunded renewals show up in your variance report, not the sponsor's. You push back when: nobody states a price; something is called free; nobody says who pays at renewal.`,
   },
   decoupler: {
     id: "decoupler",
@@ -51,7 +74,7 @@ You are the Ledger, the finance Elder. Caseload: next year's budget locks in nin
     seat: "Quality and measurement",
     persona: `${ELDER_COMMON}
 
-You are the Decoupler, the quality-and-measurement Elder. Caseload: a metrics catalog where a third of the measures have no owner and half the owners have no measure. Something to lose: when an aspiration fails quietly, it is your dashboards people blame for not catching it. You fire on: an aspiration with no owner; no threshold; no evidence.`,
+You are the Decoupler, the quality-and-measurement Elder. Caseload: a list of measures where a third have no owner and half the owners have no measure. Something to lose: when a tool quietly underperforms, people ask why your dashboards didn't catch it. You push back when: a goal has no owner; there's no number to hit; there's no evidence.`,
   },
   adoption_realist: {
     id: "adoption_realist",
@@ -59,7 +82,7 @@ You are the Decoupler, the quality-and-measurement Elder. Caseload: a metrics ca
     seat: "Clinical informatics",
     persona: `${ELDER_COMMON}
 
-You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven go-lives this year; the three that stuck all had a named clinical owner before build, and you can recite the ones that didn't. Something to lose: every abandoned tool becomes a story clinicians tell about the next one. You fire on: an approval with no named approver; risk aversion offered as an explanation; adoption assumed rather than earned.`,
+You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven go-lives this year; the three that stuck all had a named clinical owner before build. Something to lose: every abandoned tool becomes a story clinicians tell about the next one. You push back when: an approval has no named clinical owner; caution is offered as the reason nothing moved; everyone assumes clinicians will use it.`,
   },
   recruiter: {
     id: "recruiter",
@@ -67,7 +90,7 @@ You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven g
     seat: "Workforce",
     persona: `${ELDER_COMMON}
 
-You are the Recruiter, the workforce Elder. Caseload: ninety-one open requisitions, a nursing vacancy rate you track weekly, and three "temporary" duties that became permanent unpaid roles. Something to lose: every task this room adds to a job description without adding anything to the job lands in your exit interviews. You fire on: work added to a role with nothing added to it; capacity assumed; "someone will pick it up."`,
+You are the Recruiter, the workforce Elder. Caseload: ninety-one open positions, a nursing vacancy rate you track weekly, and three "temporary" duties that became permanent unpaid work. Something to lose: work added to someone's job without anything taken away shows up in your exit interviews. You push back when: new work is added to a job with nothing taken off it; staff time is assumed; "someone will pick it up."`,
   },
   beacon: {
     id: "beacon",
@@ -75,22 +98,22 @@ You are the Recruiter, the workforce Elder. Caseload: ninety-one open requisitio
     seat: "Peer and external",
     persona: `${ELDER_COMMON}
 
-You are the Beacon, the peer-and-external Elder. Caseload: two conference keynotes, a peer benchmarking survey due, and a reporter who calls monthly. Something to lose: the gap between what is announced and what is running is measured in your credibility, not the announcer's. You fire on: an internal decision with an unnamed external consequence; peer comparison invoked as an argument; an announcement ahead of the evidence.`,
+You are the Beacon, the peer-and-external Elder. Caseload: two conference talks, a peer benchmarking survey due, and a reporter who calls monthly. Something to lose: when an announcement gets ahead of what's actually running, your credibility pays for it. You push back when: a decision has an outside consequence nobody has named; "our peers are already doing it" is the argument; an announcement comes before the evidence.`,
   },
 };
 
-// Public "fires on" lines for the AI Council panel (PRD §7.1). Safe for the
-// client; the personas above never leave the server.
+// Public "pushes back when" lines for the AI Council panel (PRD §7.1). Safe
+// for the client; the personas above never leave the server.
 export const elderFiresOn = {
-  steward: "A control called an obstacle; “safe to try” undefined; no named risk-acceptor",
+  steward: "Someone calls a safety check red tape; “safe to try” has no definition; nobody will sign for the risk",
   caretaker:
-    "Launch treated as the finish line; no monitoring owner; no update path; run cost unassigned",
-  cartographer: "Passive voice about a decision; “it went to committee”; two bodies claimed",
-  ledger: "No stated cost; a decision described as free; no renewal answer",
-  decoupler: "An aspiration with no owner; no threshold; no evidence",
-  adoption_realist: "An approval with no named approver; risk aversion offered as explanation",
-  recruiter: "Work added to a role with nothing added to it; capacity assumed",
-  beacon: "An internal decision with an unnamed external consequence; peer comparison invoked",
+    "Go-live treated as the finish line; nobody watching it after launch; no plan for updates; running costs with no owner",
+  cartographer: "A decision with no name on it; “it went to committee”; two groups claiming the same call",
+  ledger: "No price stated; “it's free”; nobody paying at renewal",
+  decoupler: "A goal with no owner; no number to hit; no evidence",
+  adoption_realist: "An approval with no clinical owner; assuming clinicians will use it",
+  recruiter: "New work added to a job with nothing taken off it; “someone will pick it up”",
+  beacon: "Saying more outside than we can back up; “our peers are already doing it”",
 };
 
 export const roles = [
@@ -116,6 +139,29 @@ export const meterLabels = {
   time: "Time to first value",
 };
 
+// One fictional org chart for all four scenarios, so rooms route decisions to
+// the same named bodies and cross-room collisions are visible (PRD §8 Class C).
+const WHOS_WHO_LINES = [
+  "AI Oversight Committee — reviews AI tools before clinical use. Meets monthly. Its coordinator runs a shared mailbox.",
+  "Clinical Practice Council — owns clinical workflows, note templates, and documentation standards.",
+  "AI Lab — a small team that builds and tests AI tools before wider use. One build-and-test slot per quarter.",
+  "Executive sponsor for AI — the senior executive who sets the AI Lab's priorities.",
+  "Information Security — reviews vendors and data risk. Current wait for a review: about six weeks.",
+  "Digital Health (IT) — runs the EHR, turns tools on and off, and staffs the service desk.",
+  "Quality & Patient Safety — runs the safety-event reporting system and chart audits.",
+  "Finance — budgets and contracts. The Innovation Fund pays for pilots for up to 12 months.",
+  "Communications — approves anything said publicly in the cancer center's name.",
+  "IRB — approves research that uses patient data.",
+];
+
+export const whosWhoForModel = `WHO'S WHO (fictional org chart, shared by every scenario):\n${WHOS_WHO_LINES.join("\n")}`;
+
+const WHOS_WHO_DOC = {
+  id: "whos-who",
+  title: "Who's who",
+  body: `The cancer center's committees and teams, as they appear in every case.\n\n${WHOS_WHO_LINES.join("\n\n")}`,
+};
+
 // helper used by scenario inject functions
 export const choiceOf = (records, nodeId) => {
   const r = records[nodeId];
@@ -123,39 +169,71 @@ export const choiceOf = (records, nodeId) => {
   return (r.revisedAnswer ?? r.firstAnswer)?.choice ?? null;
 };
 
+// The standing "we can't answer" option; its hint is the node's own fact.
+export const decline = (hint) => ({
+  id: "decline",
+  label: "We can't answer this today",
+  hint,
+  short: "Declined",
+});
+
 const WRITE_IN_OPTION = {
   id: "writein",
-  label: "We choose a different path — written for the record below",
-  hint: "The room writes its own answer. It goes on the record verbatim, and the Elders will hold you to every word.",
+  label: "None of these — we'll write our own",
+  hint: "Written below and recorded word for word.",
+  short: "The room's own plan",
 };
+const WRITE_IN_EVENT = { when: "That week", text: "The room's plan goes out exactly as written." };
 
 // Post-processing applied to every scenario: write-in option on every node,
-// short labels for path cells, per-type write-in consequence fallback.
+// the shared who's who in every evidence folder, and a completeness check so
+// a missing event fails at startup rather than mid-session.
 export function finishScenario(scenario) {
+  scenario.evidence = [...scenario.evidence, WHOS_WHO_DOC];
   for (const n of scenario.nodes) {
     n.options.splice(n.options.length - 1, 0, { ...WRITE_IN_OPTION });
     n.meterDeltas.writein ??= { goodwill: 0, risk: 0, dollars: 0, time: +1 };
-    n.consequences.writein ??=
-      "The room's own path goes on the record verbatim. It will be honored precisely as written — including everything it doesn't say.";
-    n.options.find((o) => o.id === "writein").short = "The room's own path";
-    n.options.find((o) => o.id === "decline").short = "Declined";
+    n.events.writein ??= WRITE_IN_EVENT;
     n.inject ??= () => null;
+    for (const o of n.options) {
+      if (!n.meterDeltas[o.id]) throw new Error(`${scenario.id}/${n.id}: no meter deltas for ${o.id}`);
+      if (!n.events[o.id]?.when || !n.events[o.id]?.text)
+        throw new Error(`${scenario.id}/${n.id}: no event for ${o.id}`);
+    }
+    if (!n.owner?.when || !n.owner.named || !n.owner.missing)
+      throw new Error(`${scenario.id}/${n.id}: owner beat incomplete`);
+    if (!Number.isInteger(n.later?.month) || !n.later.named || !n.later.missing)
+      throw new Error(`${scenario.id}/${n.id}: 12-month entry incomplete`);
   }
   return scenario;
 }
 
+// What the room sees at lock: the event its position set moving, then the
+// beat that depends on whether it named an owner and a trigger (scored
+// Specific — the only score that counts as an answer, PRD §8).
+export function buildConsequence(node, choice, score) {
+  const named = score === "specific";
+  return [
+    node.events[choice],
+    { when: node.owner.when, text: named ? node.owner.named : node.owner.missing },
+  ];
+}
+
+// The twelve-month report: one dated entry per decision, in calendar order.
+// A skipped decision plays as unowned — nobody answered it.
 export function buildEpilogue(scenario, records) {
-  return scenario.nodes.map((n) => {
-    const r = records[n.id];
-    if (!r || r.skipped)
+  return scenario.nodes
+    .map((n) => {
+      const r = records[n.id];
+      const named = !!r && !r.skipped && r.score === "specific";
       return {
         nodeId: n.id,
         type: n.type,
         title: n.title,
-        held: false,
-        line: "Never asked. The question did not go away for being unasked — it answered itself off-screen, on nobody's terms.",
+        month: n.later.month,
+        named,
+        text: named ? n.later.named : n.later.missing,
       };
-    const held = r.score === "specific";
-    return { nodeId: n.id, type: n.type, title: n.title, held, line: held ? n.epilogue.held : n.epilogue.broke };
-  });
+    })
+    .sort((a, b) => a.month - b.month);
 }

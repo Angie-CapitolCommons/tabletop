@@ -1,6 +1,8 @@
-// The canonical app uses the existing Replit room table, without resetting it.
+// The canonical app uses the existing Replit room table. Rooms saved under an
+// older content version are discarded at startup: the app is pre-session and
+// holds no data worth keeping, and old-shape rooms would break the screens.
 import pg from "pg";
-import { scenarios, meterStart } from "./content/index.js";
+import { CONTENT_VERSION, scenarios, meterStart } from "./content/index.js";
 
 let pool;
 const phases = new Set(["posed", "challenge", "revise", "score", "consequence"]);
@@ -67,6 +69,10 @@ export async function initStore() {
   const restored = {};
   const claims = new Set();
   for (const row of rows) {
+    if (row.state?.contentVersion !== CONTENT_VERSION) {
+      console.warn(`Room ${row.room_number} was saved under older scenario content; starting it fresh.`);
+      continue;
+    }
     if (![1, 2, 3, 4].includes(row.room_number) || !validRoom(row.state) ||
         row.scenario_id !== row.state.scenarioId ||
         (row.scenario_id && claims.has(row.scenario_id))) {

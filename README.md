@@ -40,8 +40,10 @@ npm start
 
 Set four distinct `ROOM_CODES`, a separate `ADMIN_CODE`, and `DATABASE_URL`
 before starting. No default codes or in-memory room storage are used.
-The existing `tabletop_rooms` records are preserved; legacy `data` rows are
-migrated in place to `state` without a reset. Failed writes return an error
+The existing `tabletop_rooms` table is reused; legacy `data` rows are
+migrated in place to `state`. Rooms saved under an older scenario-content
+version (`CONTENT_VERSION` in `server/content/common.js`) are discarded at
+startup and start fresh. Failed writes return an error
 instead of acknowledging a decision that was not saved. Without an Anthropic
 key or on an interrupted Elder stream, the challenge remains retryable, with
 an explicit option to hold the answer and continue.
@@ -59,7 +61,8 @@ an explicit option to hold the answer and continue.
 
 - `server/` — Express API. `npc.js` holds the only Anthropic call (key never
   reaches the client). `content/` holds the four scenarios, Elders, roles,
-  Villagers. `print.js` renders worksheets and role cards. `store.js` is the
+  Villagers. The scenario shape is documented at the top of
+  `content/common.js`; `s4.js` is the reference for voice and structure. `print.js` renders worksheets and role cards. `store.js` is the
   optional Postgres persistence.
 - `client/` — React room screen + admin dashboard (Vite). Fixed 1280×800
   projected stage, Virtual Insights brand v2 (`design/handoff/`).
