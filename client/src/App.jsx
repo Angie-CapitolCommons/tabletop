@@ -273,6 +273,10 @@ export default function App() {
   const [transcribeError, setTranscribeError] = useState(null);
   const [rosterEdit, setRosterEdit] = useState({});
   const [dmOpen, setDmOpen] = useState(false);
+  // After the 12-month report: talk through how it could have gone differently.
+  const [debriefOpen, setDebriefOpen] = useState(false);
+  const [debriefFocus, setDebriefFocus] = useState(null);
+  const focusRef = useRef(null);
   const [actionError, setActionError] = useState(null);
   const [elderError, setElderError] = useState(null);
   const [elderRetry, setElderRetry] = useState(0);
@@ -307,7 +311,7 @@ export default function App() {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
           const text = e.results[i][0].transcript.trim();
-          if (text) api("discussion", { text }).catch(() => {});
+          if (text) api("discussion", { text, focus: focusRef.current }).catch(() => {});
         }
       }
     };
@@ -457,6 +461,8 @@ export default function App() {
 
   const reset = guard(async () => {
     stopTranscription();
+    setDebriefOpen(false);
+    setDebriefFocus(null);
     npcForNode.current = null;
     setTurns([]);
     setPrevMeter(null);
@@ -520,7 +526,8 @@ export default function App() {
       >
         The Decisionmakers
       </button>
-      {briefed && node && ["posed", "challenge", "revise", "score"].includes(phase) && (
+      {((briefed && node && ["posed", "challenge", "revise", "score"].includes(phase)) ||
+        (phase === "epilogue" && debriefOpen)) && (
         <button
           className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
           title="Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
@@ -621,10 +628,28 @@ export default function App() {
         </button>
       </>
     );
+  else if (phase === "epilogue" && debriefOpen)
+    facbar = (
+      <>
+        {commonFacBtns}
+        <button
+          className="fac-primary"
+          onClick={() => {
+            stopTranscription();
+            setDebriefOpen(false);
+          }}
+        >
+          Back to the 12-month report
+        </button>
+      </>
+    );
   else if (phase === "epilogue")
     facbar = (
       <>
         {commonFacBtns}
+        <button className="fac-btn" onClick={() => setDebriefOpen(true)}>
+          Talk it through
+        </button>
         <button
           className="fac-btn"
           onClick={async () => {
@@ -902,6 +927,78 @@ export default function App() {
           records={{ ...records, [node.id]: { score: record.score, skipped: false, answer: { ...answer, short: node.options.find((o) => o.id === answer.choice).short } } }}
           currentIndex={node.index}
         />
+      </div>
+    );
+  } else if (phase === "epilogue" && debriefOpen) {
+    // Decisions in the order the room played them; start on the first one
+    // that had no clear owner.
+    const parts = progress.map((p) => state.epilogue.parts.find((e) => e.nodeId === p.id)).filter(Boolean);
+    const focusId = debriefFocus ?? (parts.find((p) => !p.named) ?? parts[0])?.nodeId;
+    focusRef.current = focusId ?? null;
+    const focus = parts.find((p) => p.nodeId === focusId);
+    const rec = records[focusId];
+    main = (
+      <div className="debrief">
+        <div className="db-head">
+          <span className="eyebrow" style={{ fontSize: 14 }}>Talking it through</span>
+          <h1 className="db-title">How could it have gone differently?</h1>
+          <p className="db-prompt">
+            Pick a decision. What would the room have needed to write, and who would have had to own it, to get the
+            other outcome?
+          </p>
+        </div>
+        <div className="db-body">
+          <div className="db-list">
+            {parts.map((p, i) => (
+              <button
+                key={p.nodeId}
+                className={`db-item ${p.nodeId === focusId ? "active" : ""} ${p.named ? "owned" : "unowned"}`}
+                onClick={() => setDebriefFocus(p.nodeId)}
+              >
+                <span className="db-item-label">
+                  {nn(i)} {RAIL_LABELS[p.type]}
+                </span>
+                <span className="db-item-state">
+                  {p.named ? "Had an owner" : records[p.nodeId]?.skipped ? "Skipped" : "No clear owner"}
+                </span>
+              </button>
+            ))}
+          </div>
+          {focus && (
+            <div className="db-detail">
+              <div className="db-block">
+                <span className="db-label">What the room wrote</span>
+                <p>
+                  {rec?.skipped || !rec?.answer
+                    ? "Skipped. The room never answered it."
+                    : `${rec.answer.short}: “${rec.answer.freeText}”`}
+                </p>
+              </div>
+              <div className="db-block">
+                <span className="db-label">What a Specific answer needed</span>
+                <p>{SCORING[focus.type]}.</p>
+              </div>
+              <div className="db-block happened">
+                <span className="db-label">Month {focus.month}: what happened</span>
+                <p>{focus.text}</p>
+              </div>
+              <div className="db-block other">
+                <span className="db-label">{focus.named ? "If nobody had owned it" : "If someone had owned it"}</span>
+                <p>{focus.alt}</p>
+              </div>
+              {focus.elders?.length > 0 && (
+                <div className="db-block wide">
+                  <span className="db-label">What the Elders said</span>
+                  {focus.elders.map((e) => (
+                    <p key={e.name}>
+                      <b>{e.name}:</b> {e.text}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   } else if (phase === "epilogue") {

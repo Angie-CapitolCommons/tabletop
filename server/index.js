@@ -430,13 +430,21 @@ app.post("/api/npc", roomAuth, async (req, res) => {
 // and the transcript is never included in any model prompt.
 app.post("/api/discussion", roomAuth, (req, res) => {
   const room = req.room;
+  const text = (req.body?.text ?? "").trim();
+  if (!text) return res.status(400).json({ error: "text required" });
+  // After the 12-month report: the debrief discussion, tagged with the
+  // decision the room was looking at.
+  if (room.epilogue) {
+    const focus = currentScenario(room)?.nodes.some((n) => n.id === req.body?.focus) ? req.body.focus : null;
+    (room.epilogue.discussion ??= []).push({ text: text.slice(0, 2000), at: Date.now(), phase: "debrief", focus });
+    persist();
+    return res.json({ ok: true });
+  }
   const node = currentNode(room);
-  if (!node || room.epilogue) return res.status(409).json({ error: "no active node" });
+  if (!node) return res.status(409).json({ error: "no active node" });
   if (!["posed", "challenge", "revise", "score"].includes(room.phase)) {
     return res.status(409).json({ error: `cannot transcribe in phase ${room.phase}` });
   }
-  const text = (req.body?.text ?? "").trim();
-  if (!text) return res.status(400).json({ error: "text required" });
   // Fragments attach to the current node, tagged with the beat they came from
   // (posed = pre-answer discussion, revise = after the Elder challenge).
   getRecord(room, node.id).discussion.push({ text: text.slice(0, 2000), at: Date.now(), phase: room.phase });
@@ -556,10 +564,19 @@ function advance(room) {
     getRecord(room, currentNode(room).id).timings.posedAt = room.posedAt;
   } else {
     room.epilogue = {
-      parts: buildEpilogue(scenario, room.records),
+      // Each entry also carries what the Elders last said at that decision,
+      // for the debrief ("how could it have gone differently?").
+      parts: buildEpilogue(scenario, room.records).map((p) => ({
+        ...p,
+        elders: Object.entries(room.elderTurns)
+          .map(([id, turns]) => [id, turns.filter((t) => t.nodeId === p.nodeId && t.live).at(-1)])
+          .filter(([, turn]) => turn)
+          .map(([id, turn]) => ({ name: elders[id].name, text: turn.text })),
+      })),
       meter: { ...room.meter },
       finishedAt: Date.now(),
       minutes: Math.round((Date.now() - room.startedAt) / 60000),
+      discussion: [], // debrief transcript, text only — never sent to the model
     };
   }
 }

@@ -243,6 +243,8 @@ export function buildEpilogue(scenario, records) {
         month: n.later.month,
         named,
         text: named ? n.later.named : n.later.missing,
+        // The debrief's "other way it could have gone": the branch not taken.
+        alt: named ? n.later.missing : n.later.named,
       };
     })
     .sort((a, b) => a.month - b.month);

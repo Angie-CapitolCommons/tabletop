@@ -478,3 +478,26 @@ h1, h2, h3, p { margin: 0; }
 .council-name { font-family: var(--serif); font-size: 24px; }
 .council-seat { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin: 2px 0 5px; }
 .council-fires { font-size: 14px; color: var(--slate); line-height: 1.45; }
+
+/* ---------- debrief: how could it have gone differently? ---------- */
+.debrief { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.db-title { font-family: var(--serif); font-size: 36px; line-height: 1.05; margin: 6px 0 6px; }
+.db-prompt { font-size: 17px; line-height: 1.4; color: var(--slate); margin: 0 0 14px; max-width: 900px; }
+.db-body { display: grid; grid-template-columns: 230px 1fr; gap: 24px; flex: 1; min-height: 0; }
+.db-list { display: flex; flex-direction: column; gap: 1px; background: var(--hair); align-self: start; }
+.db-item { background: #fff; padding: 9px 14px; text-align: left; display: flex; flex-direction: column; gap: 2px; border-left: 3px solid transparent; }
+.db-item:hover { background: var(--paper); }
+.db-item.active { background: var(--deep); color: var(--paper); }
+.db-item.unowned { border-left-color: var(--rust); }
+.db-item.owned { border-left-color: var(--blue); }
+.db-item-label { font-size: 16px; font-weight: 600; }
+.db-item-state { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.db-item.active .db-item-state { color: var(--on-dark-dim); }
+.db-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; align-content: start; overflow-y: auto; min-height: 0; }
+.db-block { background: #fff; border: 1px solid var(--hair3); padding: 10px 14px; }
+.db-block.wide { grid-column: 1 / -1; }
+.db-block.happened { border-left: 3px solid var(--slate); }
+.db-block.other { border-left: 3px solid var(--purple); }
+.db-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); display: block; margin-bottom: 4px; }
+.db-block p { font-size: 16px; line-height: 1.4; margin: 0; color: var(--deep); }
+.db-block p + p { margin-top: 6px; }
