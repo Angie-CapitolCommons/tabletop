@@ -249,8 +249,8 @@ h1, h2, h3, p { margin: 0; }
 .case-tagline { font-size: 17px; color: var(--slate); line-height: 1.4; }
 
 /* ---------- villager beat: a speech bubble from someone who lives with the decision ---------- */
-.villager { margin-top: 14px; }
-.villager-eyebrow { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); display: block; margin-bottom: 6px; }
+.villager { margin-top: 8px; }
+.villager-eyebrow { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); display: block; margin-bottom: 4px; }
 .villager-bubble {
   position: relative; background: #fff; border: 1px solid var(--hair4); border-radius: 14px;
   padding: 11px 16px;
@@ -261,8 +261,8 @@ h1, h2, h3, p { margin: 0; }
   background: #fff; border-right: 1px solid var(--hair4); border-bottom: 1px solid var(--hair4);
   transform: rotate(45deg);
 }
-.villager-line { font-family: var(--serif); font-size: 19px; line-height: 1.35; font-style: italic; margin: 0; }
-.villager-speaker { font-size: 14.5px; font-weight: 600; color: var(--deep); margin: 12px 0 4px 16px; }
+.villager-line { font-family: var(--serif); font-size: 18px; line-height: 1.35; font-style: italic; margin: 0; }
+.villager-speaker { font-size: 14.5px; font-weight: 600; color: var(--deep); margin: 10px 0 3px 16px; }
 .villager-standing { font-size: 11px; color: var(--faint); line-height: 1.35; display: block; }
 
 /* ---------- briefing ---------- */
@@ -387,7 +387,7 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- 2d consequence ---------- */
 .consequence {
   display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr auto;
-  gap: 28px 56px; height: 100%;
+  gap: 20px 56px; height: 100%;
 }
 .cq-left { min-height: 0; overflow-y: auto; }
 .cq-left .eyebrow { font-size: 15px; }
@@ -402,13 +402,15 @@ h1, h2, h3, p { margin: 0; }
 .moved-label { font-family: var(--mono); font-size: 13px; color: var(--slate); margin-bottom: 2px; }
 .moved-row {
   display: grid; grid-template-columns: 1fr auto 56px; gap: 12px; align-items: center;
-  border-top: 1px solid var(--hair); padding: 5px 0;
+  border-top: 1px solid var(--hair); padding: 3px 0;
 }
 .moved-row:first-of-type { border-top: 0; }
 .moved-name { font-size: 16px; font-weight: 600; }
-.moved-dir { font-size: 12.5px; color: var(--muted); font-weight: 400; display: block; }
-.moved-vals { font-family: var(--serif); font-size: 26px; white-space: nowrap; }
+.moved-dir { font-size: 12.5px; color: var(--muted); font-weight: 400; display: inline; margin-left: 8px; }
+.moved-vals { font-family: var(--serif); font-size: 22px; white-space: nowrap; }
 .moved-delta { font-family: var(--mono); font-size: 15px; text-align: right; }
+.moved-note { font-size: 14px; line-height: 1.4; color: var(--deep); margin: 4px 0 0; padding: 6px 10px; border-left: 3px solid var(--rust); background: #fff; }
+.moved-note b { color: var(--rust); font-weight: 600; margin-right: 4px; }
 .moved-delta.worse { color: var(--rust); }
 .moved-delta.better { color: var(--blue); }
 .moved-delta.same { color: var(--faint); }

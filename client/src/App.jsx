@@ -166,7 +166,7 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
         </div>
       </div>
       {missing.length > 0 && (
-        <p className="rp-missing">Before the answer can be committed: {missing.join(" · ")}</p>
+        <p className="rp-missing">Before the answer can be submitted: {missing.join(" · ")}</p>
       )}
     </div>
   );
@@ -575,7 +575,7 @@ export default function App() {
         {commonFacBtns}
         {skipBtn}
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
-          {commit?.label ?? "Commit the room's answer"}
+          {commit?.label ?? "Submit the room's answer"}
         </button>
       </>
     );
@@ -587,7 +587,7 @@ export default function App() {
           Back to the challenge
         </button>
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
-          {commit?.label ?? "Commit"}
+          {commit?.label ?? "Submit"}
         </button>
       </>
     );
@@ -735,7 +735,7 @@ export default function App() {
           roleAssignments={roleAssignments}
           initial={null}
           onCommit={commitAnswer}
-          commitLabel="Commit the room's answer"
+          commitLabel="Submit the room's answer"
           setCommit={setCommit}
         />
       </div>
@@ -759,14 +759,14 @@ export default function App() {
           roleAssignments={roleAssignments}
           initial={shown}
           onCommit={commitAnswer}
-          commitLabel="Commit the revised answer"
+          commitLabel="Submit the revised answer"
           setCommit={setCommit}
         />
       </div>
     ) : (
       <div className="challenge">
         <div>
-          <div className="committed-label">{record.revisedAnswer ? "THE ROOM REVISED" : "THE ROOM COMMITTED"}</div>
+          <div className="committed-label">{record.revisedAnswer ? "THE ROOM REVISED" : "THE ROOM SUBMITTED"}</div>
           <div className="committed-card">
             <div className="cc-choice">
               <span className="letter">
@@ -878,6 +878,13 @@ export default function App() {
               </div>
             );
           })}
+          {/* Goodwill lost to work this answer puts on clinicians, beyond the option's own cost. */}
+          {record.adjustment && (
+            <p className="moved-note">
+              <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
+              {record.adjustment.note || "for work this answer puts on clinicians."}
+            </p>
+          )}
           {/* The Villager: a voice from the people who live with the decision. */}
           {record.villager && (
             <div className="villager">

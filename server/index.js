@@ -21,7 +21,7 @@ import {
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
-import { streamElderTurn } from "./npc.js";
+import { streamElderTurn, assessClinicianBurden } from "./npc.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
 import { initStore, saveRooms } from "./store.js";
 
@@ -398,10 +398,20 @@ app.post("/api/npc", roomAuth, async (req, res) => {
       throw new Error(`${elder.name} could not be reached. Retry the Elder challenge or hold the answer.`);
     }
   }
+  // With the Elders' comments in hand: does this answer put work on
+  // clinicians that belongs elsewhere? Applied to goodwill when it locks.
+  const assessment = await assessClinicianBurden({
+    scenario,
+    node,
+    option,
+    answer,
+    elderTexts: completed.map(({ turn }) => turn.text),
+  });
   if (rooms[req.roomNumber] !== room || room.phase !== "challenge" || currentNode(room)?.id !== node.id)
     throw new Error("The room changed while the Elders were speaking. Refresh and retry.");
   const nextRoom = structuredClone(room);
   for (const { elderId, turn } of completed) (nextRoom.elderTurns[elderId] ??= []).push(turn);
+  nextRoom.records[node.id].assessment = assessment ? { ...assessment, answerAt: answer.at } : null;
   nextRoom.phase = "revise";
   await saveRooms({ [req.roomNumber]: nextRoom });
   rooms[req.roomNumber] = nextRoom;
@@ -472,6 +482,8 @@ app.post("/api/unlock", roomAuth, (req, res) => {
   const r = getRecord(room, node.id);
   const deltas = node.meterDeltas[finalAnswer(r).choice];
   for (const k of Object.keys(deltas)) room.meter[k] -= deltas[k];
+  if (r.adjustment) room.meter.goodwill -= r.adjustment.goodwill;
+  r.adjustment = null;
   r.score = null;
   r.consequence = null;
   r.villager = null;
@@ -498,6 +510,12 @@ app.post("/api/lock", roomAuth, (req, res) => {
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
   for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
+  // Work pushed onto clinicians costs goodwill beyond the option's own cost,
+  // but only if the assessment was of this exact answer.
+  const a = r.assessment;
+  const burden = a && a.answerAt === finalAnswer(r).at ? { some: -1, heavy: -2 }[a.clinicianBurden] : undefined;
+  r.adjustment = burden ? { goodwill: burden, note: a.note } : null;
+  if (r.adjustment) room.meter.goodwill += r.adjustment.goodwill;
   r.consequence = buildConsequence(node, choice, score);
   r.villager = scenario.villagers?.[node.id] ?? null;
   room.phase = "consequence";
