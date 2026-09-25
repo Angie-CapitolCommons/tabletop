@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 // evidence + AI Council available everywhere, score-at-lock in the
 // facilitator bar, decision-path strip, segmented meters.
 
-import { MEASURES } from "./measures.js";
+import { SCORING, GENERIC_ABSENT } from "./measures.js";
 
 const ROOM_CODE_KEY = "tt-room-code";
 
@@ -166,7 +166,7 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
         </div>
       </div>
       {missing.length > 0 && (
-        <p className="rp-missing">Before the answer can be committed: {missing.join(" · ")}</p>
+        <p className="rp-missing">Before the answer can be submitted: {missing.join(" · ")}</p>
       )}
     </div>
   );
@@ -273,6 +273,13 @@ export default function App() {
   const [transcribeError, setTranscribeError] = useState(null);
   const [rosterEdit, setRosterEdit] = useState({});
   const [dmOpen, setDmOpen] = useState(false);
+  // After the 12-month report: talk through how it could have gone differently.
+  const [debriefOpen, setDebriefOpen] = useState(false);
+  // Each decision opens behind a "Start discussion" pop-up; this is the
+  // decision whose discussion the facilitator has started.
+  const [discussionFor, setDiscussionFor] = useState(null);
+  const [debriefFocus, setDebriefFocus] = useState(null);
+  const focusRef = useRef(null);
   const [actionError, setActionError] = useState(null);
   const [elderError, setElderError] = useState(null);
   const [elderRetry, setElderRetry] = useState(0);
@@ -293,6 +300,7 @@ export default function App() {
   };
 
   const startTranscription = () => {
+    if (transcribingRef.current) return; // already listening
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setTranscribeError("Speech recognition needs Chrome on this laptop.");
@@ -307,7 +315,7 @@ export default function App() {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
           const text = e.results[i][0].transcript.trim();
-          if (text) api("discussion", { text }).catch(() => {});
+          if (text) api("discussion", { text, focus: focusRef.current }).catch(() => {});
         }
       }
     };
@@ -346,7 +354,8 @@ export default function App() {
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
     if (!state || state.phase !== "challenge" || !node) return;
-    const attempt = `${node.id}:${elderRetry}`;
+    // Each committed answer — the first and every revision — gets its own Elder round.
+    const attempt = `${node.id}:${state.record?.revisedAnswer?.at ?? "first"}:${elderRetry}`;
     if (npcForNode.current === attempt) return;
     npcForNode.current = attempt;
     setElderError(null);
@@ -397,7 +406,7 @@ export default function App() {
       setTurns((ts) => ts.map((turn) => turn.status === "streaming"
         ? { ...turn, status: "unavailable", text: "This response was interrupted." } : turn));
     });
-  }, [state?.phase, node?.id, elderRetry]);
+  }, [state?.phase, node?.id, elderRetry, state?.record?.revisedAnswer?.at]);
 
   useEffect(() => {
     setSkipArmed(false);
@@ -456,6 +465,8 @@ export default function App() {
 
   const reset = guard(async () => {
     stopTranscription();
+    setDebriefOpen(false);
+    setDebriefFocus(null);
     npcForNode.current = null;
     setTurns([]);
     setPrevMeter(null);
@@ -463,7 +474,30 @@ export default function App() {
     refresh(await api("reset", {}));
   });
 
+  // The Decisionmakers drawer saves the roster. It opens with any unsaved
+  // briefing edits folded in, and once saved those edits are cleared so the
+  // briefing shows the saved names. Closes only on success, so a failed save
+  // keeps what was typed.
+  const saveRoster = guard(async () => {
+    refresh(await api("roles", { assignments: rosterEdit }));
+    setRoster({});
+    setDmOpen(false);
+  });
+
+  // Back from scoring: reopen the answer for editing; the edit is kept as the
+  // revised answer, alongside the first.
+  const reopenAnswer = guard(async () => {
+    refresh(await api("reopen", {}));
+    setRevising(true);
+    startTranscription();
+  });
+
+  // Undo the score just stamped: the meters roll back and the decision
+  // returns to scoring. Only while its consequence is on screen.
+  const undoLock = guard(async () => refresh(await api("unlock", {})));
+
   const commitAnswer = guard(async (a) => {
+    stopTranscription(); // the discussion ends when the answer is submitted
     const d = await api("answer", a);
     setRevising(false);
     refresh(d);
@@ -492,13 +526,15 @@ export default function App() {
       <button
         className="fac-btn"
         onClick={() => {
-          setRosterEdit({ ...roleAssignments });
+          setRosterEdit({ ...roleAssignments, ...roster });
           setDmOpen(true);
         }}
       >
         The Decisionmakers
       </button>
-      {briefed && node && ["posed", "challenge", "revise", "score"].includes(phase) && (
+      {((node && phase === "posed" && discussionFor === node.id) ||
+        (phase === "revise" && revising) ||
+        (phase === "epilogue" && debriefOpen)) && (
         <button
           className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
           title="Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
@@ -553,7 +589,7 @@ export default function App() {
         {commonFacBtns}
         {skipBtn}
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
-          {commit?.label ?? "Commit the room's answer"}
+          {commit?.label ?? "Submit the room's answer"}
         </button>
       </>
     );
@@ -561,11 +597,17 @@ export default function App() {
     facbar = (
       <>
         {commonFacBtns}
-        <button className="fac-btn" onClick={() => setRevising(false)}>
+        <button
+          className="fac-btn"
+          onClick={() => {
+            stopTranscription();
+            setRevising(false);
+          }}
+        >
           Back to the challenge
         </button>
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
-          {commit?.label ?? "Commit"}
+          {commit?.label ?? "Submit"}
         </button>
       </>
     );
@@ -574,9 +616,12 @@ export default function App() {
       <>
         {commonFacBtns}
         {phase !== "score" && skipBtn}
-        <span className="fac-score-label" title={`${MEASURES[node.type].id} ${MEASURES[node.type].name}: ${MEASURES[node.type].def}`}>
-          SCORE AT LOCK
-        </span>
+        {phase === "score" && (
+          <button className="fac-btn" onClick={reopenAnswer}>
+            Edit the answer
+          </button>
+        )}
+        <span className="fac-score-label">SCORE AT LOCK</span>
         {scoreBtns}
       </>
     );
@@ -584,6 +629,9 @@ export default function App() {
     facbar = (
       <>
         {commonFacBtns}
+        <button className="fac-btn" onClick={undoLock}>
+          Undo this score
+        </button>
         <button className="fac-primary" onClick={advance}>
           {node
             ? node.index + 2 > progress.length
@@ -593,10 +641,28 @@ export default function App() {
         </button>
       </>
     );
+  else if (phase === "epilogue" && debriefOpen)
+    facbar = (
+      <>
+        {commonFacBtns}
+        <button
+          className="fac-primary"
+          onClick={() => {
+            stopTranscription();
+            setDebriefOpen(false);
+          }}
+        >
+          Back to the 12-month report
+        </button>
+      </>
+    );
   else if (phase === "epilogue")
     facbar = (
       <>
         {commonFacBtns}
+        <button className="fac-btn" onClick={() => setDebriefOpen(true)}>
+          Talk it through
+        </button>
         <button
           className="fac-btn"
           onClick={async () => {
@@ -669,7 +735,7 @@ export default function App() {
               <div key={r} className="roster-row">
                 <span className="role-name">{r}</span>
                 <input
-                  value={roster[r] ?? ""}
+                  value={roster[r] ?? roleAssignments[r] ?? ""}
                   onChange={(e) => setRoster({ ...roster, [r]: e.target.value })}
                   placeholder="First name(s)"
                 />
@@ -707,12 +773,14 @@ export default function App() {
           roleAssignments={roleAssignments}
           initial={null}
           onCommit={commitAnswer}
-          commitLabel="Commit the room's answer"
+          commitLabel="Submit the room's answer"
           setCommit={setCommit}
         />
       </div>
     );
   } else if ((phase === "challenge" || phase === "revise" || phase === "score") && node) {
+    // Show (and score) the room's latest answer, not only its first.
+    const shown = record.revisedAnswer ?? record.firstAnswer;
     main = revising ? (
       <div className="discuss recording">
         <div className="d-left">
@@ -727,39 +795,36 @@ export default function App() {
           decidedByPrompt={decidedByPrompt}
           roles={roles}
           roleAssignments={roleAssignments}
-          initial={record.firstAnswer}
+          initial={shown}
           onCommit={commitAnswer}
-          commitLabel="Commit the revised answer"
+          commitLabel="Submit the revised answer"
           setCommit={setCommit}
         />
       </div>
     ) : (
       <div className="challenge">
         <div>
-          <div className="committed-label">THE ROOM COMMITTED</div>
+          <div className="committed-label">{record.revisedAnswer ? "THE ROOM REVISED" : "THE ROOM SUBMITTED"}</div>
           <div className="committed-card">
             <div className="cc-choice">
               <span className="letter">
                 {optLetter(
-                  node.options.find((o) => o.id === record.firstAnswer.choice),
-                  node.options.findIndex((o) => o.id === record.firstAnswer.choice),
+                  node.options.find((o) => o.id === shown.choice),
+                  node.options.findIndex((o) => o.id === shown.choice),
                 )}
               </span>
               <span className="cc-label">
-                {node.options.find((o) => o.id === record.firstAnswer.choice).label}
+                {node.options.find((o) => o.id === shown.choice).label}
               </span>
             </div>
-            <p className="cc-quote">“{record.firstAnswer.freeText}”</p>
+            <p className="cc-quote">“{shown.freeText}”</p>
             <div className="cc-rule">
               <div className="cc-final-label">FINAL CALL</div>
-              <div className="cc-final">{record.firstAnswer.decidedBy}</div>
+              <div className="cc-final">{shown.decidedBy}</div>
             </div>
           </div>
         </div>
         <div className="elder-col">
-          {node.elders.length === 0 && (
-            <p className="no-elder">No Elder weighs in on this decision. The room's answer goes straight to scoring.</p>
-          )}
           {phase === "challenge" && elderError && (
             <div className="elder-retry" role="alert">
               <p>{elderError}</p>
@@ -790,9 +855,15 @@ export default function App() {
             <div className="hold-revise">
               <button className="hr-cell" onClick={guard(async () => refresh(await api("hold", {})))}>
                 <span className="hr-title">Hold</span>
-                <span className="hr-sub">The first answer locks as written.</span>
+                <span className="hr-sub">The answer locks as written.</span>
               </button>
-              <button className="hr-cell" onClick={() => setRevising(true)}>
+              <button
+                className="hr-cell"
+                onClick={() => {
+                  setRevising(true);
+                  startTranscription(); // the discussion restarts for the revision
+                }}
+              >
                 <span className="hr-title">Revise</span>
                 <span className="hr-sub">Reopens the record, pre-filled. Both are kept.</span>
               </button>
@@ -802,10 +873,9 @@ export default function App() {
             <div className="hold-revise">
               <div className="hr-cell" style={{ gridColumn: "1 / -1" }}>
                 <span className="hr-title">Ready to lock</span>
-                {/* The framework's measure appears at scoring, not during the room's discussion. */}
+                {/* What counts as Specific for this measure, shown at scoring, not during discussion. */}
                 <span className="hr-sub">
-                  Score it as {MEASURES[node.type].id} {MEASURES[node.type].name}: {MEASURES[node.type].def}.
-                  Specific names a person or role plus a trigger or number. Stamp the score in the bar below.
+                  Specific: {SCORING[node.type]}. {GENERIC_ABSENT} Stamp the score in the bar below.
                 </span>
               </div>
             </div>
@@ -829,17 +899,10 @@ export default function App() {
           </div>
           <p className="cq-meta">
             LOCKED · <span className="score">{record.score}</span>
-            {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
+            {record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : record.held ? " · HELD AFTER CHALLENGE" : ""}
           </p>
         </div>
         <div className="cq-right">
-          {record.villager && (
-            <div className="villager">
-              <span className="villager-name">{record.villager.name}</span>
-              <p className="villager-line">“{record.villager.line}”</p>
-              <span className="villager-standing">{villagerStandingLine}</span>
-            </div>
-          )}
           <div className="moved-label">WHAT MOVED</div>
           {Object.keys(METER_FULL).map((k) => {
             const before = prevMeter?.[k] ?? state.meter[k];
@@ -859,12 +922,102 @@ export default function App() {
               </div>
             );
           })}
+          {/* Goodwill lost to work this answer puts on clinicians, beyond the option's own cost. */}
+          {record.adjustment && (
+            <p className="moved-note">
+              <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
+              {record.adjustment.note || "for work this answer puts on clinicians."}
+            </p>
+          )}
+          {/* The Villager: a voice from the people who live with the decision. */}
+          {record.villager && (
+            <div className="villager">
+              <span className="villager-eyebrow">Who lives with this decision</span>
+              <div className="villager-bubble">
+                <p className="villager-line">“{record.villager.line}”</p>
+              </div>
+              <div className="villager-speaker">{record.villager.speaker}</div>
+              <span className="villager-standing">{villagerStandingLine}</span>
+            </div>
+          )}
         </div>
         <PathStrip
           progress={progress}
           records={{ ...records, [node.id]: { score: record.score, skipped: false, answer: { ...answer, short: node.options.find((o) => o.id === answer.choice).short } } }}
           currentIndex={node.index}
         />
+      </div>
+    );
+  } else if (phase === "epilogue" && debriefOpen) {
+    // Decisions in the order the room played them; start on the first one
+    // that had no clear owner.
+    const parts = progress.map((p) => state.epilogue.parts.find((e) => e.nodeId === p.id)).filter(Boolean);
+    const focusId = debriefFocus ?? (parts.find((p) => !p.named) ?? parts[0])?.nodeId;
+    focusRef.current = focusId ?? null;
+    const focus = parts.find((p) => p.nodeId === focusId);
+    const rec = records[focusId];
+    main = (
+      <div className="debrief">
+        <div className="db-head">
+          <span className="eyebrow" style={{ fontSize: 14 }}>Talking it through</span>
+          <h1 className="db-title">How could it have gone differently?</h1>
+          <p className="db-prompt">
+            Pick a decision. What would the room have needed to write, and who would have had to own it, to get the
+            other outcome?
+          </p>
+        </div>
+        <div className="db-body">
+          <div className="db-list">
+            {parts.map((p, i) => (
+              <button
+                key={p.nodeId}
+                className={`db-item ${p.nodeId === focusId ? "active" : ""} ${p.named ? "owned" : "unowned"}`}
+                onClick={() => setDebriefFocus(p.nodeId)}
+              >
+                <span className="db-item-label">
+                  {nn(i)} {RAIL_LABELS[p.type]}
+                </span>
+                <span className="db-item-state">
+                  {p.named ? "Had an owner" : records[p.nodeId]?.skipped ? "Skipped" : "No clear owner"}
+                </span>
+              </button>
+            ))}
+          </div>
+          {focus && (
+            <div className="db-detail">
+              <div className="db-block">
+                <span className="db-label">What the room wrote</span>
+                <p>
+                  {rec?.skipped || !rec?.answer
+                    ? "Skipped. The room never answered it."
+                    : `${rec.answer.short}: “${rec.answer.freeText}”`}
+                </p>
+              </div>
+              <div className="db-block">
+                <span className="db-label">What a Specific answer needed</span>
+                <p>{SCORING[focus.type]}.</p>
+              </div>
+              <div className="db-block happened">
+                <span className="db-label">Month {focus.month}: what happened</span>
+                <p>{focus.text}</p>
+              </div>
+              <div className="db-block other">
+                <span className="db-label">{focus.named ? "If nobody had owned it" : "If someone had owned it"}</span>
+                <p>{focus.alt}</p>
+              </div>
+              {focus.elders?.length > 0 && (
+                <div className="db-block wide">
+                  <span className="db-label">What the Elders said</span>
+                  {focus.elders.map((e) => (
+                    <p key={e.name}>
+                      <b>{e.name}:</b> {e.text}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   } else if (phase === "epilogue") {
@@ -907,7 +1060,7 @@ export default function App() {
             <div
               key={p.id}
               className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}
-              title={`${MEASURES[p.type].id} ${MEASURES[p.type].name} — ${MEASURES[p.type].def}`}
+              title={`Specific: ${SCORING[p.type]}`}
             >
               <span className="num">{nn(i)}</span>
               {RAIL_LABELS[p.type]}
@@ -917,6 +1070,30 @@ export default function App() {
         </div>
         <div className="main">{main}</div>
         <div className="facbar">{facbar}</div>
+
+        {briefed && node && phase === "posed" && discussionFor !== node.id && (
+          <div className="gate-scrim">
+            <div className="gate-card" role="dialog" aria-label="Start discussion">
+              <span className="eyebrow">
+                Decision {nn(node.index)} of {nn(node.count - 1)} · {RAIL_LABELS[node.type]}
+              </span>
+              <h2 className="gate-title">{node.title}</h2>
+              <p className="gate-note">
+                Starting the discussion turns on live transcription for this decision: text only, no audio stored, no
+                voices attributed. It stops when the room submits its answer.
+              </p>
+              <button
+                className="gate-btn"
+                onClick={() => {
+                  setDiscussionFor(node.id);
+                  startTranscription();
+                }}
+              >
+                Start discussion
+              </button>
+            </div>
+          </div>
+        )}
 
         {evidenceOpen && (
           <>
@@ -953,13 +1130,7 @@ export default function App() {
 
         {dmOpen && (
           <>
-            <div
-              className="drawer-scrim"
-              onClick={async () => {
-                setDmOpen(false);
-                refresh(await api("roles", { assignments: rosterEdit }));
-              }}
-            />
+            <div className="drawer-scrim" onClick={saveRoster} />
             <div className="drawer">
               <div className="drawer-head">
                 <div>
@@ -967,13 +1138,7 @@ export default function App() {
                   <h3>The Decisionmakers</h3>
                 </div>
                 <div className="drawer-actions">
-                  <button
-                    className="panel-btn"
-                    onClick={async () => {
-                      setDmOpen(false);
-                      refresh(await api("roles", { assignments: rosterEdit }));
-                    }}
-                  >
+                  <button className="panel-btn" onClick={saveRoster}>
                     Save and close
                   </button>
                 </div>

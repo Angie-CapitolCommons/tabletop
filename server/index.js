@@ -15,13 +15,16 @@ import {
   elders,
   elderFiresOn,
   roles,
+  SECTION_LABELS,
   decidedByPrompt,
   villagerStandingLine,
   buildConsequence,
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
-import { streamElderTurn } from "./npc.js";
+import { streamElderTurn, assessClinicianBurden, generateThemes } from "./npc.js";
+import { scrubNames, scrubDecidedBy } from "./privacy.js";
+import { buildThemesBundle } from "./themes.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
 import { initStore, saveRooms } from "./store.js";
 
@@ -61,6 +64,8 @@ function freshRoom() {
 }
 
 let rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
+// Admin themes run (see /api/admin/themes); in memory only.
+let themes = { status: "idle" };
 
 const restored = await initStore();
 if (restored) for (const n of ROOM_NUMBERS) if (restored[n]) rooms[n] = restored[n];
@@ -121,6 +126,27 @@ const getRecord = (room, nodeId) =>
   });
 const finalAnswer = (r) => r.revisedAnswer ?? r.firstAnswer;
 
+// The section's discussion transcript, assembled from the live fragments when
+// the decision locks: one artifact per section (Purpose, Tier, …), split into
+// the talk before the answer and the talk after the Elders' challenge. Text
+// only; it goes to the record, the admin view and the export.
+function transcriptArtifact(node, r) {
+  const frags = r.discussion ?? [];
+  if (!frags.length) return null;
+  const join = (list) => list.map((f) => f.text).join(" ");
+  const beforeAnswer = join(frags.filter((f) => f.phase === "posed"));
+  const afterChallenge = join(frags.filter((f) => f.phase !== "posed"));
+  return {
+    section: SECTION_LABELS[node.type],
+    title: node.title,
+    beforeAnswer,
+    afterChallenge,
+    fragments: frags.length,
+    words: `${beforeAnswer} ${afterChallenge}`.split(/\s+/).filter(Boolean).length,
+    createdAt: Date.now(),
+  };
+}
+
 const scenarioClaims = () => {
   const claims = {};
   for (const n of ROOM_NUMBERS) if (rooms[n].scenarioId) claims[rooms[n].scenarioId] = n;
@@ -161,6 +187,7 @@ function roomRecords(room, scenario) {
           score: r.score,
           skipped: r.skipped,
           answer: a && n ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
+          transcript: r.transcript ? { section: r.transcript.section, words: r.transcript.words } : null,
         },
       ];
     }),
@@ -328,11 +355,12 @@ app.post("/api/answer", roomAuth, (req, res) => {
   if (room.phase === "posed") {
     r.firstAnswer = answer;
     r.timings.firstAnswerAt = answer.at;
-    // A decision with no Elder has no challenge to revise against: straight to scoring.
-    room.phase = node.elders.length ? "challenge" : "score";
+    room.phase = "challenge";
   } else if (room.phase === "revise") {
+    // A revised answer goes back to the Elders, who respond to what changed.
+    r.previousAnswer = finalAnswer(r);
     r.revisedAnswer = answer;
-    room.phase = "score";
+    room.phase = "challenge";
   } else {
     return res.status(409).json({ error: `cannot answer in phase ${room.phase}` });
   }
@@ -356,14 +384,26 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
   const r = getRecord(room, node.id);
-  const answer = r.firstAnswer;
+  // Model-safe copies: roster first names become roles before anything is
+  // sent (PRD §4). The record itself keeps what the room wrote.
+  const safe = (a) =>
+    a && {
+      ...a,
+      freeText: scrubNames(a.freeText, room.roleAssignments),
+      decidedBy: scrubDecidedBy(a.decidedBy, room.roleAssignments),
+    };
+  const answer = finalAnswer(r);
+  const safeAnswer = safe(answer);
   const option = node.options.find((o) => o.id === answer.choice);
+  // On a revision, the Elders see the answer they last responded to.
+  const previous = r.revisedAnswer ? safe(r.previousAnswer) : null;
+  const previousOption = previous ? node.options.find((o) => o.id === previous.choice) : null;
   const pathSummary = scenario.nodes
     .slice(0, room.nodeIndex)
     .map((n) => {
       const pr = room.records[n.id];
       if (!pr || pr.skipped) return `${n.type}: skipped`;
-      const a = finalAnswer(pr);
+      const a = safe(finalAnswer(pr));
       return `${n.type}: chose "${n.options.find((o) => o.id === a.choice)?.label}" — "${a.freeText}" (decided by: ${a.decidedBy}; scored ${pr.score})`;
     })
     .join("\n");
@@ -380,7 +420,9 @@ app.post("/api/npc", roomAuth, async (req, res) => {
         scenario,
         node,
         option,
-        answer,
+        answer: safeAnswer,
+        previous,
+        previousOption,
         pathSummary,
         priorTurns,
         onDelta: (t) => send({ type: "delta", text: t }),
@@ -392,10 +434,20 @@ app.post("/api/npc", roomAuth, async (req, res) => {
       throw new Error(`${elder.name} could not be reached. Retry the Elder challenge or hold the answer.`);
     }
   }
+  // With the Elders' comments in hand: does this answer put work on
+  // clinicians that belongs elsewhere? Applied to goodwill when it locks.
+  const assessment = await assessClinicianBurden({
+    scenario,
+    node,
+    option,
+    answer: safeAnswer,
+    elderTexts: completed.map(({ turn }) => turn.text),
+  });
   if (rooms[req.roomNumber] !== room || room.phase !== "challenge" || currentNode(room)?.id !== node.id)
     throw new Error("The room changed while the Elders were speaking. Refresh and retry.");
   const nextRoom = structuredClone(room);
   for (const { elderId, turn } of completed) (nextRoom.elderTurns[elderId] ??= []).push(turn);
+  nextRoom.records[node.id].assessment = assessment ? { ...assessment, answerAt: answer.at } : null;
   nextRoom.phase = "revise";
   await saveRooms({ [req.roomNumber]: nextRoom });
   rooms[req.roomNumber] = nextRoom;
@@ -414,13 +466,21 @@ app.post("/api/npc", roomAuth, async (req, res) => {
 // and the transcript is never included in any model prompt.
 app.post("/api/discussion", roomAuth, (req, res) => {
   const room = req.room;
+  const text = (req.body?.text ?? "").trim();
+  if (!text) return res.status(400).json({ error: "text required" });
+  // After the 12-month report: the debrief discussion, tagged with the
+  // decision the room was looking at.
+  if (room.epilogue) {
+    const focus = currentScenario(room)?.nodes.some((n) => n.id === req.body?.focus) ? req.body.focus : null;
+    (room.epilogue.discussion ??= []).push({ text: text.slice(0, 2000), at: Date.now(), phase: "debrief", focus });
+    persist();
+    return res.json({ ok: true });
+  }
   const node = currentNode(room);
-  if (!node || room.epilogue) return res.status(409).json({ error: "no active node" });
+  if (!node) return res.status(409).json({ error: "no active node" });
   if (!["posed", "challenge", "revise", "score"].includes(room.phase)) {
     return res.status(409).json({ error: `cannot transcribe in phase ${room.phase}` });
   }
-  const text = (req.body?.text ?? "").trim();
-  if (!text) return res.status(400).json({ error: "text required" });
   // Fragments attach to the current node, tagged with the beat they came from
   // (posed = pre-answer discussion, revise = after the Elder challenge).
   getRecord(room, node.id).discussion.push({ text: text.slice(0, 2000), at: Date.now(), phase: room.phase });
@@ -436,6 +496,42 @@ app.post("/api/hold", roomAuth, (req, res) => {
     return res.status(409).json({ error: `cannot hold in phase ${room.phase}` });
   }
   getRecord(room, currentNode(room).id).held = true;
+  room.phase = "score";
+  persist();
+  res.json(publicState(room, req.roomNumber));
+});
+
+// Back from scoring: reopen the room's answer for editing before it locks.
+// The edit is recorded as the revised answer, so both stay on the record.
+app.post("/api/reopen", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "score") {
+    return res.status(409).json({ error: "The answer can only be reopened before it's scored." });
+  }
+  getRecord(room, node.id).held = false;
+  room.phase = "revise";
+  persist();
+  res.json(publicState(room, req.roomNumber));
+});
+
+// Undo the most recent lock, while its consequence is still on screen:
+// the meters roll back and the decision returns to scoring.
+app.post("/api/unlock", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "consequence") {
+    return res.status(409).json({ error: "Only the score just stamped can be undone." });
+  }
+  const r = getRecord(room, node.id);
+  const deltas = node.meterDeltas[finalAnswer(r).choice];
+  for (const k of Object.keys(deltas)) room.meter[k] -= deltas[k];
+  if (r.adjustment) room.meter.goodwill -= r.adjustment.goodwill;
+  r.adjustment = null;
+  r.score = null;
+  r.consequence = null;
+  r.villager = null;
+  r.timings.lockedAt = null;
   room.phase = "score";
   persist();
   res.json(publicState(room, req.roomNumber));
@@ -458,8 +554,15 @@ app.post("/api/lock", roomAuth, (req, res) => {
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
   for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
+  // Work pushed onto clinicians costs goodwill beyond the option's own cost,
+  // but only if the assessment was of this exact answer.
+  const a = r.assessment;
+  const burden = a && a.answerAt === finalAnswer(r).at ? { some: -1, heavy: -2 }[a.clinicianBurden] : undefined;
+  r.adjustment = burden ? { goodwill: burden, note: a.note } : null;
+  if (r.adjustment) room.meter.goodwill += r.adjustment.goodwill;
   r.consequence = buildConsequence(node, choice, score);
   r.villager = scenario.villagers?.[node.id] ?? null;
+  r.transcript = transcriptArtifact(node, r);
   room.phase = "consequence";
   persist();
   res.json(publicState(room, req.roomNumber));
@@ -474,6 +577,7 @@ app.post("/api/skip", roomAuth, (req, res) => {
   const r = getRecord(room, node.id);
   r.skipped = true;
   r.timings.lockedAt = Date.now();
+  r.transcript = transcriptArtifact(node, r);
   advance(room);
   persist();
   res.json(publicState(room, req.roomNumber));
@@ -498,10 +602,19 @@ function advance(room) {
     getRecord(room, currentNode(room).id).timings.posedAt = room.posedAt;
   } else {
     room.epilogue = {
-      parts: buildEpilogue(scenario, room.records),
+      // Each entry also carries what the Elders last said at that decision,
+      // for the debrief ("how could it have gone differently?").
+      parts: buildEpilogue(scenario, room.records).map((p) => ({
+        ...p,
+        elders: Object.entries(room.elderTurns)
+          .map(([id, turns]) => [id, turns.filter((t) => t.nodeId === p.nodeId && t.live).at(-1)])
+          .filter(([, turn]) => turn)
+          .map(([id, turn]) => ({ name: elders[id].name, text: turn.text })),
+      })),
       meter: { ...room.meter },
       finishedAt: Date.now(),
       minutes: Math.round((Date.now() - room.startedAt) / 60000),
+      discussion: [], // debrief transcript, text only — never sent to the model
     };
   }
 }
@@ -554,7 +667,9 @@ app.get("/api/admin/overview", adminAuth, (_req, res) => {
       records: scenario ? roomRecords(room, scenario) : {},
       currentNode: scenario && !room.epilogue ? { id: currentNode(room).id, type: currentNode(room).type, title: currentNode(room).title } : null,
       startedAt: room.startedAt,
-      epilogue: room.epilogue ? { minutes: room.epilogue.minutes } : null,
+      epilogue: room.epilogue
+        ? { minutes: room.epilogue.minutes, debriefFragments: room.epilogue.discussion?.length ?? 0 }
+        : null,
     };
   });
 
@@ -575,6 +690,7 @@ app.get("/api/admin/overview", adminAuth, (_req, res) => {
         freeText: rec?.answer?.freeText ?? null,
         decidedBy: rec?.answer?.decidedBy ?? null,
         declined: rec?.answer?.choice === "decline",
+        transcript: rec?.transcript ?? null,
       };
     });
     const presented = cells.filter((c) => c.present);
@@ -604,14 +720,79 @@ app.get("/api/admin/overview", adminAuth, (_req, res) => {
     return { roomNumber: rs.roomNumber, tally };
   });
 
-  res.json({ rooms: roomSummaries, matrix, deciders, claims, typeOrder: TYPE_ORDER });
+  const started = ROOM_NUMBERS.filter((n) => rooms[n].scenarioId);
+  const finished = started.filter((n) => rooms[n].epilogue);
+  res.json({
+    rooms: roomSummaries,
+    matrix,
+    deciders,
+    claims,
+    typeOrder: TYPE_ORDER,
+    themes: { ...themes, readiness: { started, finished } },
+  });
 });
 
 app.get("/api/admin/export", adminAuth, (_req, res) => {
   res.json({
     exportedAt: new Date().toISOString(),
     rooms: ROOM_NUMBERS.map((n) => exportRoom(rooms[n], n)),
+    themes,
   });
+});
+
+// One section's discussion transcript, for the admin view and download.
+app.get("/api/admin/transcript/:room/:node", adminAuth, (req, res) => {
+  const room = rooms[Number(req.params.room)];
+  const t = room?.records?.[req.params.node]?.transcript;
+  if (!t) return res.status(404).json({ error: "no transcript for that section" });
+  res.json({ roomNumber: Number(req.params.room), scenario: currentScenario(room)?.title ?? null, ...t });
+});
+
+// The debrief ("talk it through") transcript for one room.
+app.get("/api/admin/debrief/:room", adminAuth, (req, res) => {
+  const room = rooms[Number(req.params.room)];
+  const scenario = room && currentScenario(room);
+  const fragments = room?.epilogue?.discussion ?? [];
+  if (!fragments.length) return res.status(404).json({ error: "no debrief transcript for that room" });
+  res.json({
+    roomNumber: Number(req.params.room),
+    scenario: scenario?.title ?? null,
+    fragments: fragments.map((f) => ({
+      text: f.text,
+      section: f.focus ? SECTION_LABELS[scenario?.nodes.find((n) => n.id === f.focus)?.type] ?? null : null,
+    })),
+  });
+});
+
+// Themes and next steps across every finished room, from Claude. Runs in the
+// background (it can take a minute); the dashboard polls for the result.
+// Everything sent is name-scrubbed; discussion transcripts are included only
+// when the lead facilitator opts in (PRD §5.3 keeps them from the model by
+// default). Held in memory: download the result to keep it.
+app.post("/api/admin/themes", adminAuth, (req, res) => {
+  if (themes.status === "running") return res.status(409).json({ error: "Themes are already being generated." });
+  const started = ROOM_NUMBERS.filter((n) => rooms[n].scenarioId);
+  const finished = started.filter((n) => rooms[n].epilogue);
+  if (!finished.length) return res.status(409).json({ error: "No room has finished its scenario yet." });
+  if (finished.length < started.length && req.body?.force !== true) {
+    return res.status(409).json({ error: `${finished.length} of ${started.length} rooms have finished.` });
+  }
+  const includeTranscripts = req.body?.includeTranscripts === true;
+  const bundle = buildThemesBundle(
+    finished.map((n) => ({ roomNumber: n, room: rooms[n], scenario: currentScenario(rooms[n]) })),
+    { includeTranscripts, sectionLabels: SECTION_LABELS, elders },
+  );
+  const job = { status: "running", startedAt: Date.now(), includeTranscripts, rooms: finished };
+  themes = job;
+  generateThemes(bundle)
+    .then((result) => {
+      if (themes === job) themes = { ...job, status: "done", finishedAt: Date.now(), result };
+    })
+    .catch((error) => {
+      console.error("Themes generation failed:", error?.message ?? error);
+      if (themes === job) themes = { ...job, status: "error", finishedAt: Date.now(), error: "Themes couldn't be generated. Try again." };
+    });
+  res.json({ themes });
 });
 
 // Full game reset: wipes all rooms back to pristine while keeping scenario
@@ -621,6 +802,7 @@ app.post("/api/admin/reset", adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'confirmation required: send { "confirm": "RESET" }' });
   }
   rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
+  themes = { status: "idle" };
   persist();
   res.json({ ok: true, resetAt: new Date().toISOString() });
 });

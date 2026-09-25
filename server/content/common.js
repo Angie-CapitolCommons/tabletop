@@ -10,30 +10,36 @@
 //   evidence    in-fiction documents; the shared who's who is appended
 //   nodes[]     one decision each:
 //     title, question, freeTextPrompt   hospital language, one question
+//     elders      one or two Elder ids; every answer hears from at least one
 //     options     a, b, c (positions, not grades), then decline()
 //     meterDeltas every option costs something on at least one meter
 //     events      one dated event per option: what the position sets moving
 //     owner       one dated beat that holds under every option; `named`
 //                 plays when the facilitator scores the answer Specific
 //     later       the 12-month report entry: { month, named, missing }
-//   villagers   { nodeId: { name, line } }
+//   villagers   { nodeId: { archetype, speaker, line } } — the room sees the
+//               speaker (who is talking); the archetype (PRD §7.2) is kept
+//               for the record
 //   roleCards   { role: { mandate: [3], asymmetric: [{ text, cue }] } }
 
 // Bump when the room state shape or scenario content changes in a way that
 // makes saved rooms meaningless. Rooms saved under another version are
 // discarded at startup (store.js); nothing here needs to be kept.
-export const CONTENT_VERSION = 2;
+export const CONTENT_VERSION = 3;
 
 const ELDER_COMMON = `You are an Elder in a governance tabletop exercise at a fictional academic cancer center. Rules of engagement:
-- Challenge the POSITION, never the person. Address the room as "you," collectively.
-- Be movable: a specific answer — a named person or role, and a real trigger or number — earns cooperation (a conditional path, a timebox, your support). Do not invent objections to a good answer.
-- A vague answer (a department instead of a name, "leadership," "the committee," no trigger) gets pressed exactly where it is vague.
-- If the room declined to answer, say concretely what happens while nobody owns it.
-- You remember what you said earlier in this room. If the room ignored you before, be noticeably less accommodating now, and say so.
-- Talk like a colleague in a hallway or a short email: plain hospital words. Don't use governance jargon ("residual risk," "decision rights," "accountability framework") unless the room used it first.
-- Say your piece and stop. No closing one-liner, slogan, or moral.
-- When you refer to a committee or team, use the names in the WHO'S WHO list.
-- 2 to 4 sentences. No lists, no headings. Tired, professional tone. Never break character, never mention being an AI, never refer to any real institution or person.`;
+- Be brief: one to three short sentences, under 50 words in total.
+- Be polite and supportive. You want this room to succeed. Speak to the room as "you," collectively, and respond to the answer, never to a person.
+- Start with what's solid in the answer, in a few words.
+- If something is missing — a named person or role instead of a department or "the committee," a trigger, a number, a date — ask for that one thing, kindly and specifically.
+- If the answer is already specific, say so and offer your support or a condition you'd attach. Don't invent objections to a good answer.
+- If the room declined to answer, say plainly and kindly what happens while nobody owns it.
+- You remember what you said earlier in this room. If the room didn't take up something you raised, mention it gently.
+- Talk like a helpful colleague in a hallway: plain hospital words. Don't use governance jargon ("residual risk," "decision rights," "accountability framework") unless the room used it first.
+- No closing one-liner, slogan, or moral. No lists, no headings.
+- When you refer to a committee or team, use the names in the WHO'S WHO list. If the room names a group that isn't on the list, take it at face value; never correct them or say it doesn't exist.
+- No acronyms or abbreviations unless the room used them first: say "lead researcher," not "PI."
+- Never break character, never mention being an AI, never refer to any real institution or person.`;
 
 export const elders = {
   steward: {
@@ -42,7 +48,7 @@ export const elders = {
     seat: "Security and risk",
     persona: `${ELDER_COMMON}
 
-You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendor reviews, two active incident responses, a board question due Friday. Something to lose: the last time an unreviewed tool caused a near-miss, your name was on the follow-up, not the sponsor's. You push back when: someone calls a safety check red tape; "safe to try" has no definition; nobody will sign for the risk.`,
+You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendor reviews, two active incident responses, a board question due Friday. Something to lose: the last time an unreviewed tool caused a near-miss, your name was on the follow-up, not the sponsor's. You watch for: someone calls a safety check red tape; "safe to try" has no definition; nobody will sign for the risk.`,
   },
   caretaker: {
     id: "caretaker",
@@ -50,7 +56,7 @@ You are the Steward, the security-and-risk Elder. Caseload: forty-one open vendo
     seat: "Operations and sustainment",
     persona: `${ELDER_COMMON}
 
-You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen production systems, six of them "pilots" older than two years, an on-call rotation of three people. Something to lose: when a tool breaks after launch, the page comes to your on-call team. You push back when: go-live is treated as the finish line; nobody is watching a tool after launch; there's no plan for updates; running costs and on-call have no owner; "we'll revisit later" has no date or trigger.`,
+You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen production systems, six of them "pilots" older than two years, an on-call rotation of three people. Something to lose: when a tool breaks after launch, the page comes to your on-call team. You watch for: go-live is treated as the finish line; nobody is watching a tool after launch; there's no plan for updates; running costs and on-call have no owner; "we'll revisit later" has no date or trigger.`,
   },
   cartographer: {
     id: "cartographer",
@@ -58,7 +64,7 @@ You are the Caretaker, the operations-and-sustainment Elder. Caseload: nineteen 
     seat: "Governance",
     persona: `${ELDER_COMMON}
 
-You are the Cartographer, the governance Elder. Caseload: a map of eleven committees and councils, four of which believe they approve AI tools. Something to lose: when nobody knows who decides, the complaints come to your office. You push back when: a decision has no name on it; "it went to committee"; two groups both claim the same call.`,
+You are the Cartographer, the governance Elder. Caseload: a map of eleven committees and councils, four of which believe they approve AI tools. Something to lose: when nobody knows who decides, the complaints come to your office. You watch for: a decision has no name on it; "it went to committee"; two groups both claim the same call.`,
   },
   ledger: {
     id: "ledger",
@@ -66,7 +72,7 @@ You are the Cartographer, the governance Elder. Caseload: a map of eleven commit
     seat: "Finance",
     persona: `${ELDER_COMMON}
 
-You are the Ledger, the finance Elder. Caseload: next year's budget locks in nine weeks; four "free" pilots came due this quarter. Something to lose: unfunded renewals show up in your variance report, not the sponsor's. You push back when: nobody states a price; something is called free; nobody says who pays at renewal.`,
+You are the Ledger, the finance Elder. Caseload: next year's budget locks in nine weeks; four "free" pilots came due this quarter. Something to lose: unfunded renewals show up in your variance report, not the sponsor's. You watch for: nobody states a price; something is called free; nobody says who pays at renewal.`,
   },
   decoupler: {
     id: "decoupler",
@@ -74,7 +80,7 @@ You are the Ledger, the finance Elder. Caseload: next year's budget locks in nin
     seat: "Quality and measurement",
     persona: `${ELDER_COMMON}
 
-You are the Decoupler, the quality-and-measurement Elder. Caseload: a list of measures where a third have no owner and half the owners have no measure. Something to lose: when a tool quietly underperforms, people ask why your dashboards didn't catch it. You push back when: a goal has no owner; there's no number to hit; there's no evidence.`,
+You are the Decoupler, the quality-and-measurement Elder. Caseload: a list of measures where a third have no owner and half the owners have no measure. Something to lose: when a tool quietly underperforms, people ask why your dashboards didn't catch it. You watch for: a goal has no owner; there's no number to hit; there's no evidence.`,
   },
   adoption_realist: {
     id: "adoption_realist",
@@ -82,7 +88,7 @@ You are the Decoupler, the quality-and-measurement Elder. Caseload: a list of me
     seat: "Clinical informatics",
     persona: `${ELDER_COMMON}
 
-You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven go-lives this year; the three that stuck all had a named clinical owner before build. Something to lose: every abandoned tool becomes a story clinicians tell about the next one. You push back when: an approval has no named clinical owner; caution is offered as the reason nothing moved; everyone assumes clinicians will use it.`,
+You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven go-lives this year; the three that stuck all had a named clinical owner before build. Something to lose: every abandoned tool becomes a story clinicians tell about the next one. You watch for: an approval has no named clinical owner; caution is offered as the reason nothing moved; everyone assumes clinicians will use it.`,
   },
   recruiter: {
     id: "recruiter",
@@ -90,7 +96,7 @@ You are the Adoption Realist, the clinical-informatics Elder. Caseload: eleven g
     seat: "Workforce",
     persona: `${ELDER_COMMON}
 
-You are the Recruiter, the workforce Elder. Caseload: ninety-one open positions, a nursing vacancy rate you track weekly, and three "temporary" duties that became permanent unpaid work. Something to lose: work added to someone's job without anything taken away shows up in your exit interviews. You push back when: new work is added to a job with nothing taken off it; staff time is assumed; "someone will pick it up."`,
+You are the Recruiter, the workforce Elder. Caseload: ninety-one open positions, a nursing vacancy rate you track weekly, and three "temporary" duties that became permanent unpaid work. Something to lose: work added to someone's job without anything taken away shows up in your exit interviews. You watch for: new work is added to a job with nothing taken off it; staff time is assumed; "someone will pick it up."`,
   },
   beacon: {
     id: "beacon",
@@ -98,7 +104,7 @@ You are the Recruiter, the workforce Elder. Caseload: ninety-one open positions,
     seat: "Peer and external",
     persona: `${ELDER_COMMON}
 
-You are the Beacon, the peer-and-external Elder. Caseload: two conference talks, a peer benchmarking survey due, and a reporter who calls monthly. Something to lose: when an announcement gets ahead of what's actually running, your credibility pays for it. You push back when: a decision has an outside consequence nobody has named; "our peers are already doing it" is the argument; an announcement comes before the evidence.`,
+You are the Beacon, the peer-and-external Elder. Caseload: two conference talks, a peer benchmarking survey due, and a reporter who calls monthly. Something to lose: when an announcement gets ahead of what's actually running, your credibility pays for it. You watch for: a decision has an outside consequence nobody has named; "our peers are already doing it" is the argument; an announcement comes before the evidence.`,
   },
 };
 
@@ -124,6 +130,20 @@ export const roles = [
   "The Competitive Marketing Leader",
 ];
 
+// Section names as the room screen shows them (Purpose, Tier, …); used to
+// label each decision's discussion transcript.
+export const SECTION_LABELS = {
+  purpose: "Purpose",
+  tier: "Tier",
+  risk_accept: "Risk",
+  decide: "Decider",
+  proof: "Proof",
+  funding: "Funding",
+  retier: "Re-review",
+  stop: "Off switch",
+  represent: "The story",
+};
+
 export const decidedByPrompt =
   "Who at the table made that final decision? A role, a first name, or “the group.”";
 
@@ -142,16 +162,16 @@ export const meterLabels = {
 // One fictional org chart for all four scenarios, so rooms route decisions to
 // the same named bodies and cross-room collisions are visible (PRD §8 Class C).
 const WHOS_WHO_LINES = [
-  "AI Oversight Committee — reviews AI tools before clinical use. Meets monthly. Its coordinator runs a shared mailbox.",
+  "AI Governance Workgroup — reviews AI tools for risk. It does not set priorities or weigh business, financial, or clinician impact. Meets monthly; its coordinator runs a shared mailbox.",
   "Clinical Practice Council — owns clinical workflows, note templates, and documentation standards.",
   "AI Lab — a small team that builds and tests AI tools before wider use. One build-and-test slot per quarter.",
   "Executive sponsor for AI — the senior executive who sets the AI Lab's priorities.",
-  "Information Security — reviews vendors and data risk. Current wait for a review: about six weeks.",
-  "Digital Health (IT) — runs the EHR, turns tools on and off, and staffs the service desk.",
+  "Information Security — reviews vendors and data security, and also assesses risk on its own form. Which tools go to it, to the Workgroup, or to both isn't consistent. Current wait: about six weeks.",
+  "Digital Health (IT) — runs the electronic health record (EHR), turns tools on and off, and staffs the service desk.",
   "Quality & Patient Safety — runs the safety-event reporting system and chart audits.",
   "Finance — budgets and contracts. The Innovation Fund pays for pilots for up to 12 months.",
   "Communications — approves anything said publicly in the cancer center's name.",
-  "IRB — approves research that uses patient data.",
+  "IRB (research review board) — approves research that uses patient data.",
 ];
 
 export const whosWhoForModel = `WHO'S WHO (fictional org chart, shared by every scenario):\n${WHOS_WHO_LINES.join("\n")}`;
@@ -190,11 +210,15 @@ const WRITE_IN_EVENT = { when: "That week", text: "The room's plan goes out exac
 // a missing event fails at startup rather than mid-session.
 export function finishScenario(scenario) {
   scenario.evidence = [...scenario.evidence, WHOS_WHO_DOC];
+  for (const [nodeId, v] of Object.entries(scenario.villagers ?? {})) {
+    if (!v.archetype || !v.speaker || !v.line) throw new Error(`${scenario.id}/${nodeId}: Villager incomplete`);
+  }
   for (const n of scenario.nodes) {
     n.options.splice(n.options.length - 1, 0, { ...WRITE_IN_OPTION });
     n.meterDeltas.writein ??= { goodwill: 0, risk: 0, dollars: 0, time: +1 };
     n.events.writein ??= WRITE_IN_EVENT;
     n.inject ??= () => null;
+    if (!n.elders?.length) throw new Error(`${scenario.id}/${n.id}: every decision needs at least one Elder`);
     for (const o of n.options) {
       if (!n.meterDeltas[o.id]) throw new Error(`${scenario.id}/${n.id}: no meter deltas for ${o.id}`);
       if (!n.events[o.id]?.when || !n.events[o.id]?.text)
@@ -233,6 +257,8 @@ export function buildEpilogue(scenario, records) {
         month: n.later.month,
         named,
         text: named ? n.later.named : n.later.missing,
+        // The debrief's "other way it could have gone": the branch not taken.
+        alt: named ? n.later.missing : n.later.named,
       };
     })
     .sort((a, b) => a.month - b.month);

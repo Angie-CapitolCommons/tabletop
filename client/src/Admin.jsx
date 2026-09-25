@@ -38,6 +38,46 @@ function download(data, filename) {
   URL.revokeObjectURL(url);
 }
 
+function downloadText(text, filename, type = "text/plain") {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// A section transcript or a room's debrief, as a plain-text file.
+function transcriptText(t) {
+  if (t.kind === "debrief")
+    return `Room ${t.roomNumber} · Debrief — how could it have gone differently?\nScenario: ${t.scenario}\n\n${t.fragments
+      .map((f) => `${f.section ? `[${f.section}] ` : ""}${f.text}`)
+      .join("\n")}\n`;
+  return `Room ${t.roomNumber} · ${t.section} — ${t.title}\nScenario: ${t.scenario}\n\nBefore the answer:\n${t.beforeAnswer || "(nothing transcribed)"}\n\nAfter the Elders' challenge:\n${t.afterChallenge || "(nothing transcribed)"}\n`;
+}
+
+// The themes result as a Markdown brief for the plenary.
+function themesMarkdown(t) {
+  const r = t.result;
+  const lines = [
+    "# Themes across rooms",
+    "",
+    `Generated ${new Date(t.finishedAt).toLocaleString()} from rooms ${t.rooms.join(", ")}${t.includeTranscripts ? ", including discussion transcripts" : ""}.`,
+    "",
+    r.overview,
+    "",
+    "## Themes",
+  ];
+  for (const th of r.themes) {
+    lines.push("", `### ${th.title}`, "", th.summary, "", `Rooms ${th.rooms.join(", ")} · ${th.sections.join(", ")}`, "");
+    for (const e of th.evidence) lines.push(`- ${e}`);
+  }
+  lines.push("", "## Suggested next steps", "");
+  r.next_steps.forEach((s, i) => lines.push(`${i + 1}. **${s.step}** — ${s.owner}, ${s.timing}. ${s.why}`));
+  return lines.join("\n") + "\n";
+}
+
 function ScoreChip({ cell }) {
   if (!cell.present) return <span className="mx-chip none">—</span>;
   if (cell.skipped) return <span className="mx-chip skipped">skipped</span>;
@@ -53,6 +93,9 @@ export default function Admin() {
   const [data, setData] = useState(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetText, setResetText] = useState("");
+  const [transcriptView, setTranscriptView] = useState(null);
+  const [includeTranscripts, setIncludeTranscripts] = useState(false);
+  const [themesError, setThemesError] = useState(null);
   const pollRef = useRef(null);
 
   const load = async () => {
@@ -117,6 +160,33 @@ export default function Admin() {
 
   if (!data) return <div className="admin-shell"><p className="admin-loading">Loading…</p></div>;
 
+  const openTranscript = async (roomNumber, nodeId) => {
+    try {
+      setTranscriptView({ kind: "section", ...(await adminApi(`transcript/${roomNumber}/${nodeId}`)) });
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const openDebrief = async (roomNumber) => {
+    try {
+      setTranscriptView({ kind: "debrief", ...(await adminApi(`debrief/${roomNumber}`)) });
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const themes = data.themes;
+  const { started, finished } = themes.readiness;
+  const allIn = finished.length > 0 && finished.length === started.length;
+  const runThemes = async (force) => {
+    setThemesError(null);
+    try {
+      await adminApi("themes", { includeTranscripts, force });
+      load();
+    } catch (e) {
+      setThemesError(e.message);
+    }
+  };
+
   return (
     <div className="admin-shell">
       <header className="admin-bar">
@@ -168,6 +238,11 @@ export default function Admin() {
                       <span key={k}>{METER_LABELS[k]} <b>{r.meter[k]}</b></span>
                     ))}
                   </div>
+                  {r.epilogue?.debriefFragments > 0 && (
+                    <button className="admin-link" onClick={() => openDebrief(r.roomNumber)}>
+                      Debrief transcript
+                    </button>
+                  )}
                   {Object.values(r.roleAssignments ?? {}).some(Boolean) && (
                     <div className="room-roster">
                       {Object.entries(r.roleAssignments)
@@ -186,6 +261,110 @@ export default function Admin() {
             </div>
           ))}
         </div>
+
+        <section className="themes-section">
+          <h2>
+            Themes across rooms{" "}
+            <span className="hint">Claude reads every finished room and suggests themes and next steps toward resolution</span>
+          </h2>
+          <div className="themes-controls">
+            <span className="themes-ready">
+              {started.length === 0
+                ? "No rooms have started yet"
+                : `${finished.length} of ${started.length} rooms finished`}
+            </span>
+            <label className="themes-opt">
+              <input
+                type="checkbox"
+                checked={includeTranscripts}
+                onChange={(e) => setIncludeTranscripts(e.target.checked)}
+              />
+              Include discussion transcripts
+              <span className="hint">
+                Sends transcript text to the model, with first names removed. Off by default: the PRD keeps transcripts
+                from the model, so confirm InfoSec's approval covers this first.
+              </span>
+            </label>
+            <button
+              className="admin-primary"
+              disabled={!allIn || themes.status === "running"}
+              onClick={() => runThemes(false)}
+            >
+              {themes.status === "done" ? "Generate again" : "Generate themes"}
+            </button>
+            {!allIn && finished.length > 0 && themes.status !== "running" && (
+              <button
+                className="admin-btn"
+                onClick={() => {
+                  if (window.confirm(`Only ${finished.length} of ${started.length} rooms have finished. Generate from those rooms now?`))
+                    runThemes(true);
+                }}
+              >
+                Use the finished rooms so far
+              </button>
+            )}
+          </div>
+          {themesError && <p className="themes-error">{themesError}</p>}
+          {themes.status === "running" && (
+            <p className="themes-status">
+              Generating themes from rooms {themes.rooms.join(", ")}… this usually takes a minute or two.
+            </p>
+          )}
+          {themes.status === "error" && <p className="themes-error">{themes.error}</p>}
+          {themes.status === "done" && themes.result && (
+            <div className="themes-result">
+              <div className="themes-meta">
+                <span>
+                  From rooms {themes.rooms.join(", ")}
+                  {themes.includeTranscripts ? ", including discussion transcripts" : ""} ·{" "}
+                  {new Date(themes.finishedAt).toLocaleTimeString()}
+                </span>
+                <span className="themes-downloads">
+                  <button className="admin-btn" onClick={() => downloadText(themesMarkdown(themes), `tabletop-themes-${Date.now()}.md`, "text/markdown")}>
+                    Download (.md)
+                  </button>
+                  <button className="admin-btn" onClick={() => download(themes, `tabletop-themes-${Date.now()}.json`)}>
+                    Download (.json)
+                  </button>
+                </span>
+              </div>
+              <p className="themes-overview">{themes.result.overview}</p>
+              <div className="themes-grid">
+                <div>
+                  <h3>Themes</h3>
+                  {themes.result.themes.map((th) => (
+                    <div key={th.title} className="theme-card">
+                      <div className="theme-title">{th.title}</div>
+                      <div className="theme-tags">
+                        Rooms {th.rooms.join(", ")} · {th.sections.join(", ")}
+                      </div>
+                      <p>{th.summary}</p>
+                      <ul>
+                        {th.evidence.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <h3>Suggested next steps</h3>
+                  <ol className="next-steps">
+                    {themes.result.next_steps.map((s) => (
+                      <li key={s.step}>
+                        <b>{s.step}</b>
+                        <span className="step-meta">
+                          {s.owner} · {s.timing}
+                        </span>
+                        <span className="step-why">{s.why}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="matrix-section">
           <h2>Decision matrix <span className="hint">aligned on node type · hover a cell for the room's written record</span></h2>
@@ -214,6 +393,11 @@ export default function Admin() {
                           <div className="mx-short">{cell.short}</div>
                           <div className="mx-by">{cell.decidedBy}</div>
                         </div>
+                      )}
+                      {cell.transcript && (
+                        <button className="admin-link" onClick={() => openTranscript(data.rooms[i].roomNumber, cell.nodeId)}>
+                          Transcript · {cell.transcript.words} words
+                        </button>
                       )}
                     </td>
                   ))}
@@ -251,6 +435,57 @@ export default function Admin() {
           </div>
         </section>
       </div>
+
+      {transcriptView && (
+        <div className="admin-overlay" onClick={() => setTranscriptView(null)}>
+          <div className="transcript-panel" onClick={(e) => e.stopPropagation()}>
+            <span className="eyebrow">
+              Room {transcriptView.roomNumber} · {transcriptView.scenario}
+            </span>
+            <h2>
+              {transcriptView.kind === "debrief"
+                ? "Debrief — how could it have gone differently?"
+                : `${transcriptView.section} — ${transcriptView.title}`}
+            </h2>
+            <div className="transcript-body">
+              {transcriptView.kind === "debrief" ? (
+                transcriptView.fragments.map((f, i) => (
+                  <p key={i}>
+                    {f.section && <span className="transcript-tag">{f.section}</span>}
+                    {f.text}
+                  </p>
+                ))
+              ) : (
+                <>
+                  <h3>Before the answer</h3>
+                  <p>{transcriptView.beforeAnswer || "Nothing transcribed."}</p>
+                  <h3>After the Elders' challenge</h3>
+                  <p>{transcriptView.afterChallenge || "Nothing transcribed."}</p>
+                </>
+              )}
+            </div>
+            <p className="hint" style={{ marginLeft: 0 }}>
+              Text only · no audio stored · no voices attributed
+            </p>
+            <div className="reset-actions">
+              <button
+                className="admin-btn"
+                onClick={() =>
+                  downloadText(
+                    transcriptText(transcriptView),
+                    `tabletop-room-${transcriptView.roomNumber}-${transcriptView.kind === "debrief" ? "debrief" : transcriptView.section.toLowerCase().replace(/\s+/g, "-")}.txt`,
+                  )
+                }
+              >
+                Download (.txt)
+              </button>
+              <button className="admin-btn" onClick={() => setTranscriptView(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {resetOpen && (
         <div className="admin-overlay" onClick={() => setResetOpen(false)}>

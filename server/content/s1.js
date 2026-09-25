@@ -22,12 +22,12 @@ export default {
       when: "8:12 a.m.",
       from: "Revenue cycle director",
       to: "AI Lab intake",
-      text: "Following up on the appeal-letter tool. The vendor can start in 30 days, and our prior-auth denial backlog is around 4,000 claims. Can we get on this week's list?",
+      text: "Following up on the appeal-letter tool. The vendor can start in 30 days, and our prior-authorization denial backlog is around 4,000 claims. Can we get on this week's list?",
     },
     {
       channel: "Email",
       when: "9:30 a.m.",
-      from: "Trial-matching grant PI",
+      from: "Lead researcher, trial-matching grant",
       to: "AI Lab intake",
       text: "Our grant year starts next month. I don't need your money, I need your approval. Which committee do I write to — or can we just start in the department?",
     },
@@ -45,8 +45,9 @@ export default {
   modelBrief: `The AI Lab has one build-and-test slot this quarter (about 90 days) and half of one analyst for evaluation. Its charter, drafted 11 months ago, still lists its purpose and intake process as "to be completed." Information Security's review wait is officially about six weeks.
 Three requests arrived in the same week; none has a risk level:
 1. An appeal-letter tool that drafts prior-authorization appeal letters from claims and clinical notes. Vendor product. Sponsor: a revenue cycle director with a backlog of around 4,000 denied claims. The vendor claims about $2.1M a year recovered, based on three other customers' self-reported results, and says it can go live in 30 days.
-2. A trial-matching tool that screens charts for clinical-trial eligibility. Academic collaboration; a grant covers year one. The principal investigator says the department will start it on its own if the AI Lab doesn't approve it. Needs read access to full charts.
+2. A trial-matching tool that screens charts for clinical-trial eligibility. Academic collaboration; a grant covers year one. The lead researcher says the department will start it on its own if the AI Lab doesn't approve it. Needs read access to full charts.
 3. A triage-line assistant that drafts callback notes for the nurse triage phone line, for a nurse to edit and send. Requested by the triage nurses themselves after two late callbacks; no senior sponsor, no budget.
+The AI Governance Workgroup reviews AI tools for risk only; it does not rank requests or weigh business, financial, or clinician impact, and nobody else formally does either. Information Security also reviews risk, and which tools go to which is inconsistent.
 The room is not choosing the winner. It is deciding what the AI Lab is for, how requests get a risk level, who picks and who tells the others, what the winner must show at day 90, whose money builds it, and what can be said outside.`,
   evidence: [
     {
@@ -84,7 +85,7 @@ Data needed: read access to full charts.
 Year one (covered by the grant): software, setup, one research coordinator.
 Years two and three: not addressed in the grant.
 
-PI note: “Grant year starts next month.”`,
+Lead researcher's note: “Grant year starts next month.”`,
     },
     {
       id: "triage-request",
@@ -145,7 +146,7 @@ Signed: 14 triage line nurses`,
         },
         c: {
           when: "Next Monday",
-          text: "The executive sponsor confirms the purpose with one edit. The PI emails the same day to ask whether a grant-funded research tool is in or out.",
+          text: "The executive sponsor confirms the purpose with one edit. The lead researcher emails the same day to ask whether a grant-funded research tool is in or out.",
         },
         decline: {
           when: "Tuesday",
@@ -174,7 +175,9 @@ Signed: 14 triage line nurses`,
       question:
         "None of the three requests has a risk level. Does intake set one before ranking — and does it follow the tool, or what the tool is used for?",
       freeTextPrompt: "Who sets the risk level at intake? Does it follow the tool, or what the tool is used for?",
-      elders: [],
+      elders: ["steward"],
+      inject: () =>
+        "The AI Governance Workgroup coordinator replies to intake: the Workgroup can review the risk, but Information Security runs its own risk review too, on a different form. Which one should rate these?",
       options: [
         {
           id: "a",
@@ -209,7 +212,7 @@ Signed: 14 triage line nurses`,
         },
         b: {
           when: "Friday",
-          text: "The rule goes into the intake notes. The PI writes back to ask whether a tool run inside the department would ever need a rating.",
+          text: "The rule goes into the intake notes. The lead researcher writes back to ask whether a tool run inside the department would ever need a rating.",
         },
         c: {
           when: "Week 4",
@@ -245,19 +248,19 @@ Signed: 14 triage line nurses`,
       inject: (records) => {
         const c = choiceOf(records, "purpose");
         const email =
-          "The PI's email is forwarded into the meeting: “Which committee do I write to, or can we just start?”";
+          "The lead researcher's email is forwarded into the meeting: “Which committee do I write to, or can we just start?”";
         if (c === "a")
-          return `${email} Because you used the strategic plan's wording, all three requests fit it, the PI's included.`;
+          return `${email} Because you used the strategic plan's wording, all three requests fit it, the lead researcher's included.`;
         if (c === "c" || c === "writein")
-          return `${email} The purpose statement you wrote is the first thing anyone will quote back to the PI.`;
+          return `${email} The purpose statement you wrote is the first thing anyone will quote back to the lead researcher.`;
         return `${email} Because the lab has no written purpose, there is nothing to answer it with except the ranking.`;
       },
       options: [
         {
           id: "a",
-          label: "“Put it to the AI Oversight Committee. They vote at next month's meeting.”",
-          hint: "Everyone gets a say. The meeting is four weeks out; the grant year starts in five.",
-          short: "Committee vote",
+          label: "“Put it to the AI Governance Workgroup. They vote at next month's meeting.”",
+          hint: "The Workgroup reviews risk today, not priorities. It meets in four weeks.",
+          short: "Workgroup vote",
         },
         {
           id: "b",
@@ -282,7 +285,7 @@ Signed: 14 triage line nurses`,
       events: {
         a: {
           when: "Week 4",
-          text: "The committee asks for a scoring sheet and moves the vote to next month. The PI starts the tool in the department the following week.",
+          text: "The Workgroup replies that it reviews risk, not priorities, and asks who should rank the three. The lead researcher starts the tool in the department the following week.",
         },
         b: {
           when: "Friday",
@@ -294,7 +297,7 @@ Signed: 14 triage line nurses`,
         },
         decline: {
           when: "Week 3",
-          text: "The appeal-letter vendor books a demo with the CFO directly. The triage nurses stop checking the intake inbox.",
+          text: "The appeal-letter vendor books a demo with the chief financial officer directly. The triage nurses stop checking the intake inbox.",
         },
       },
       owner: {
@@ -457,7 +460,7 @@ Signed: 14 triage line nurses`,
       type: "represent",
       title: "What can we say about it outside?",
       question:
-        "Whichever request wins, someone will want to talk about it: the vendor has a press release drafted, and the PI has an abstract due. What can we say outside, and when?",
+        "Whichever request wins, someone will want to talk about it: the vendor has a press release drafted, and the lead researcher has an abstract due. What can we say outside, and when?",
       freeTextPrompt: "Who approves what we say outside? What has to be true before we say it?",
       elders: ["beacon"],
       inject: () =>
@@ -472,7 +475,7 @@ Signed: 14 triage line nurses`,
         {
           id: "b",
           label: "“Nothing goes out until the day-90 target is met. Communications approves every claim.”",
-          hint: "The vendor and the PI both wait. The abstract is due before day 90.",
+          hint: "The vendor and the lead researcher both wait. The abstract is due before day 90.",
           short: "Wait for day 90",
         },
         {
@@ -496,7 +499,7 @@ Signed: 14 triage line nurses`,
         },
         b: {
           when: "Week 2",
-          text: "Communications gives the vendor and the PI the date day-90 results are due. The PI pulls the abstract and plans for next year's meeting.",
+          text: "Communications gives the vendor and the lead researcher the date day-90 results are due. The lead researcher pulls the abstract and plans for next year's meeting.",
         },
         c: {
           when: "Week 3",
@@ -526,19 +529,23 @@ Signed: 14 triage line nurses`,
   // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     tier: {
-      name: "The Person in the Chair",
+      archetype: "The Person in the Chair",
+      speaker: "A patient who called the triage line",
       line: "I called the triage line at 2 a.m. about a fever. I didn't know my call notes might be read by anything other than the nurse.",
     },
     decide: {
-      name: "The Last to Be Asked",
+      archetype: "The Last to Be Asked",
+      speaker: "A triage line nurse",
       line: "Fourteen of us signed the request and sent it to the intake inbox. Nobody has replied. We don't know who reads it.",
     },
     proof: {
-      name: "The Third Pilot This Year",
+      archetype: "The Third Pilot This Year",
+      speaker: "A nurse from last year's pilot team",
       line: "My team won a slot last year. Nobody told us what counted as success, so we spent the last month on the demo.",
     },
     funding: {
-      name: "The One Who Signs",
+      archetype: "The One Who Signs",
+      speaker: "A department manager who signs contracts",
       line: "I sign department contracts up to $50,000. Last year I signed two free pilots. Both renewal invoices came to me this spring, and both tools had users by then.",
     },
   },
@@ -556,7 +563,7 @@ Signed: 14 triage line nurses`,
           cue: "the room compares the three requests",
         },
         {
-          text: "The PI's last department pilot used about a day a week of clinic staff time for “optional” data checks.",
+          text: "The lead researcher's last department pilot used about a day a week of clinic staff time for “optional” data checks.",
           cue: "the room talks about what the winner has to show",
         },
       ],

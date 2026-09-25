@@ -59,8 +59,11 @@ an explicit option to hold the answer and continue.
 
 ## Layout
 
-- `server/` — Express API. `npc.js` holds the only Anthropic call (key never
-  reaches the client). `content/` holds the four scenarios, Elders, roles,
+- `server/` — Express API. `npc.js` holds every Anthropic call — Elder turns,
+  the clinician-goodwill check, and the admin themes run (key never reaches
+  the client). `privacy.js` replaces roster first names with roles in
+  anything sent to the model; `themes.js` bundles finished rooms for the
+  themes run (transcripts only when the admin opts in). `content/` holds the four scenarios, Elders, roles,
   Villagers. The scenario shape is documented at the top of
   `content/common.js`; `s4.js` is the reference for voice and structure. `print.js` renders worksheets and role cards. `store.js` is the
   optional Postgres persistence.

@@ -3,7 +3,7 @@
 // internal. The four properties: an unstated purpose (approved "in principle"
 // for a purpose nobody wrote down, and two senior pathologists want different
 // things); a never-rated object (the sandbox was never given a risk level); a
-// budget/authority split (the committee approved, the department carries the
+// budget/authority split (the Workgroup approved, the department carries the
 // work, and a yes means a purchase nobody budgeted); an ambiguous evidence
 // base with no ending (two published numbers that disagree, none on our own
 // slides, and no end date).
@@ -20,13 +20,13 @@ export default {
       channel: "Email",
       when: "4:52 p.m.",
       from: "Vendor account manager",
-      to: "AI Oversight Committee coordinator",
+      to: "AI Governance Workgroup coordinator",
       text: "Our sandbox term ends on the 28th. We're happy to extend again or move to an evaluation agreement. Could you send us the evaluation criteria your team is using, so we can support it?",
     },
     {
       channel: "Email",
       when: "Friday, 8:15 a.m.",
-      from: "AI Oversight Committee coordinator",
+      from: "AI Governance Workgroup coordinator",
       to: "Pathology department administrator",
       text: "Can you send me the evaluation criteria for the pathology pre-screen tool? I can't find them in the minutes.",
     },
@@ -34,22 +34,23 @@ export default {
       channel: "Email",
       when: "Friday, 10:40 a.m.",
       from: "Pathology department administrator",
-      to: "AI Oversight Committee coordinator",
-      text: "I thought the committee was setting those. Dr. Renner and Dr. Vogel see the tool differently. Copying both.",
+      to: "AI Governance Workgroup coordinator",
+      text: "I thought the Workgroup was setting those. Dr. Renner and Dr. Vogel see the tool differently. Copying both.",
     },
   ],
   modelBrief: `The tool: a pathology pre-screen tool that flags areas on digitized slides for the pathologist to look at first.
-History: seven months ago the AI Oversight Committee approved it "in principle, pending satisfactory evaluation," with the evaluation approach "to be determined." No criteria, owner, or end date were ever set. The vendor's sandbox, using archived de-identified slides, has been extended twice; the current term ends in about three weeks, after which pilot pricing ends and the vendor's standard price applies. The vendor is cooperative and has asked for the evaluation criteria. The sandbox receives the vendor's model updates automatically; results so far span two versions.
+History: seven months ago the AI Governance Workgroup approved it "in principle, pending satisfactory evaluation," with the evaluation approach "to be determined." No criteria, owner, or end date were ever set. The vendor's sandbox, using archived de-identified slides, has been extended twice; the current term ends in about three weeks, after which pilot pricing ends and the vendor's standard price applies. The vendor is cooperative and has asked for the evaluation criteria. The sandbox receives the vendor's model updates automatically; results so far span two versions.
 The department is split: Dr. Renner, a senior pathologist, sees it as a way to clear routine slides faster; Dr. Vogel, also senior, worries residents will stop learning on the slides it clears. Two residents already use the sandbox as a study aid without approval.
 Evidence: the vendor's validation study reports 96% agreement with final diagnosis on the vendor's own slide set from other hospitals; another cancer center published 89% agreement on its slides, with more false flags. Nobody has run a structured test on our own slides. The vendor has not fully disclosed what data its model was trained on. The vendor lists the cancer center as an "evaluation partner." No budget exists for a purchase if the tool passes.`,
   evidence: [
     {
       id: "minutes",
-      title: "Committee minutes, seven months ago",
-      body: `AI OVERSIGHT COMMITTEE — MINUTES (EXCERPT)
+      title: "Workgroup minutes, seven months ago",
+      body: `AI GOVERNANCE WORKGROUP — MINUTES (EXCERPT)
 
 Item 4: Pathology pre-screen tool
-The committee approves the tool in principle, pending satisfactory evaluation. Evaluation approach to be determined by the appropriate parties.
+The Workgroup approves the tool in principle, pending satisfactory evaluation. Evaluation approach to be determined by the appropriate parties.
+Information Security review: to be scheduled separately.
 
 Action: none recorded.`,
     },
@@ -225,9 +226,9 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
       later: {
         month: 5,
         named:
-          "The evaluation ends on its end date with a result measured against the pass mark. The committee has something to decide on.",
+          "The evaluation ends on its end date with a result measured against the pass mark. The Workgroup has something to decide on.",
         missing:
-          "A new committee member asks for the status of the pre-screen tool. Four people give four answers.",
+          "A new Workgroup member asks for the status of the pre-screen tool. Four people give four answers.",
       },
     },
     {
@@ -374,27 +375,27 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
       type: "decide",
       title: "Who turns the result into a yes or no?",
       question:
-        "When testing ends, someone has to turn the result into approved or not. Seven months ago the committee said yes “in principle.” Who decides this time, and by when?",
+        "When testing ends, someone has to turn the result into approved or not. Seven months ago the Workgroup said yes “in principle.” Who decides this time, and by when?",
       freeTextPrompt: "Who decides? What result are they held to? By what date?",
       elders: ["cartographer", "ledger"],
       inject: (records) => {
         const c = choiceOf(records, "proof");
         if (c === null || c === "decline")
-          return "The committee chair asks for a status update for next month's agenda. Because no pass mark was set, the update can only list dates: seven months, two extensions, no result.";
-        return "The committee chair asks for a status update for next month's agenda. The pass mark you set is the first line of it.";
+          return "The Workgroup chair asks for a status update for next month's agenda. Because no pass mark was set, the update can only list dates: seven months, two extensions, no result.";
+        return "The Workgroup chair asks for a status update for next month's agenda. The pass mark you set is the first line of it.";
       },
       options: [
         {
           id: "a",
           label: "“One person decides within 30 days of the end date, held to the pass mark.”",
-          hint: "The committee is told, not asked. The decider needs the pass mark set first.",
+          hint: "The Workgroup is told, not asked. The decider needs the pass mark set first.",
           short: "One decider",
         },
         {
           id: "b",
-          label: "“The AI Oversight Committee votes on the evaluation report.”",
-          hint: "The same committee decides. It meets monthly; this would be two meetings out.",
-          short: "Committee votes",
+          label: "“The AI Governance Workgroup votes on the evaluation report.”",
+          hint: "It said yes in principle. It reviews risk, not workflow or cost, and meets monthly.",
+          short: "Workgroup votes",
         },
         {
           id: "c",
@@ -413,11 +414,11 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
       events: {
         a: {
           when: "Week 1",
-          text: "The decider's name and the decision date go on the committee agenda as information. Nobody asks to discuss them.",
+          text: "The decider's name and the decision date go on the Workgroup agenda as information. Nobody asks to discuss them.",
         },
         b: {
           when: "Month 2",
-          text: "The report is item six of eight. The committee runs out of time at item five and moves it to next month.",
+          text: "The report is item six of eight. The Workgroup runs out of time at item five and moves it to next month.",
         },
         c: {
           when: "Week 2",
@@ -425,21 +426,21 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
         },
         decline: {
           when: "Month 2",
-          text: "The evaluation report is emailed to the committee mailbox, the department administrator, and the vendor. None of them replies to the others.",
+          text: "The evaluation report is emailed to the Workgroup mailbox, the department administrator, and the vendor. None of them replies to the others.",
         },
       },
       owner: {
         when: "Week 8",
         named: "The vendor asks when it will hear a decision. The person you named gives a date, and the vendor puts it in its forecast.",
         missing:
-          "The vendor asks when it will hear a decision. The department says the committee decides; the committee says the department does.",
+          "The vendor asks when it will hear a decision. The department says the Workgroup decides; the Workgroup says the department does.",
       },
       later: {
         month: 6,
         named:
           "The decision lands on the date set, signed by one person, with the result attached. The vendor hears the same day.",
         missing:
-          "The tool is still “approved in principle.” The committee's next agenda lists it under old business.",
+          "The tool is still “approved in principle.” The Workgroup's next agenda lists it under old business.",
       },
     },
     {
@@ -449,7 +450,7 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
       question:
         "The vendor's website lists us as an “evaluation partner,” and another cancer center's pathology chair has called asking what we've found. What can we say while testing is under way?",
       freeTextPrompt: "Who approves what we say outside? What can be said now, and what has to wait?",
-      elders: [],
+      elders: ["beacon"],
       inject: (records) =>
         choiceOf(records, "risk_accept") === "b"
           ? "Because you paused the sandbox, the vendor asks whether it should also take our name off its partner list for now. It offers to do it today."
@@ -517,20 +518,24 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
   // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     purpose: {
-      name: "The Last to Be Asked",
-      line: "I'm a second-year resident. I use the sandbox to study at night. Nobody has told me whether I'm supposed to.",
+      archetype: "The Last to Be Asked",
+      speaker: "A second-year pathology resident",
+      line: "I use the sandbox to study at night. Nobody has told me whether I'm supposed to.",
     },
     proof: {
-      name: "The One Who Makes It Work Anyway",
+      archetype: "The One Who Makes It Work Anyway",
+      speaker: "A staff pathologist",
       line: "I've been reading my routine slides with the sandbox open on the second screen. It's faster. I haven't told anyone, because I don't know if I'm allowed.",
     },
     decide: {
-      name: "The Third Pilot This Year",
+      archetype: "The Third Pilot This Year",
+      speaker: "A pathology lab supervisor",
       line: "This is the third tool our lab has trialed this year. The other two are still waiting for a decision. My team stopped asking about them in the summer.",
     },
     represent: {
-      name: "The One Who Stopped Asking",
-      line: "Last spring I asked the vendor to take our name off its conference booth. They said to ask Communications. Communications said to ask the committee.",
+      archetype: "The One Who Stopped Asking",
+      speaker: "A senior pathologist",
+      line: "Last spring I asked the vendor to take our name off its conference booth. They said to ask Communications. Communications said to ask the Workgroup.",
     },
   },
   // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.

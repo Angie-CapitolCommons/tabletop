@@ -95,6 +95,8 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         "The tool was rated low risk for a 90-bed campus where a charge nurse checks every prediction. Main campus has 380 beds and a command center. Does the rating carry over?",
       freeTextPrompt: "Does a new campus mean a new rating? Who sets it? Does it follow the tool or each campus?",
       elders: ["steward"],
+      inject: () =>
+        "Information Security says a new campus needs its own review. The AI Governance Workgroup says the rating is its call. Neither has seen the tool at main campus.",
       options: [
         {
           id: "a",
@@ -162,7 +164,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
       question:
         "At the community campus, nobody ever signed for the tool's risk; the huddle just used it. Who signs for it at main campus, and at each regional hospital?",
       freeTextPrompt: "Who signs at main campus (a name or a role)? What's the rule for the regional hospitals?",
-      elders: [],
+      elders: ["adoption_realist"],
       inject: (records) => {
         const c = choiceOf(records, "tier");
         const ask = "“Who signs for this on my floor? If it's not me, it doesn't run here.”";
@@ -237,7 +239,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
       question:
         "The schedule says main campus goes live June 2. Someone has to decide whether it's actually ready. Who makes that call for each campus, and what do they check?",
       freeTextPrompt: "Who decides each campus is ready? What has to be true before go-live, besides the date?",
-      elders: ["adoption_realist"],
+      elders: ["cartographer"],
       options: [
         {
           id: "a",
@@ -519,19 +521,23 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
   // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     risk_accept: {
-      name: "The One Who Makes It Work Anyway",
+      archetype: "The One Who Makes It Work Anyway",
+      speaker: "Marisol, charge nurse at the community campus",
       line: "I get in at 5:45 to adjust the numbers before huddle. On my days off, the night charge nurse texts me a photo of the screen.",
     },
     decide: {
-      name: "The Last to Be Asked",
-      line: "I run the main campus bed command center. I found out our go-live date from the project schedule, the same morning as everyone else.",
+      archetype: "The Last to Be Asked",
+      speaker: "The main campus bed command center director",
+      line: "I found out our go-live date from the project schedule, the same morning as everyone else.",
     },
     stop: {
-      name: "The Third Pilot This Year",
+      archetype: "The Third Pilot This Year",
+      speaker: "A main campus unit nurse",
       line: "Main campus has had two bed-management tools in three years. Nobody switched them off; we just stopped opening them. I sat through the training for both.",
     },
     funding: {
-      name: "The Person in the Chair",
+      archetype: "The Person in the Chair",
+      speaker: "A patient at the community campus",
       line: "The plan said I'd go home Thursday. I went home Saturday. Nobody told me why the plan changed.",
     },
   },
