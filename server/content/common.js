@@ -147,10 +147,6 @@ export const SECTION_LABELS = {
 export const decidedByPrompt =
   "Who at the table made that final decision? A role, a first name, or “the group.”";
 
-// Standing disclosure shown whenever a Villager speaks (PRD §7.2).
-export const villagerStandingLine =
-  "Villagers are constructs built from published and public sources — never testimony from staff or patients. No patient data is used.";
-
 export const meterStart = { goodwill: 10, risk: 4, dollars: 3, time: 5 };
 export const meterLabels = {
   goodwill: "Clinician goodwill",

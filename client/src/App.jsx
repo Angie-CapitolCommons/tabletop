@@ -349,7 +349,7 @@ export default function App() {
   }, [needsLogin]);
 
   const state = data?.state;
-  const { scenario, scenarios, node, progress, decidedByPrompt, villagerStandingLine, roles, roleAssignments, records } = data ?? {};
+  const { scenario, scenarios, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
 
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
@@ -952,7 +952,6 @@ export default function App() {
                 <p className="villager-line">“{record.villager.line}”</p>
               </div>
               <div className="villager-speaker">{record.villager.speaker}</div>
-              <span className="villager-standing">{villagerStandingLine}</span>
             </div>
           )}
         </div>

@@ -250,7 +250,7 @@ h1, h2, h3, p { margin: 0; }
 .case-tagline { font-size: 17px; color: var(--slate); line-height: 1.4; }
 
 /* ---------- villager beat: a speech bubble from someone who lives with the decision ---------- */
-.villager { margin-top: 8px; }
+.villager { margin-top: 28px; }
 .villager-eyebrow { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); display: block; margin-bottom: 4px; }
 .villager-bubble {
   position: relative; background: #fff; border: 1px solid var(--hair4); border-radius: 14px;
@@ -264,7 +264,6 @@ h1, h2, h3, p { margin: 0; }
 }
 .villager-line { font-family: var(--serif); font-size: 18px; line-height: 1.35; font-style: italic; margin: 0; }
 .villager-speaker { font-size: 14.5px; font-weight: 600; color: var(--deep); margin: 10px 0 3px 16px; }
-.villager-standing { font-size: 11px; color: var(--faint); line-height: 1.35; display: block; }
 
 /* ---------- briefing ---------- */
 .briefing { display: grid; grid-template-columns: 1.45fr 1fr; gap: 48px; height: 100%; }

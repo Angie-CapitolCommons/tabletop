@@ -17,7 +17,6 @@ import {
   roles,
   SECTION_LABELS,
   decidedByPrompt,
-  villagerStandingLine,
   buildConsequence,
   buildEpilogue,
   meterStart,
@@ -212,7 +211,6 @@ function publicState(room, roomNumber) {
       ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt, opening: scenario.opening, evidence: scenario.evidence }
       : null,
     decidedByPrompt,
-    villagerStandingLine,
     roles,
     roleAssignments: room.roleAssignments,
     progress: scenario ? roomProgress(room, scenario) : [],

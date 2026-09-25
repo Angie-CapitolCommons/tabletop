@@ -15,7 +15,6 @@ export {
   roles,
   SECTION_LABELS,
   decidedByPrompt,
-  villagerStandingLine,
   whosWhoForModel,
   meterStart,
   meterLabels,
