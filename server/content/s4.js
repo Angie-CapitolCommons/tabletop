@@ -1,369 +1,727 @@
 // Scenario 4 — "Live a Year, Drifted, Spread Beyond Approval" (enters at
-// Monitoring). Fictional composite; the Phase 1 reference scenario, now with
-// Villager beats and role cards.
-import { choiceOf } from "./common.js";
+// Monitoring). Fictional composite; the reference scenario for voice and
+// shape. The four properties: an unstated purpose (the approval said where
+// and for how long, never what the tool was for, so GI's use can't be judged
+// against anything); a never-rated object (no risk level, ever); a split
+// (the sponsor moved on, no budget line owns it, two bodies each say it's the
+// other's); an ambiguous evidence base with no ending (one spot check, the
+// vendor's own number, no threshold, a six-month pilot in month fourteen).
+import { choiceOf, decline } from "./common.js";
 
 export default {
   id: "s4",
   title: "Live a Year, Drifted, Spread Beyond Approval",
   entersAt: "Monitoring",
-  tagline: "Approved for six months, one clinic. Fourteen months, three clinics later.",
-  brief: `ChartPilot is an AI documentation assistant that summarizes prior visits and drafts note sections. Fourteen months ago it was approved as a six-month pilot in one medical oncology clinic. It is still running.
-
-Since go-live: the vendor has shipped two model updates nobody evaluated; two more clinics enabled ChartPilot through a shared note template; and last month's quality sample found summaries omitting recent lab trends. The original approval names a pilot sponsor who has since changed roles. No one has reviewed ChartPilot since launch.`,
+  tagline: "Approved for one clinic for six months. Fourteen months later, three clinics use it.",
+  opening: [
+    {
+      text: "Tuesday, 7:40 a.m. A GI oncology fellow is prepping for her 9:00 patient. The AI-drafted visit summary says “renal function stable.” The chart shows creatinine has doubled over three weeks. She fixes the note.",
+    },
+    {
+      channel: "Secure chat",
+      when: "7:46 a.m.",
+      from: "GI oncology fellow",
+      to: "GI clinic medical director",
+      text: "Is someone supposed to be checking these summaries? This one missed a doubled creatinine.",
+    },
+    {
+      channel: "Email",
+      when: "9:15 a.m.",
+      from: "GI clinic medical director",
+      to: "Digital Health service desk",
+      text: "Forwarding the message below. Who owns the AI summary tool?",
+    },
+    {
+      channel: "Email",
+      when: "11:02 a.m.",
+      from: "Digital Health service desk",
+      to: "GI clinic medical director",
+      text: "That tool was approved as a pilot for the medical oncology clinic only. We didn't know GI was using it. Can you tell us how it got turned on in your clinic?",
+    },
+  ],
+  modelBrief: `The tool: an AI visit-summary tool. It summarizes prior visits and drafts sections of the clinic note, and it is attached to a shared note template.
+History: approved 14 months ago by the AI Oversight Committee as a six-month pilot in the medical oncology clinic only. Conditions: a monthly chart check (no owner named) and no use elsewhere without coming back to the committee. No risk level was assigned. The sponsoring clinic director has since moved to another role. Nobody has reviewed the tool since launch.
+Now: it runs in three clinics. GI oncology and breast oncology turned it on by copying the medical oncology note template; the service desk didn't know. About 1,800 notes a week use it, up from about 300 early in the pilot. The vendor has pushed two model updates (version 2.1 to 3.4); the release emails went to a shared mailbox nobody reads. One chart check has been done in 14 months: a pharmacist found 3 of 41 summaries left out an abnormal lab trend, with no harm found; her email to the committee mailbox got no reply. This week a GI fellow caught a summary calling renal function stable when creatinine had doubled.
+Turning the tool off for a clinic takes a vendor support ticket; the fastest so far took 19 hours. The license renews automatically in 60 days at a price 38% higher unless written notice is given 30 days before; a monitoring add-on is sold separately. Version 4.0 installs for all customers in 60 days.`,
   evidence: [
     {
-      id: "approval-memo",
-      title: "Original approval memo (14 months ago)",
-      body: `APPROVAL — ChartPilot pilot
-Scope: Medical Oncology Clinic A only. Duration: 6 months.
-Sponsor: Dr. R. Okafor, Clinic A Medical Director (since transferred).
-Conditions: monthly quality sampling (owner unnamed), no expansion without re-review.
-Model version at approval: CP-2.1. No tier assigned.`,
+      id: "approval-email",
+      title: "Pilot approval email (14 months ago)",
+      body: `From: AI Oversight Committee coordinator
+To: Medical oncology clinic medical director
+Subject: Visit-summary tool — pilot approved
+
+The committee approved a six-month pilot of the visit-summary tool in the medical oncology clinic.
+
+Conditions:
+1. A monthly chart check of AI summaries (owner to be confirmed).
+2. No use outside medical oncology without coming back to the committee.
+
+Risk tier: not assigned at this meeting.
+Model version reviewed: 2.1`,
     },
     {
-      id: "usage-dashboard",
-      title: "Usage dashboard, this quarter",
-      body: `Active clinics: 3 (Clinic A approved; Clinics B and C via shared template)
-Weekly notes touched: 1,840 (up from 310 at month 2)
-Current model version: CP-3.4 (two major updates since approval; release notes unreviewed)
-Quality sampling runs completed since go-live: 1 of 14 scheduled`,
+      id: "usage-report",
+      title: "Vendor usage report, this quarter",
+      body: `VENDOR USAGE REPORT — CURRENT QUARTER
+
+Clinics with active users: 3
+  Medical oncology (pilot)
+  GI oncology (shared note template)
+  Breast oncology (shared note template)
+
+Notes with an AI summary, last 7 days: 1,842
+Same figure, pilot month 2: 311
+
+Model version in use: 3.4
+Release notes sent to: Digital Health vendor-notices mailbox`,
     },
     {
-      id: "quality-sample",
-      title: "Quality sample, last month",
-      body: `41 summaries reviewed. 3 omitted a recent abnormal lab trend that appeared in the source chart. 0 patient harm identified. Reviewing pharmacist (unassigned to this duty; did it on her own time) flagged the omissions to "whoever owns this now." No response recorded.`,
+      id: "spot-check",
+      title: "Pharmacist's spot check (last month)",
+      body: `From: Oncology clinical pharmacist
+To: AI Oversight Committee mailbox
+Subject: Summary tool — 3 misses in a spot check
+
+While doing med reconciliations last week I checked 41 AI summaries from medical oncology. Three left out an abnormal lab trend that was in the chart (two potassium, one platelets). I found no patient harm.
+
+I couldn't find who owns the monthly check, so I'm sending it here.
+
+— No replies in this thread.`,
     },
     {
       id: "renewal-notice",
       title: "Vendor renewal notice",
-      body: `ChartPilot enterprise license renews in 60 days.
-Quoted renewal: +38% over current. New optional module: "PilotWatch monitoring dashboard" (drift metrics, version alerts) — additional license.
-Auto-renew clause: renewal executes automatically absent written notice 30 days prior.`,
+      body: `From: Vendor customer contracts
+Subject: Your license renewal
+
+Your license renews automatically in 60 days.
+To cancel, send written notice at least 30 days before the renewal date.
+
+New annual price: 38% higher than this year.
+Optional add-on: monitoring dashboard (version alerts, sample accuracy checks), priced separately.
+
+Support: to turn the tool off for a clinic, open a support ticket.`,
     },
   ],
   nodes: [
     {
       id: "risk_accept",
       type: "risk_accept",
-      title: "Who is carrying this risk?",
+      title: "Who is on the hook while it keeps running?",
       question:
-        "ChartPilot is operating outside its approval in two clinics, on a model version nobody evaluated. Until a re-review happens, someone is carrying the residual risk — today, whether or not anyone has said so. Who accepts it, in writing — or who turns it off?",
-      freeTextPrompt:
-        "Name the specific person or role who accepts the residual risk (or who orders the shutdown), and what triggers revisiting it.",
+        "Until someone reviews it properly, the tool keeps drafting notes wherever you leave it on. Who signs for that, in writing?",
+      freeTextPrompt: "Who signs for it during the review? What would make them change course?",
       elders: ["steward"],
       options: [
-        { id: "a", label: "Keep it running everywhere while an expedited re-review happens", hint: "Fastest for users. The risk stays live and someone must own it.", short: "Run everywhere" },
-        { id: "b", label: "Restrict to the originally approved clinic; switch it off in Clinics B and C today", hint: "Honors the approval. Two clinics lose a tool they now depend on.", short: "Restrict to Clinic A" },
-        { id: "c", label: "Suspend everywhere until the re-review completes", hint: "Cleanest risk posture. All three clinics feel it tomorrow morning.", short: "Suspend all" },
-        { id: "decline", label: "We cannot answer this today", hint: "Recorded as an explicit gap, not a failure. It is also not free.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Leave it on everywhere, and send a note today: double-check labs until the review is done.”",
+          hint: "All three clinics keep it. Clinicians do the checking until the review ends.",
+          short: "Leave it on everywhere",
+        },
+        {
+          id: "b",
+          label: "“Keep it in medical oncology, the clinic we approved. Turn it off in GI and breast.”",
+          hint: "GI and breast lose it Monday. Their notes take longer again.",
+          short: "Med onc only",
+        },
+        {
+          id: "c",
+          label: "“Turn it off everywhere until the review is done.”",
+          hint: "All three clinics lose it. Turning it off takes a vendor ticket.",
+          short: "Off everywhere",
+        },
+        decline("Nothing changes. It keeps running in all three clinics."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: +3, dollars: 0, time: 0 },
+        a: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: -2, risk: -1, dollars: 0, time: +1 },
         c: { goodwill: -3, risk: -2, dollars: 0, time: +2 },
-        decline: { goodwill: -1, risk: +2, dollars: 0, time: +1 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
-      consequences: {
-        a: "The expedited re-review is announced. ChartPilot keeps drafting notes in three clinics while it runs.",
-        b: "Clinics B and C lose ChartPilot at 7 a.m. tomorrow. The shared template that enabled them is still live.",
-        c: "All three clinics wake up without it. The re-review now has an audience.",
-        decline: "Nothing changes. ChartPilot keeps running everywhere, unowned.",
-        writein:
-          "The room's own arrangement goes on the record verbatim. Risk doesn't care how novel the plan is — only whether the name and the trigger in it are real.",
+      events: {
+        a: {
+          when: "Thursday",
+          text: "The note goes out to all three clinics. The breast clinic's nurse manager replies to all, asking what “double-check labs” means in a 15-minute visit.",
+        },
+        b: {
+          when: "Monday",
+          text: "Digital Health turns it off for GI and breast. By noon the GI nurse manager has emailed to ask why the note template stopped filling in, and copied the chief nursing officer.",
+        },
+        c: {
+          when: "Wednesday",
+          text: "The vendor ticket closes 19 hours after it was opened. Without summaries, the medical oncology clinic is running about 40 minutes behind by 3 p.m.",
+        },
+        decline: {
+          when: "Friday",
+          text: "Nothing changes. The GI fellow's message is still in the service desk queue, marked “waiting on owner.”",
+        },
       },
-      epilogue: {
-        held: "The risk had a name on it all year. When CP-4.1 shipped with a regression, the acceptor's standing review caught it in nine days.",
-        broke: "The risk never found an owner. When the near-miss report landed in March, “who accepted this?” had no answer — so it became everyone's, which is no one's.",
+      owner: {
+        when: "The next Monday",
+        named:
+          "The pharmacist who ran last month's spot check emails again, asking where to send her next one. She gets a name back within the hour: the person you named.",
+        missing:
+          "The pharmacist who ran last month's spot check emails again, asking where to send her next one. The email goes to the committee mailbox. Nobody replies.",
+      },
+      later: {
+        month: 3,
+        named:
+          "The annual safety audit asks for every AI tool in clinical use and who accepted its risk. The summary tool's entry has a name, a date, and the conditions they signed for.",
+        missing:
+          "The annual safety audit asks for every AI tool in clinical use and who accepted its risk. The summary tool's entry is blank, and the auditors list it in their findings.",
       },
     },
     {
       id: "stop",
       type: "stop",
-      title: "What ends it, and who can turn it off?",
-      question:
-        "What ends ChartPilot — and who can turn it off, today, without a vendor support ticket?",
-      freeTextPrompt:
-        "Name who holds the off switch, and the specific conditions under which they pull it.",
-      elders: ["caretaker", "steward"],
+      title: "Who can turn it off, and how fast?",
+      question: "If a summary hurts someone tonight, who can turn the tool off, and how quickly?",
+      freeTextPrompt: "Who can turn it off? What would make them do it? How fast can it happen?",
+      elders: ["caretaker"],
       inject: (records) => {
         const c = choiceOf(records, "risk_accept");
         if (c === "b")
-          return "Overnight, someone in Clinic B re-enabled the shared template “for one complex patient.” The restriction you ordered has no enforcement behind it.";
+          return "Because you turned it off in GI and breast: on Wednesday a GI fellow copies the medical oncology note template into her own favorites. The tool is back on for her patients, and no alert goes to anyone.";
         if (c === "c")
-          return "The suspension took nineteen hours to execute — it went through a vendor support ticket. Nobody inside the building had the switch.";
-        return "The quality-sample pharmacist asks the question nobody has answered: if one of these summaries hurts someone tonight, who can actually turn this off, and how fast?";
+          return "Because you turned it off everywhere: the vendor ticket took 19 hours to close. For that whole day, nobody in the building could turn it off any faster.";
+        return "The pharmacist from last month's spot check asks the service desk: if a summary hurts someone tonight, who can turn this off, and how fast? The desk says they'd have to open a ticket with the vendor.";
       },
       options: [
-        { id: "a", label: "Name a kill-switch owner with same-day authority, and the conditions that trigger it", hint: "Someone must hold it — and know they hold it.", short: "Named kill switch" },
-        { id: "b", label: "The vendor contract is the off switch: non-renewal ends it at term", hint: "Clean, but nothing can end it before the renewal date.", short: "Contract is the switch" },
-        { id: "c", label: "Fold it into the re-review: it ends if the review says so", hint: "The review is not staffed yet.", short: "Review decides" },
-        { id: "decline", label: "We cannot answer this today", hint: "The off switch remains a support ticket.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Use the contract. If it isn't working, we give notice and don't renew.”",
+          hint: "Notice is due within 30 days. Until the renewal date, it stays on.",
+          short: "The contract",
+        },
+        {
+          id: "b",
+          label: "“Let the review decide. If it finds a problem, it recommends switching it off.”",
+          hint: "The review has no reviewer or start date yet.",
+          short: "The review decides",
+        },
+        {
+          id: "c",
+          label: "“Get us a switch we control: Digital Health turns it off the same day it's called.”",
+          hint: "Needs a contract change and about three weeks of IT work.",
+          short: "Our own switch",
+        },
+        decline("Turning it off stays a vendor ticket."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -2, dollars: 0, time: 0 },
-        b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
-        c: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
+        a: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: -2, dollars: +1, time: +1 },
         decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "The kill switch exists. Its new owner immediately asks for the monitoring feed that would tell them when to pull it. There isn't one — yet.",
-        b: "The renewal is months away. Until then, ending ChartPilot requires a breach or a crisis.",
-        c: "The unstaffed review inherits a power it cannot yet exercise.",
-        decline: "The off switch remains a support ticket with a nineteen-hour SLA.",
-        writein: "An off-switch nobody has built before. It works exactly as well as the words the room just wrote — the record is the spec now.",
+      events: {
+        a: {
+          when: "Week 2",
+          text: "Legal drafts the non-renewal notice and holds it for a decision. Until the renewal date, the only way to stop the tool early is a vendor ticket.",
+        },
+        b: {
+          when: "Week 2",
+          text: "The review goes on next month's AI Oversight Committee agenda as a discussion item. It has no reviewer yet.",
+        },
+        c: {
+          when: "Week 3",
+          text: "The vendor agrees to a clinic-by-clinic on/off setting for a one-time fee. Digital Health tests it on a Friday afternoon; switching a clinic off takes four minutes.",
+        },
+        decline: {
+          when: "Week 2",
+          text: "The service desk adds an entry to its knowledge base: “Summary tool problems — open a vendor ticket.”",
+        },
       },
-      epilogue: {
-        held: "When the switch was finally needed — the CP-4.1 regression — turning ChartPilot off took forty minutes, not nineteen hours.",
-        broke: "Turning it off stayed a vendor ticket. The regression ran for six days while the ticket aged.",
+      owner: {
+        when: "Week 4",
+        named:
+          "A breast clinic nurse practitioner finds a summary listing a stopped medication as current and files a safety report. It reaches the person you named that afternoon, who decides the same day whether to pull the tool in that clinic.",
+        missing:
+          "A breast clinic nurse practitioner finds a summary listing a stopped medication as current and files a safety report. It goes from Quality to Digital Health and back to the clinic over nine days.",
+      },
+      later: {
+        month: 7,
+        named:
+          "Version 4.1 starts dropping recent lab trends from summaries. The person holding the switch has it off in all three clinics within a day, and back on once the vendor's fix is checked.",
+        missing:
+          "Version 4.1 starts dropping recent lab trends from summaries. It keeps running for six days while people work out who is allowed to ask for it to be turned off.",
       },
     },
     {
       id: "tier",
       type: "tier",
-      title: "What tier is this, and what does the tier cover?",
+      title: "What risk level is it, and who sets it?",
       question:
-        "The approval memo never assigned ChartPilot a tier. What tier is it, who sets it — and does the tier cover the tool, or each use of it?",
-      freeTextPrompt: "Name who assigns the tier, and state whether it binds the tool or the use.",
-      elders: ["cartographer"],
+        "The approval never gave the tool a risk level, and two clinics started using it on their own. What level is it, and who decides that?",
+      freeTextPrompt: "Who sets the risk level? Does it cover the tool everywhere, or each clinic's use separately?",
+      elders: [],
       inject: () =>
-        "The governance office asks what tier the re-review should file ChartPilot under. There is no answer on record — for this tool or for the two clinics that adopted it sideways.",
+        "The AI Oversight Committee coordinator asks what risk level to file the review under. The approval email says “not assigned.” GI and breast aren't on file at all.",
       options: [
-        { id: "a", label: "Tier the uses, not the tool: oncology note-drafting is one tier; any new use or population re-tiers", hint: "More work per use. The template loophole gets a name: an untiered use.", short: "Tier the uses" },
-        { id: "b", label: "Tier the tool once, centrally; the tier travels with it wherever it's enabled", hint: "One decision. Clinic C's sickest patients inherit it unexamined.", short: "Tier the tool once" },
-        { id: "c", label: "Adopt the vendor's own risk classification as the tier", hint: "Zero effort. The vendor also sells it.", short: "Vendor's rating" },
-        { id: "decline", label: "We cannot answer this today", hint: "Untiered, ChartPilot remains whatever anyone needs it to be.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Rate each clinic's use separately, starting with medical oncology.”",
+          hint: "Three reviews of about two weeks each. New clinics wait for theirs.",
+          short: "Rate each use",
+        },
+        {
+          id: "b",
+          label: "“Rate the tool once. The same level applies wherever it's turned on.”",
+          hint: "One review. GI and breast get the level set for medical oncology.",
+          short: "Rate it once",
+        },
+        {
+          id: "c",
+          label: "“Use the vendor's risk rating. It's already done.”",
+          hint: "Available today. It's the vendor's own assessment.",
+          short: "Vendor's rating",
+        },
+        decline("It stays unrated. Each clinic uses it its own way."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -1, dollars: 0, time: +1 },
+        a: { goodwill: 0, risk: -1, dollars: 0, time: +2 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
-        c: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        c: { goodwill: 0, risk: +2, dollars: 0, time: -1 },
         decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "Three uses are tiered by Friday. The shared-template loophole is now, formally, an untiered use — visible for the first time.",
-        b: "One tier, stamped once. It says nothing about the palliative unit that enabled ChartPilot for goals-of-care notes.",
-        c: "The vendor rates ChartPilot “low risk.” The room reads the rating's footnote: assessed for administrative use.",
-        decline: "Untiered, ChartPilot means something different in every clinic that runs it.",
-        writein: "A tiering scheme of the room's own design. The governance office files it verbatim, and will apply it literally.",
+      events: {
+        a: {
+          when: "Week 2",
+          text: "Medical oncology's review is booked. The GI and breast clinic managers each get a form asking what they use the summaries for; the breast clinic's answer includes goals-of-care notes.",
+        },
+        b: {
+          when: "Friday",
+          text: "The committee files one risk level for the tool. The form has no field for which clinics or which kinds of notes.",
+        },
+        c: {
+          when: "Friday",
+          text: "The vendor's rating arrives: low risk. A footnote says it was assessed for administrative summaries.",
+        },
+        decline: {
+          when: "Friday",
+          text: "The coordinator files the review under “risk level: pending.”",
+        },
       },
-      epilogue: {
-        held: "Every new use hit the tier question before it hit patients. Two passed quickly; one was stopped at the door — which is the system working.",
-        broke: "The tier never settled, so it never bound anyone. By summer, “tier” was a word that meant approved-ish.",
+      owner: {
+        when: "Week 5",
+        named:
+          "The palliative care team asks to use the tool for goals-of-care notes. The request goes to the person you named, who asks for a separate review before anything is turned on.",
+        missing:
+          "The palliative care team starts using the tool for goals-of-care notes by copying the template. Nobody outside the team hears about it.",
+      },
+      later: {
+        month: 9,
+        named:
+          "Two more clinics ask to use the tool. One is approved within a week; the other, for pediatric patients, is turned down at the request stage.",
+        missing:
+          "The tool is in six clinics. The committee's records show one review, for medical oncology.",
       },
     },
     {
       id: "decide",
       type: "decide",
-      title: "Who decides — one name, advised by which body?",
+      title: "Who decides whether it stays?",
       question:
-        "The re-review needs a decider. Who decides whether ChartPilot continues — one accountable person, advised by which body, by when?",
-      freeTextPrompt: "Name the decider, the advising body, and the date the decision is due.",
-      elders: ["cartographer", "caretaker"],
+        "Someone has to decide whether the tool stays, and on what terms. Who makes that call, who do they check with, and by when?",
+      freeTextPrompt: "Who makes the call? Who do they check with first? By what date?",
+      elders: ["cartographer"],
       inject: (records) => {
-        const base =
-          "The AI oversight committee says the re-review belongs to clinical governance. Clinical governance says it belongs to the AI committee. Both are right; neither moves.";
         const c = choiceOf(records, "tier");
+        const base =
+          "Monday's emails: the AI Oversight Committee chair writes that ongoing clinical use belongs to the Clinical Practice Council. The council chair replies that AI tools belong to the committee.";
         if (c === null || c === "decline")
-          return base + " With no tier on record, neither body can even say whose rules apply.";
+          return `${base} Because you left the risk level open, neither can point to a rule that says whose it is.`;
         return base;
       },
       options: [
-        { id: "a", label: "A single named decider, advised by one named body, decision due by a date", hint: "Someone's name goes on it. That is the point.", short: "One named decider" },
-        { id: "b", label: "A joint committee of both bodies decides by vote", hint: "Nobody's name goes on it. That is also the point.", short: "Joint committee" },
-        { id: "c", label: "Escalate to executive leadership to assign a decider", hint: "Leadership will ask: “who do you recommend?”", short: "Escalate up" },
-        { id: "decline", label: "We cannot answer this today", hint: "The re-review becomes a standing agenda item.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Put it to a vote at a joint meeting of the committee and the council.”",
+          hint: "Both groups own the result. The first date both can meet is five weeks out.",
+          short: "Joint vote",
+        },
+        {
+          id: "b",
+          label: "“One person decides by the end of next month, advised by the AI Oversight Committee.”",
+          hint: "One name on the result. The committee advises but doesn't vote.",
+          short: "One decider",
+        },
+        {
+          id: "c",
+          label: "“Send it up. Ask the executive sponsor for AI to pick who decides.”",
+          hint: "The sponsor's office usually answers requests in about a week.",
+          short: "Send it up",
+        },
+        decline("It stays on both groups' agendas."),
       ],
       meterDeltas: {
-        a: { goodwill: +1, risk: 0, dollars: 0, time: -1 },
-        b: { goodwill: 0, risk: 0, dollars: 0, time: +2 },
-        c: { goodwill: 0, risk: 0, dollars: 0, time: +1 },
+        a: { goodwill: 0, risk: 0, dollars: 0, time: +2 },
+        b: { goodwill: 0, risk: 0, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
         decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
-      consequences: {
-        a: "A name and a date. The two committees reorganize themselves as advisors — which is what they were for.",
-        b: "The joint committee needs a charter, a chair, and a quorum. Its first open slot is in five weeks.",
-        c: "Leadership returns the escalation with a question: “Who do you recommend?” Six days, round trip.",
-        decline: "With no decider, the re-review becomes a standing agenda item — discussed monthly, decided never.",
-        writein: "A decision path no chart shows. It exists only in the sentence the room wrote — people will follow it exactly as far as that sentence is clear.",
+      events: {
+        a: {
+          when: "Week 5",
+          text: "The joint meeting runs out of time at item four of six. The tool moves to next month's agenda.",
+        },
+        b: {
+          when: "Week 1",
+          text: "The decider sets a date: the last Friday of next month. Both groups get a note saying they're advising.",
+        },
+        c: {
+          when: "Week 2",
+          text: "The sponsor's office replies with a question: who does this group recommend?",
+        },
+        decline: {
+          when: "Week 4",
+          text: "The tool appears on both groups' agendas under “old business.” Neither meeting gets to it.",
+        },
       },
-      epilogue: {
-        held: "Decisions had an address. People stopped working the room and started working the case.",
-        broke: "“It went to committee” remained a complete sentence. The re-review concluded in June with a recommendation to review further.",
+      owner: {
+        when: "Week 6",
+        named:
+          "The GI medical director asks whether GI can keep the tool while the review runs. The question goes to the person you named and is answered in two days.",
+        missing:
+          "The GI medical director asks whether GI can keep the tool while the review runs. The committee and the council each reply that the other should answer.",
+      },
+      later: {
+        month: 6,
+        named:
+          "The decision lands on the date set, with conditions attached. Clinic managers now send their questions to one person instead of two groups.",
+        missing:
+          "The review ends with a recommendation to review further. The tool keeps running while that is scheduled.",
       },
     },
     {
       id: "proof",
       type: "proof",
-      title: "What threshold keeps it alive?",
+      title: "What result keeps it running?",
       question:
-        "The pharmacist's sample is the only evidence anyone has: 3 omissions in 41 summaries, zero harm found. Is that good? Nobody has defined what good is. What threshold keeps ChartPilot alive — and what evidence ends the question either way?",
-      freeTextPrompt: "State the threshold (a number, a rate, a bar) and name who owns measuring it.",
-      elders: ["decoupler"],
+        "The pharmacist found 3 misses in 41 summaries, and no harm. Nobody has said what rate is acceptable. What number keeps the tool running?",
+      freeTextPrompt: "What number keeps it running (a rate or a ceiling)? Who checks it, and how often?",
+      elders: ["decoupler", "recruiter"],
+      inject: (records) => {
+        const base =
+          "Counting the GI fellow's catch, four misses are now known. The vendor says its own testing finds a missed lab trend in fewer than 1 in 100 summaries, measured on its test charts.";
+        if (choiceOf(records, "decide") === "a")
+          return `Because the decision is going to a joint vote, both groups have asked for a number they can vote on. ${base}`;
+        return base;
+      },
       options: [
-        { id: "a", label: "Define it now: an omission-rate ceiling on a monthly audited sample, with a named audit owner", hint: "A number someone is paid to look at.", short: "Omission ceiling" },
-        { id: "b", label: "Commission a formal validation study before setting thresholds", hint: "Rigorous. Funded by whom, finished when?", short: "Validation study" },
-        { id: "c", label: "Clinical judgment: the clinics using it decide whether it's good enough", hint: "The clinics like it. The clinics also enabled it without approval.", short: "Clinics judge" },
-        { id: "decline", label: "We cannot answer this today", hint: "No threshold means good enough by default.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Let each clinic judge. If their doctors think it's good enough, they keep it.”",
+          hint: "No new work. Each clinic sets its own standard.",
+          short: "Clinics judge",
+        },
+        {
+          id: "b",
+          label: "“Fund a proper validation study before we set any number.”",
+          hint: "Needs funding, a lead, and IRB review. First results in about four months.",
+          short: "Validation study",
+        },
+        {
+          id: "c",
+          label: "“Set a ceiling now, say 1 miss in 50, and audit 40 charts a month.”",
+          hint: "About six pharmacist hours a month, taken from other work.",
+          short: "Ceiling and audit",
+        },
+        decline("No number. Each future check is judged on the day."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -2, dollars: +1, time: 0 },
+        a: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: 0, risk: -1, dollars: +2, time: +2 },
-        c: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
+        c: { goodwill: 0, risk: -2, dollars: +1, time: 0 },
         decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "A number exists. Next month's sample either clears it or it doesn't — and someone is paid to look.",
-        b: "The study needs funding, a sponsor, and an IRB conversation. First data lands next quarter at the earliest.",
-        c: "The clinics vote with their templates, as they already did once.",
-        decline: "No threshold. Every future sample will be reassuring, and none will be decisive.",
-        writein: "A homemade threshold. If the number and its owner are in the writing, it will function; if not, it will comfort.",
+      events: {
+        a: {
+          when: "Week 2",
+          text: "Medical oncology says the summaries are fine. GI says they're fine apart from labs. The breast clinic doesn't reply.",
+        },
+        b: {
+          when: "Week 3",
+          text: "The study proposal goes to the IRB. The first review slot is in five weeks.",
+        },
+        c: {
+          when: "Week 4",
+          text: "The first 40-chart audit is done on time. It finds two misses, and the result goes into the decision file.",
+        },
+        decline: {
+          when: "Week 4",
+          text: "Nobody runs a chart check this month.",
+        },
       },
-      epilogue: {
-        held: "The monthly number did what numbers do: it ended arguments. When it slipped past the ceiling in April, nobody had to debate what happened next.",
-        broke: "With no bar to clear, every sample was reassuring and none was decisive. December's evidence base looked exactly like October's.",
+      owner: {
+        when: "Month 3",
+        named:
+          "Three months of results are in one file, kept by the person you named. Anyone who asks how accurate the summaries are is sent that file.",
+        missing:
+          "No monthly check has run. The only numbers anyone can quote are the pharmacist's, from last spring.",
+      },
+      later: {
+        month: 4,
+        named:
+          "The miss rate goes over the agreed number. The tool is paused in GI for two weeks while the vendor looks into it.",
+        missing:
+          "A new committee member asks how accurate the summaries are. The only answer is the pharmacist's 3 in 41.",
       },
     },
     {
       id: "retier",
       type: "retier",
-      title: "What forces a re-review?",
-      question: "What forces a re-review of ChartPilot — automatically, without a hero having to notice?",
-      freeTextPrompt: "List the triggers, and name who watches for them.",
+      title: "What sends it back for review?",
+      question:
+        "Two updates went in without anyone noticing. What should automatically send the tool back for review, and who watches for it?",
+      freeTextPrompt: "What sends it back for review? Who watches for those things?",
       elders: ["caretaker"],
       inject: () =>
-        "Mid-review, the vendor announces CP-4.0: new model, new features, “seamless upgrade,” auto-deploying to all customers in 60 days.",
+        "The vendor emails: version 4.0 installs for all customers in 60 days. The email lands in the Digital Health vendor-notices mailbox, under two earlier release emails that were never opened.",
       options: [
-        { id: "a", label: "Defined triggers — version change, new use, new population, threshold breach — each forces re-review, with a named watcher", hint: "Boring by design. Boring is the goal.", short: "Defined triggers" },
-        { id: "b", label: "Annual scheduled re-review, calendar-driven", hint: "CP-4.0 lands eight months before the next calendar slot.", short: "Annual calendar" },
-        { id: "c", label: "Contract change: the vendor must notify and wait for approval before updates", hint: "The vendor's counsel knows which tier that clause is sold on.", short: "Vendor must notify" },
-        { id: "decline", label: "We cannot answer this today", hint: "CP-4.0 will deploy the way CP-3.4 did: silently.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Any new version, new clinic, or new kind of note sends it back for review.”",
+          hint: "Someone has to watch the vendor mailbox and the template list every week.",
+          short: "Set triggers",
+        },
+        {
+          id: "b",
+          label: "“Review it once a year, on a fixed date.”",
+          hint: "Easy to schedule. Version 4.0 arrives eight months before that date.",
+          short: "Yearly review",
+        },
+        {
+          id: "c",
+          label: "“Change the contract: no version changes without our sign-off.”",
+          hint: "The vendor offers this on its enterprise plan, at a higher price.",
+          short: "Contract sign-off",
+        },
+        decline("Version 4.0 installs in 60 days either way."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -2, dollars: 0, time: 0 },
+        a: { goodwill: 0, risk: -2, dollars: 0, time: +1 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
-        c: { goodwill: 0, risk: -1, dollars: +1, time: +1 },
+        c: { goodwill: 0, risk: -1, dollars: +2, time: 0 },
         decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
       },
-      consequences: {
-        a: "CP-4.0 is caught by the trigger it was born to trip. The vendor's 60-day clock is now the re-review's clock too.",
-        b: "CP-4.0 will arrive, deploy, and run for eight months before the calendar notices.",
-        c: "The vendor's counsel replies within the hour: that clause is available on the enterprise tier.",
-        decline: "CP-4.0 will deploy the way CP-3.4 did: silently, to everyone, including the clinics you don't know about yet.",
-        writein: "A custom tripwire. It fires only if someone builds it — and the record now says who.",
+      events: {
+        a: {
+          when: "Week 1",
+          text: "Digital Health sets up an alert on the vendor mailbox and the note-template list. Version 4.0 is the first thing it catches, and the review starts that day.",
+        },
+        b: {
+          when: "Week 1",
+          text: "The yearly review is booked for next April. Version 4.0 installs in 60 days.",
+        },
+        c: {
+          when: "Week 2",
+          text: "The vendor sends enterprise-plan pricing. Contracting says the change can be made at renewal.",
+        },
+        decline: {
+          when: "Day 60",
+          text: "Version 4.0 installs overnight in every clinic using the template.",
+        },
       },
-      epilogue: {
-        held: "Nothing had to be noticed by a hero again. The triggers fired twice in twelve months, both on time, both boring — the highest compliment.",
-        broke: "Re-review stayed an event someone had to cause. CP-4.0 arrived unexamined, and this year's drift was rediscovered next year, one model version later.",
+      owner: {
+        when: "Month 2",
+        named:
+          "The breast clinic adds the template to its survivorship visits. The person you named sees it on the weekly list and asks for a review before survivorship notes use it.",
+        missing:
+          "The breast clinic adds the template to its survivorship visits. Nobody outside the clinic notices.",
+      },
+      later: {
+        month: 8,
+        named:
+          "Two things send the tool back for review this year: version 4.0 and a new clinic. Each review takes about a week.",
+        missing:
+          "Someone asks which version the committee approved. It was 2.1. The clinics are on 4.1.",
       },
     },
     {
       id: "funding",
       type: "funding",
-      title: "Whose budget, at renewal?",
+      title: "Who pays for it next year?",
       question:
-        "Whose budget carries ChartPilot at renewal — the license, the audits, the monitoring you have spent this hour inventing?",
-      freeTextPrompt: "Name the budget owner (or owners) and what, exactly, each one is signing for.",
+        "The license renews in 60 days at a higher price, and the monitoring add-on costs extra. Whose budget pays for the tool and the checking?",
+      freeTextPrompt: "Whose budget pays? What exactly does it cover: the license, the chart checks, the monitoring?",
       elders: ["ledger"],
-      inject: () =>
-        "The renewal quote arrives mid-meeting: up 38%, plus a new optional “PilotWatch” monitoring module — the one thing everyone in this room has wished existed. The auto-renew clause executes in 30 days absent written notice.",
+      inject: (records) => {
+        const base =
+          "The renewal notice is on the table: 38% higher, the monitoring add-on extra, and notice to cancel due within 30 days.";
+        if (choiceOf(records, "proof") === "c")
+          return `Because you set up monthly audits, Quality asks which budget pays for the pharmacist's hours. ${base}`;
+        return base;
+      },
       options: [
-        { id: "a", label: "One owner: a single department owns license, audits, and monitoring as a package, with sponsor sign-off", hint: "One signature, one line item, one throat to choke.", short: "One budget owner" },
-        { id: "b", label: "Split it: clinics pay the license, quality pays audits, IT pays monitoring", hint: "Three budgets, three approval cycles, one renewal date.", short: "Split three ways" },
-        { id: "c", label: "Bridge it from contingency or innovation funds while a permanent home is found", hint: "Bridges are where orphans live.", short: "Bridge funds" },
-        { id: "decline", label: "We cannot answer this today", hint: "The auto-renew clause is the one decision that makes itself.", short: "Declined" },
+        {
+          id: "a",
+          label: "“Split it: clinics pay the license, Quality pays for checks, IT pays for monitoring.”",
+          hint: "Each share is smaller. Three sign-offs are needed before the notice date.",
+          short: "Split three ways",
+        },
+        {
+          id: "b",
+          label: "“One owner pays for all of it — license, checks, and monitoring — as one line.”",
+          hint: "The whole cost lands in one department's budget.",
+          short: "One owner",
+        },
+        {
+          id: "c",
+          label: "“Pay from the Innovation Fund this year while it finds a permanent home.”",
+          hint: "Covers up to 12 months. The fund is meant for pilots.",
+          short: "Innovation Fund",
+        },
+        decline("Without written notice, it renews at the new price."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: 0, dollars: +2, time: 0 },
-        b: { goodwill: 0, risk: 0, dollars: +1, time: +1 },
+        a: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
+        b: { goodwill: 0, risk: 0, dollars: +2, time: 0 },
         c: { goodwill: 0, risk: +1, dollars: +1, time: 0 },
         decline: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
       },
-      consequences: {
-        a: "One signature, one line item. The monitoring module gets bought because someone owns wanting it.",
-        b: "Three budgets, three approval cycles, one renewal date. The clock does not care about org charts.",
-        c: "The bridge fund buys eight months. Bridges are where orphans live.",
-        decline: "The renewal lapses into auto-renew on the vendor's terms — at the new price, without the monitoring module.",
-        writein: "An arrangement the budget office has never seen. It will be honored precisely as written, including everything it doesn't say.",
+      events: {
+        a: {
+          when: "Week 3",
+          text: "Two of the three sign-offs come back. IT's budget cycle closes after the notice date.",
+        },
+        b: {
+          when: "Week 2",
+          text: "The owning department's budget line goes up by the full amount. Its finance partner asks for next year's usage estimate.",
+        },
+        c: {
+          when: "Week 2",
+          text: "The Innovation Fund approves it for 12 months. The approval letter asks for a permanent owner by next spring.",
+        },
+        decline: {
+          when: "Day 60",
+          text: "The license renews on the vendor's terms, 38% higher, without the monitoring add-on.",
+        },
       },
-      epilogue: {
-        held: "Renewal was a decision, not an event. The monitoring line item survived two budget cycles because it had an owner, not a wish.",
-        broke: "Money stayed the question nobody owned. ChartPilot auto-renewed at the higher price, unmonitored — the most expensive way to not decide.",
+      owner: {
+        when: "Week 5",
+        named:
+          "The vendor offers 10% off for a two-year term. The person you named takes it to Finance and has an answer before the notice date.",
+        missing:
+          "The vendor offers 10% off for a two-year term. The offer goes to the pilot's original sponsor, who moved to another role last spring.",
+      },
+      later: {
+        month: 11,
+        named:
+          "At budget planning the tool has one line, one owner, and a monitoring cost next to it. It is approved without discussion.",
+        missing: "At budget planning nobody lists the tool. It renews automatically again.",
       },
     },
   ],
+  // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     risk_accept: {
       name: "The One Who Signs",
-      line: "Fourteen months ago somebody's signature made this safe. He transferred. The safety didn't transfer with him.",
+      line: "I signed for the pilot fourteen months ago, as medical oncology's clinic director. I moved to another job in the spring. Nobody has asked me about the tool since.",
     },
     tier: {
       name: "The One Who Makes It Work Anyway",
-      line: "I turned it on for Clinic B with a template because asking takes six weeks and my nurses were drowning. Tell me the six weeks buys something and I'll wait next time.",
+      line: "I copied the med-onc template for GI in January. Our notes were running two hours past clinic. I didn't know there was a list to be on.",
+    },
+    stop: {
+      name: "The Person in the Chair",
+      line: "My summary said my kidneys were stable. The fellow caught it before my appointment. I didn't know a computer had written it until she told me.",
     },
     proof: {
       name: "The One Who Stopped Asking",
-      line: "I flagged three bad summaries to ‘whoever owns this now.’ That was five weeks ago. I still read every summary the long way.",
+      line: "I sent my spot check to the committee mailbox last spring. Now I check the labs in every summary myself before I sign off a med reconciliation.",
     },
     funding: {
-      name: "The Person in the Chair",
-      line: "My chart got summarized 1,840 times this week, somewhere in that number. Whatever you decide about budgets, the summaries happen to someone.",
+      name: "The Third Pilot This Year",
+      line: "This is my clinic's third AI pilot this year. The first two stopped when their funding ran out. I stopped training my nurses on new tools after the second one.",
     },
   },
+  // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
     "The Doctor": {
       mandate: [
-        "Responsible for: what ChartPilot's summaries do to clinical decisions in three clinics.",
-        "Cannot agree to: continued expansion before the omission findings are bottomed out.",
-        "Measured on: patient outcomes, and whether clinicians trust the chart.",
+        "Your job: what the summaries do to clinical decisions in three clinics.",
+        "You won't go along with: more clinics using it before someone has looked into the misses.",
+        "You're judged on: patient outcomes, and whether clinicians trust the chart.",
       ],
       asymmetric: [
-        "You know two of the three flagged omissions involved lab trends that changed treatment timing — no harm, but only because someone double-checked.",
-        "You know Clinic A's physicians now skim primary notes less since ChartPilot arrived. Nobody has measured this. You've watched it.",
+        {
+          text: "Two of the known misses changed when treatment was given. There was no harm, but only because someone double-checked.",
+          cue: "someone says no harm was found",
+        },
+        {
+          text: "You've noticed medical oncology doctors read the full chart less since the summaries arrived. Nobody has measured it.",
+          cue: "the room talks about what number is good enough",
+        },
       ],
     },
     "The Security Guard": {
       mandate: [
-        "Responsible for: an unreviewed model reading and writing clinical notes at scale.",
-        "Cannot agree to: any path with no named risk acceptor while review is pending.",
-        "Measured on: incidents, and time-to-contain when something goes wrong.",
+        "Your job: a tool nobody reviewed is reading and writing clinical notes.",
+        "You won't go along with: keeping it running with nobody signed up to answer for it.",
+        "You're judged on: incidents, and how fast one can be stopped.",
       ],
       asymmetric: [
-        "You know shutting ChartPilot off requires a vendor support ticket — SLA 24 hours, best observed 19.",
-        "You know CP-3.4's release notes mention “expanded training data sources” that were never disclosed for review.",
+        {
+          text: "Turning it off takes a vendor support ticket. The contract target is 24 hours; the fastest ticket so far took 19.",
+          cue: "someone asks how fast it can be turned off",
+        },
+        {
+          text: "The version 3.4 release notes mention “expanded training data sources.” Nobody has asked the vendor what that means.",
+          cue: "updates or versions come up",
+        },
       ],
     },
     "The Money Manager": {
       mandate: [
-        "Responsible for: the renewal, the +38%, and the monitoring module everyone suddenly wants.",
-        "Cannot agree to: auto-renew executing by default on the vendor's terms.",
-        "Measured on: variance, and licenses that outlive their sponsors.",
+        "Your job: the renewal, the price increase, and the monitoring add-on.",
+        "You won't go along with: letting it renew on the vendor's terms because nobody sent the notice.",
+        "You're judged on: staying on budget, and licenses nobody owns.",
       ],
       asymmetric: [
-        "You know the auto-renew notice deadline is 30 days out — inside the re-review's likely timeline. Doing nothing is signing.",
-        "You know usage tripled but the license is seat-based: the price rise is contractual escalation, not usage. There's negotiating room nobody has used.",
+        {
+          text: "The license is priced per clinic, not per note. The 38% is a contract increase, not usage, so there's room to negotiate.",
+          cue: "the renewal comes up",
+        },
+        {
+          text: "The medical oncology budget that paid for the pilot moved with the old sponsor. Right now no budget line has the tool on it.",
+          cue: "someone asks who is paying for it today",
+        },
       ],
     },
     "The AI Guru": {
       mandate: [
-        "Responsible for: what CP-2.1 → CP-3.4 actually changed, and what CP-4.0 will.",
-        "Cannot agree to: treating model versions as interchangeable in any review.",
-        "Measured on: whether deployed behavior matches evaluated behavior.",
+        "Your job: what changed between version 2.1 and 3.4, and what 4.0 will change.",
+        "You won't go along with: treating different versions as the same tool.",
+        "You're judged on: whether the tool in use behaves like the tool that was approved.",
       ],
       asymmetric: [
-        "You know the omission pattern in the quality sample matches a known CP-3.x summarization regression discussed openly in the vendor's user forum.",
-        "You know PilotWatch — the monitoring module — would have caught the version drift a year ago. The vendor unbundled it deliberately.",
+        {
+          text: "The lab-trend misses match a known problem in version 3.x that other customers discuss openly on the vendor's user forum.",
+          cue: "the room discusses the misses",
+        },
+        {
+          text: "The monitoring add-on would have flagged both version changes when they happened. It was part of the product until last year.",
+          cue: "monitoring or its cost comes up",
+        },
       ],
     },
     "The Competitive Marketing Leader": {
       mandate: [
-        "Responsible for: what “we run AI documentation” means when peers and press ask.",
-        "Cannot agree to: external claims about a tool currently outside its own approval.",
-        "Measured on: credibility, especially in a walk-back.",
+        "Your job: what people outside hear about how we use AI.",
+        "You won't go along with: describing the three-clinic use as planned when it wasn't.",
+        "You're judged on: our credibility with peers, especially if we have to correct something.",
       ],
       asymmetric: [
-        "You know the vendor's website lists the institution as a “scaled deployment” case study. The approval said one clinic, six months.",
-        "You know a peer CMIO asked about ChartPilot at a conference last month, and the colleague who answered described the three-clinic footprint as intentional.",
+        {
+          text: "The vendor's website lists us as a customer with a “multi-clinic deployment.” Nobody here approved that wording.",
+          cue: "the room decides who carries the risk",
+        },
+        {
+          text: "At a conference last month, a colleague told another cancer center that the three-clinic rollout was intentional.",
+          cue: "the room decides what happens in GI and breast",
+        },
       ],
     },
   },

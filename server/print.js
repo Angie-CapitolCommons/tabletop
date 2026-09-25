@@ -31,6 +31,9 @@ const PRINT_CSS = `
   .card ul { margin: 6px 0; padding-left: 18px; font-size: 10.5pt; }
   .secret { border-top: 1.5px dashed #666; margin-top: 10px; padding-top: 8px; }
   .secret .mono { color: #a33; }
+  .secret .cue { display: block; font-size: 9pt; color: #555; font-style: italic; margin-top: 2px; }
+  .msg { margin: 8px 0; }
+  .msg .meta { font-family: "Courier New", monospace; font-size: 8.5pt; color: #444; }
   .footer { margin-top: 20px; font-size: 8.5pt; color: #666; border-top: 1px solid #ccc; padding-top: 6px; }
   a { color: #235; }
   @media print { .noprint { display: none; } body { padding: 0; } }
@@ -56,6 +59,16 @@ export function printIndexPage(scenarios) {
      <p class="tagline">Worksheets are the fallback if the app is unreachable. Role cards are dealt at setup — one set per room. Print one of each per scenario.</p>${rows}${FOOTER}`,
   );
 }
+
+// The opening moment: narration lines and the messages that carry the story.
+const openingHtml = (opening) =>
+  opening
+    .map((o) =>
+      o.from
+        ? `<div class="msg"><div class="meta">${esc(o.channel)} &middot; ${esc(o.when)} &middot; ${esc(o.from)} &rarr; ${esc(o.to)}</div>${esc(o.text)}</div>`
+        : `<p>${esc(o.text)}</p>`,
+    )
+    .join("");
 
 export function worksheetPage(s) {
   const nodes = s.nodes
@@ -86,7 +99,7 @@ export function worksheetPage(s) {
     `Worksheet — ${s.title}`,
     `<span class="mono">Tabletop worksheet &middot; enters at ${esc(s.entersAt)}</span>
      <h1>${esc(s.title)}</h1><p class="tagline">${esc(s.tagline)}</p>
-     <div class="brief">${s.brief.split("\n\n").map((p) => `<p>${esc(p)}</p>`).join("")}</div>
+     <div class="brief">${openingHtml(s.opening)}</div>
      ${nodes}${FOOTER}`,
   );
 }
@@ -103,7 +116,7 @@ export function roleCardsPage(s, roles) {
       <ul>${c.mandate.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
       <div class="secret">
         <span class="mono">Only you know this — bring it when it matters</span>
-        <ul>${c.asymmetric.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>
+        <ul>${c.asymmetric.map((a) => `<li>${esc(a.text)}<span class="cue">Bring it up when ${esc(a.cue)}.</span></li>`).join("")}</ul>
       </div>
     </div>`;
     })

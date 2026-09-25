@@ -10,12 +10,14 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
+  CONTENT_VERSION,
   scenarios,
   elders,
   elderFiresOn,
   roles,
   decidedByPrompt,
   villagerStandingLine,
+  buildConsequence,
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
@@ -43,6 +45,7 @@ if (ROOM_CODES.length !== 4 || ROOM_CODES.some((code) => !code) ||
 
 function freshRoom() {
   return {
+    contentVersion: CONTENT_VERSION,
     scenarioId: null,
     nodeIndex: 0,
     phase: "posed",
@@ -179,7 +182,7 @@ function publicState(room, roomNumber) {
       claimedBy: claims[s.id] ?? null,
     })),
     scenario: scenario
-      ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt, brief: scenario.brief, evidence: scenario.evidence }
+      ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt, opening: scenario.opening, evidence: scenario.evidence }
       : null,
     decidedByPrompt,
     villagerStandingLine,
@@ -325,7 +328,8 @@ app.post("/api/answer", roomAuth, (req, res) => {
   if (room.phase === "posed") {
     r.firstAnswer = answer;
     r.timings.firstAnswerAt = answer.at;
-    room.phase = "challenge";
+    // A decision with no Elder has no challenge to revise against: straight to scoring.
+    room.phase = node.elders.length ? "challenge" : "score";
   } else if (room.phase === "revise") {
     r.revisedAnswer = answer;
     room.phase = "score";
@@ -454,7 +458,7 @@ app.post("/api/lock", roomAuth, (req, res) => {
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
   for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
-  r.consequence = node.consequences[choice];
+  r.consequence = buildConsequence(node, choice, score);
   r.villager = scenario.villagers?.[node.id] ?? null;
   room.phase = "consequence";
   persist();
@@ -576,15 +580,18 @@ app.get("/api/admin/overview", adminAuth, (_req, res) => {
     const presented = cells.filter((c) => c.present);
     const settled = presented.filter((c) => c.answered || c.skipped);
     const absentish = settled.filter((c) => c.skipped || c.declined || c.score === "absent");
+    // Three rooms, or every room when only two scenarios present the measure,
+    // so each of the nine can register orphan and alignment (PRD §8 Class C).
+    const quorum = Math.min(3, presented.length);
     return {
       type,
       cells,
-      orphan: presented.length >= 3 && absentish.length >= 3,
+      orphan: presented.length >= 2 && absentish.length >= quorum,
       friction:
         settled.filter((c) => c.score).length >= 2 &&
         new Set(settled.filter((c) => c.score).map((c) => c.score)).size > 1,
       alignment:
-        settled.filter((c) => c.score === "specific").length >= 3,
+        presented.length >= 2 && settled.filter((c) => c.score === "specific").length >= quorum,
     };
   });
 

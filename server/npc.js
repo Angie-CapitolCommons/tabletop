@@ -1,9 +1,10 @@
 // Server-side NPC turns. The API key lives here and only here (PRD §4).
-// The prompt carries: the Elder's profile, scenario state, the room's decision
-// path so far, the answer at this node including free text, and what this Elder
-// already said in this room. It carries NO CoH source material and no
-// participant identities (PRD §7.3).
+// The prompt carries: the Elder's profile, the shared who's who, the scenario's
+// model-only fact summary, the room's decision path so far, the answer at this
+// node including free text, and what this Elder already said in this room. It
+// carries NO CoH source material and no participant identities (PRD §7.3).
 import Anthropic from "@anthropic-ai/sdk";
+import { whosWhoForModel } from "./content/index.js";
 
 const MODEL = process.env.MODEL || "claude-opus-5";
 const FIRST_TOKEN_TIMEOUT_MS = Number(process.env.NPC_FIRST_TOKEN_TIMEOUT_MS) || 8000;
@@ -20,14 +21,16 @@ export async function streamElderTurn({
   priorTurns,
   onDelta,
 }) {
-  // Stable, cacheable prefix: persona + scenario. Volatile per-turn content
-  // (the path and the room's answer) goes after the cache breakpoint.
+  // Stable, cacheable prefix: persona + who's who + scenario facts. The room
+  // sees only the opening moment; the Elders need the backstory behind it.
+  // Volatile per-turn content (the path and the room's answer) goes after the
+  // cache breakpoint.
   const system = [
     {
       type: "text",
       text:
-        `${elder.persona}\n\n` +
-        `SCENARIO — ${scenario.title} (enters at ${scenario.entersAt}):\n${scenario.brief}`,
+        `${elder.persona}\n\n${whosWhoForModel}\n\n` +
+        `SCENARIO — ${scenario.title} (enters at ${scenario.entersAt}):\n${scenario.modelBrief}`,
       cache_control: { type: "ephemeral" },
     },
   ];

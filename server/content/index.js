@@ -9,12 +9,15 @@ export const scenarios = Object.fromEntries(
 );
 
 export {
+  CONTENT_VERSION,
   elders,
   elderFiresOn,
   roles,
   decidedByPrompt,
   villagerStandingLine,
+  whosWhoForModel,
   meterStart,
   meterLabels,
+  buildConsequence,
   buildEpilogue,
 } from "./common.js";
