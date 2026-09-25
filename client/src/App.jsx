@@ -463,6 +463,16 @@ export default function App() {
     refresh(await api("reset", {}));
   });
 
+  // The Decisionmakers drawer saves the roster. It opens with any unsaved
+  // briefing edits folded in, and once saved those edits are cleared so the
+  // briefing shows the saved names. Closes only on success, so a failed save
+  // keeps what was typed.
+  const saveRoster = guard(async () => {
+    refresh(await api("roles", { assignments: rosterEdit }));
+    setRoster({});
+    setDmOpen(false);
+  });
+
   const commitAnswer = guard(async (a) => {
     const d = await api("answer", a);
     setRevising(false);
@@ -492,7 +502,7 @@ export default function App() {
       <button
         className="fac-btn"
         onClick={() => {
-          setRosterEdit({ ...roleAssignments });
+          setRosterEdit({ ...roleAssignments, ...roster });
           setDmOpen(true);
         }}
       >
@@ -669,7 +679,7 @@ export default function App() {
               <div key={r} className="roster-row">
                 <span className="role-name">{r}</span>
                 <input
-                  value={roster[r] ?? ""}
+                  value={roster[r] ?? roleAssignments[r] ?? ""}
                   onChange={(e) => setRoster({ ...roster, [r]: e.target.value })}
                   placeholder="First name(s)"
                 />
@@ -953,13 +963,7 @@ export default function App() {
 
         {dmOpen && (
           <>
-            <div
-              className="drawer-scrim"
-              onClick={async () => {
-                setDmOpen(false);
-                refresh(await api("roles", { assignments: rosterEdit }));
-              }}
-            />
+            <div className="drawer-scrim" onClick={saveRoster} />
             <div className="drawer">
               <div className="drawer-head">
                 <div>
@@ -967,13 +971,7 @@ export default function App() {
                   <h3>The Decisionmakers</h3>
                 </div>
                 <div className="drawer-actions">
-                  <button
-                    className="panel-btn"
-                    onClick={async () => {
-                      setDmOpen(false);
-                      refresh(await api("roles", { assignments: rosterEdit }));
-                    }}
-                  >
+                  <button className="panel-btn" onClick={saveRoster}>
                     Save and close
                   </button>
                 </div>
