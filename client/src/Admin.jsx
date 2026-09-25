@@ -280,10 +280,6 @@ export default function Admin() {
                 onChange={(e) => setIncludeTranscripts(e.target.checked)}
               />
               Include discussion transcripts
-              <span className="hint">
-                Sends transcript text to the model, with first names removed. Off by default: the PRD keeps transcripts
-                from the model, so confirm InfoSec's approval covers this first.
-              </span>
             </label>
             <button
               className="admin-primary"
