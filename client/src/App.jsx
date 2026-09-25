@@ -303,7 +303,7 @@ export default function App() {
     if (transcribingRef.current) return; // already listening
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setTranscribeError("Speech recognition needs Chrome on this laptop.");
+      setTranscribeError("unsupported");
       return;
     }
     setTranscribeError(null);
@@ -321,7 +321,7 @@ export default function App() {
     };
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setTranscribeError("Microphone permission was denied.");
+        setTranscribeError("blocked");
         stopTranscription();
       }
     };
@@ -497,8 +497,15 @@ export default function App() {
   const undoLock = guard(async () => refresh(await api("unlock", {})));
 
   const commitAnswer = guard(async (a) => {
+    const wasTranscribing = transcribingRef.current;
     stopTranscription(); // the discussion ends when the answer is submitted
-    const d = await api("answer", a);
+    let d;
+    try {
+      d = await api("answer", a);
+    } catch (e) {
+      if (wasTranscribing) startTranscription(); // not saved: the room is still talking
+      throw e;
+    }
     setRevising(false);
     refresh(d);
   });
@@ -534,22 +541,30 @@ export default function App() {
       </button>
       {((node && phase === "posed" && discussionFor === node.id) ||
         (phase === "revise" && revising) ||
-        (phase === "epilogue" && debriefOpen)) && (
-        <button
-          className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
-          title="Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
-          onClick={() => (transcribing ? stopTranscription() : startTranscription())}
-        >
-          {transcribing ? "End discussion" : "Start discussion"}
-        </button>
-      )}
-      {transcribing && (
-        <span className="transcribe-chip">
-          <i /> TRANSCRIBING · TEXT ONLY · NO AUDIO STORED · NO VOICES ATTRIBUTED
-        </span>
-      )}
-      {transcribeError && <span className="transcribe-error">{transcribeError}</span>}
-      {actionError && <span className="transcribe-error">{actionError}</span>}
+        (phase === "epilogue" && debriefOpen)) &&
+        transcribeError !== "unsupported" && (
+          <button
+            className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
+            title={
+              transcribing
+                ? "Transcribing the discussion as text: no audio stored, no voices attributed, and the transcript never reaches the AI. It stops when the room submits its answer; click to stop it sooner."
+                : transcribeError === "blocked"
+                  ? "The browser blocked the microphone. Allow it from the address bar, then click to try again."
+                  : "Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
+            }
+            onClick={() => (transcribing ? stopTranscription() : startTranscription())}
+          >
+            {transcribing ? (
+              <>
+                <i className="rec-dot" />
+                Transcribing
+              </>
+            ) : (
+              "Start discussion"
+            )}
+          </button>
+        )}
+      {actionError && <span className="action-error" title={actionError}>{actionError}</span>}
     </>
   );
   const skipBtn = (

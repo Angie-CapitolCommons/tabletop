@@ -99,13 +99,13 @@ h1, h2, h3, p { margin: 0; }
 .facbar .fac-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em; color: var(--on-dark-dim); margin-right: 4px; }
 .fac-btn {
   font-size: 15px; color: var(--on-dark); border: 1px solid rgba(247, 246, 243, 0.3);
-  border-radius: 2px; padding: 9px 14px; white-space: nowrap;
+  border-radius: 2px; padding: 9px 14px; white-space: nowrap; flex-shrink: 0;
 }
 .fac-btn:hover { border-color: rgba(247, 246, 243, 0.6); }
 .fac-btn.armed { border-color: var(--rust); color: #e8b49e; }
 .fac-primary {
   margin-left: auto; font-size: 16px; font-weight: 500; background: var(--paper); color: var(--deep);
-  border-radius: 2px; padding: 12px 26px;
+  border-radius: 2px; padding: 12px 26px; white-space: nowrap; flex-shrink: 0;
 }
 .fac-primary:disabled { opacity: 0.45; }
 .fac-score-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--on-dark-dim); margin-left: auto; white-space: nowrap; }
@@ -115,17 +115,18 @@ h1, h2, h3, p { margin: 0; }
 }
 .fac-score:disabled { opacity: 0.45; }
 .fac-score:not(:disabled):hover { background: rgba(247, 246, 243, 0.12); }
-.fac-btn.transcribe-on { border-color: var(--blue); color: #9ec8e8; }
-.transcribe-chip {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
-  color: var(--on-dark-dim); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+.fac-btn.transcribe-on { border-color: rgba(229, 72, 77, 0.7); }
+.fac-btn .rec-dot {
+  display: inline-block; width: 9px; height: 9px; margin-right: 8px; vertical-align: 1px;
+  border-radius: 50%; background: #e5484d; box-shadow: 0 0 6px rgba(229, 72, 77, 0.8);
+  animation: rec-flash 1.2s steps(1) infinite;
 }
-.transcribe-chip i {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--rust);
-  animation: rec-pulse 1.6s ease-in-out infinite;
+@keyframes rec-flash { 50% { opacity: 0.15; } }
+/* Notices give way before any button does: the bar never pushes Submit off the stage. */
+.action-error {
+  font-size: 12px; color: #e8b49e; min-width: 0; flex: 0 1 auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-@keyframes rec-pulse { 50% { opacity: 0.25; } }
-.transcribe-error { font-size: 12px; color: #e8b49e; }
 .elder-retry { padding: 16px; border: 1px solid #b65f44; color: #fff; background: #542f33; }
 .elder-retry p { margin: 0 0 12px; }
 .elder-retry button { margin-right: 10px; }
@@ -531,7 +532,6 @@ h1, h2, h3, p { margin: 0; }
 .themes-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; background: #fff; border: 1px solid var(--hair3); padding: 14px 18px; }
 .themes-ready { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
 .themes-opt { font-size: 14px; display: flex; align-items: baseline; gap: 6px; flex: 1; min-width: 320px; }
-.themes-opt .hint { margin-left: 4px; }
 .themes-status { font-size: 14px; color: var(--blue); margin: 10px 0 0; }
 .themes-error { font-size: 14px; color: var(--rust); margin: 10px 0 0; }
 .themes-result { background: #fff; border: 1px solid var(--hair3); border-top: 0; padding: 16px 18px 20px; }
