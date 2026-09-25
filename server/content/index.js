@@ -13,6 +13,7 @@ export {
   elders,
   elderFiresOn,
   roles,
+  SECTION_LABELS,
   decidedByPrompt,
   villagerStandingLine,
   whosWhoForModel,

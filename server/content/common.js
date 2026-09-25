@@ -130,6 +130,20 @@ export const roles = [
   "The Competitive Marketing Leader",
 ];
 
+// Section names as the room screen shows them (Purpose, Tier, …); used to
+// label each decision's discussion transcript.
+export const SECTION_LABELS = {
+  purpose: "Purpose",
+  tier: "Tier",
+  risk_accept: "Risk",
+  decide: "Decider",
+  proof: "Proof",
+  funding: "Funding",
+  retier: "Re-review",
+  stop: "Off switch",
+  represent: "The story",
+};
+
 export const decidedByPrompt =
   "Who at the table made that final decision? A role, a first name, or “the group.”";
 

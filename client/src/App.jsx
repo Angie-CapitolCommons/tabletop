@@ -275,6 +275,9 @@ export default function App() {
   const [dmOpen, setDmOpen] = useState(false);
   // After the 12-month report: talk through how it could have gone differently.
   const [debriefOpen, setDebriefOpen] = useState(false);
+  // Each decision opens behind a "Start discussion" pop-up; this is the
+  // decision whose discussion the facilitator has started.
+  const [discussionFor, setDiscussionFor] = useState(null);
   const [debriefFocus, setDebriefFocus] = useState(null);
   const focusRef = useRef(null);
   const [actionError, setActionError] = useState(null);
@@ -297,6 +300,7 @@ export default function App() {
   };
 
   const startTranscription = () => {
+    if (transcribingRef.current) return; // already listening
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setTranscribeError("Speech recognition needs Chrome on this laptop.");
@@ -485,6 +489,7 @@ export default function App() {
   const reopenAnswer = guard(async () => {
     refresh(await api("reopen", {}));
     setRevising(true);
+    startTranscription();
   });
 
   // Undo the score just stamped: the meters roll back and the decision
@@ -492,6 +497,7 @@ export default function App() {
   const undoLock = guard(async () => refresh(await api("unlock", {})));
 
   const commitAnswer = guard(async (a) => {
+    stopTranscription(); // the discussion ends when the answer is submitted
     const d = await api("answer", a);
     setRevising(false);
     refresh(d);
@@ -526,7 +532,8 @@ export default function App() {
       >
         The Decisionmakers
       </button>
-      {((briefed && node && ["posed", "challenge", "revise", "score"].includes(phase)) ||
+      {((node && phase === "posed" && discussionFor === node.id) ||
+        (phase === "revise" && revising) ||
         (phase === "epilogue" && debriefOpen)) && (
         <button
           className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
@@ -590,7 +597,13 @@ export default function App() {
     facbar = (
       <>
         {commonFacBtns}
-        <button className="fac-btn" onClick={() => setRevising(false)}>
+        <button
+          className="fac-btn"
+          onClick={() => {
+            stopTranscription();
+            setRevising(false);
+          }}
+        >
           Back to the challenge
         </button>
         <button className="fac-primary" disabled={!commit?.enabled} onClick={() => commit?.run()}>
@@ -844,7 +857,13 @@ export default function App() {
                 <span className="hr-title">Hold</span>
                 <span className="hr-sub">The answer locks as written.</span>
               </button>
-              <button className="hr-cell" onClick={() => setRevising(true)}>
+              <button
+                className="hr-cell"
+                onClick={() => {
+                  setRevising(true);
+                  startTranscription(); // the discussion restarts for the revision
+                }}
+              >
                 <span className="hr-title">Revise</span>
                 <span className="hr-sub">Reopens the record, pre-filled. Both are kept.</span>
               </button>
@@ -1051,6 +1070,30 @@ export default function App() {
         </div>
         <div className="main">{main}</div>
         <div className="facbar">{facbar}</div>
+
+        {briefed && node && phase === "posed" && discussionFor !== node.id && (
+          <div className="gate-scrim">
+            <div className="gate-card" role="dialog" aria-label="Start discussion">
+              <span className="eyebrow">
+                Decision {nn(node.index)} of {nn(node.count - 1)} · {RAIL_LABELS[node.type]}
+              </span>
+              <h2 className="gate-title">{node.title}</h2>
+              <p className="gate-note">
+                Starting the discussion turns on live transcription for this decision: text only, no audio stored, no
+                voices attributed. It stops when the room submits its answer.
+              </p>
+              <button
+                className="gate-btn"
+                onClick={() => {
+                  setDiscussionFor(node.id);
+                  startTranscription();
+                }}
+              >
+                Start discussion
+              </button>
+            </div>
+          </div>
+        )}
 
         {evidenceOpen && (
           <>

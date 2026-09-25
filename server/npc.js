@@ -4,7 +4,7 @@
 // node including free text, and what this Elder already said in this room. It
 // carries NO CoH source material and no participant identities (PRD §7.3).
 import Anthropic from "@anthropic-ai/sdk";
-import { whosWhoForModel } from "./content/index.js";
+import { whosWhoForModel, SECTION_LABELS } from "./content/index.js";
 
 const MODEL = process.env.MODEL || "claude-opus-5";
 const FIRST_TOKEN_TIMEOUT_MS = Number(process.env.NPC_FIRST_TOKEN_TIMEOUT_MS) || 8000;
@@ -156,4 +156,78 @@ export async function assessClinicianBurden({ scenario, node, option, answer, el
     console.error("Clinician-burden assessment skipped:", error?.message ?? error);
     return null;
   }
+}
+
+// The lead facilitator's themes run: every finished room, bundled by
+// themes.js, synthesized into cross-room themes and next steps toward
+// resolution. Streams (a long, high-effort call) and returns parsed JSON.
+const THEMES_SYSTEM = `You are an analyst supporting the lead facilitator of an AI-governance tabletop exercise. Several breakout rooms of senior leaders each worked a fictional scenario about an AI tool at an academic cancer center. At each decision the room chose a position, wrote its specifics, and named who made the final call; AI "Elders" challenged the answer; the facilitator scored it (Specific means it named a person or role plus a trigger or number). The organizational questions under test: who decides, who accepts risk, what counts as proof, what ends a tool, who pays, and who does what between the AI Governance Workgroup (which today reviews risk only) and Information Security.
+
+From the data, identify the themes that matter for resolving those questions:
+- patterns that recur across rooms and scenarios, and which are specific to one scenario;
+- where rooms agreed, where they diverged, and where they assigned the same authority to different people or bodies;
+- what no room owned or answered, and where specificity dropped;
+- which seats ended up making the calls;
+- where answers changed after the Elders' challenge or once a cost appeared.
+
+Cite evidence by room and section (for example "Room 2, Decider"). Stay with what the data shows; don't invent facts. The scenarios are fictional; the patterns in how the rooms decided are the point.
+
+Then suggest next steps that would move the organization toward resolution. Each step concrete, in priority order, with the kind of owner (a role or a body from the who's who, never a person's name) and a timing (for example "before the next Workgroup meeting").
+
+Write in plain language. No acronyms unless the data uses them. Five to eight themes; five to ten next steps.`;
+
+const THEMES_SCHEMA = {
+  type: "object",
+  properties: {
+    overview: { type: "string" },
+    themes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          summary: { type: "string" },
+          evidence: { type: "array", items: { type: "string" } },
+          rooms: { type: "array", items: { type: "integer" } },
+          sections: { type: "array", items: { type: "string", enum: Object.values(SECTION_LABELS) } },
+        },
+        required: ["title", "summary", "evidence", "rooms", "sections"],
+        additionalProperties: false,
+      },
+    },
+    next_steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          step: { type: "string" },
+          why: { type: "string" },
+          owner: { type: "string" },
+          timing: { type: "string" },
+          related_themes: { type: "array", items: { type: "string" } },
+        },
+        required: ["step", "why", "owner", "timing", "related_themes"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["overview", "themes", "next_steps"],
+  additionalProperties: false,
+};
+
+export async function generateThemes(bundle) {
+  console.log(`[npc] themes run (model ${MODEL}, ${bundle.length} chars)`);
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: 32000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "high", format: { type: "json_schema", schema: THEMES_SCHEMA } },
+    system: THEMES_SYSTEM,
+    messages: [{ role: "user", content: bundle }],
+  });
+  const final = await stream.finalMessage();
+  if (final.stop_reason !== "end_turn") throw new Error(`themes run stopped: ${final.stop_reason}`);
+  const text = final.content.find((b) => b.type === "text")?.text;
+  if (!text) throw new Error("themes run returned no text");
+  return JSON.parse(text);
 }
