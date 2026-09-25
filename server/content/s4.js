@@ -40,24 +40,25 @@ export default {
     },
   ],
   modelBrief: `The tool: an AI visit-summary tool. It summarizes prior visits and drafts sections of the clinic note, and it is attached to a shared note template.
-History: approved 14 months ago by the AI Oversight Committee as a six-month pilot in the medical oncology clinic only. Conditions: a monthly chart check (no owner named) and no use elsewhere without coming back to the committee. No risk level was assigned. The sponsoring clinic director has since moved to another role. Nobody has reviewed the tool since launch.
-Now: it runs in three clinics. GI oncology and breast oncology turned it on by copying the medical oncology note template; the service desk didn't know. About 1,800 notes a week use it, up from about 300 early in the pilot. The vendor has pushed two model updates (version 2.1 to 3.4); the release emails went to a shared mailbox nobody reads. One chart check has been done in 14 months: a pharmacist found 3 of 41 summaries left out an abnormal lab trend, with no harm found; her email to the committee mailbox got no reply. This week a GI fellow caught a summary calling renal function stable when creatinine had doubled.
+History: approved 14 months ago by the AI Governance Workgroup as a six-month pilot in the medical oncology clinic only. Conditions: a monthly chart check (no owner named) and no use elsewhere without coming back to the Workgroup. No risk level was assigned. The sponsoring clinic director has since moved to another role. Nobody has reviewed the tool since launch.
+Now: it runs in three clinics. GI oncology and breast oncology turned it on by copying the medical oncology note template; the service desk didn't know. About 1,800 notes a week use it, up from about 300 early in the pilot. The vendor has pushed two model updates (version 2.1 to 3.4); the release emails went to a shared mailbox nobody reads. One chart check has been done in 14 months: a pharmacist found 3 of 41 summaries left out an abnormal lab trend, with no harm found; her email to the Workgroup mailbox got no reply. This week a GI fellow caught a summary calling renal function stable when creatinine had doubled.
 Turning the tool off for a clinic takes a vendor support ticket; the fastest so far took 19 hours. The license renews automatically in 60 days at a price 38% higher unless written notice is given 30 days before; a monitoring add-on is sold separately. Version 4.0 installs for all customers in 60 days.`,
   evidence: [
     {
       id: "approval-email",
       title: "Pilot approval email (14 months ago)",
-      body: `From: AI Oversight Committee coordinator
+      body: `From: AI Governance Workgroup coordinator
 To: Medical oncology clinic medical director
 Subject: Visit-summary tool — pilot approved
 
-The committee approved a six-month pilot of the visit-summary tool in the medical oncology clinic.
+The Workgroup completed its risk review and approved a six-month pilot of the visit-summary tool in the medical oncology clinic.
 
 Conditions:
 1. A monthly chart check of AI summaries (owner to be confirmed).
-2. No use outside medical oncology without coming back to the committee.
+2. No use outside medical oncology without coming back to the Workgroup.
 
 Risk tier: not assigned at this meeting.
+Information Security review: not requested.
 Model version reviewed: 2.1`,
     },
     {
@@ -80,10 +81,10 @@ Release notes sent to: Digital Health vendor-notices mailbox`,
       id: "spot-check",
       title: "Pharmacist's spot check (last month)",
       body: `From: Oncology clinical pharmacist
-To: AI Oversight Committee mailbox
+To: AI Governance Workgroup mailbox
 Subject: Summary tool — 3 misses in a spot check
 
-While doing med reconciliations last week I checked 41 AI summaries from medical oncology. Three left out an abnormal lab trend that was in the chart (two potassium, one platelets). I found no patient harm.
+While doing medication reconciliations last week I checked 41 AI summaries from medical oncology. Three left out an abnormal lab trend that was in the chart (two potassium, one platelets). I found no patient harm.
 
 I couldn't find who owns the monthly check, so I'm sending it here.
 
@@ -163,7 +164,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         named:
           "The pharmacist who ran last month's spot check emails again, asking where to send her next one. She gets a name back within the hour: the person you named.",
         missing:
-          "The pharmacist who ran last month's spot check emails again, asking where to send her next one. The email goes to the committee mailbox. Nobody replies.",
+          "The pharmacist who ran last month's spot check emails again, asking where to send her next one. The email goes to the Workgroup mailbox. Nobody replies.",
       },
       later: {
         month: 3,
@@ -222,7 +223,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         },
         b: {
           when: "Week 2",
-          text: "The review goes on next month's AI Oversight Committee agenda as a discussion item. It has no reviewer yet.",
+          text: "The review goes on next month's AI Governance Workgroup agenda as a discussion item. It has no reviewer yet.",
         },
         c: {
           when: "Week 3",
@@ -255,9 +256,9 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
       question:
         "The approval never gave the tool a risk level, and two clinics started using it on their own. What level is it, and who decides that?",
       freeTextPrompt: "Who sets the risk level? Does it cover the tool everywhere, or each clinic's use separately?",
-      elders: [],
+      elders: ["steward"],
       inject: () =>
-        "The AI Oversight Committee coordinator asks what risk level to file the review under. The approval email says “not assigned.” GI and breast aren't on file at all.",
+        "The AI Governance Workgroup coordinator asks what risk level to file the review under. Information Security sends its own risk form the same morning. The approval email says “not assigned.”",
       options: [
         {
           id: "a",
@@ -292,7 +293,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         },
         b: {
           when: "Friday",
-          text: "The committee files one risk level for the tool. The form has no field for which clinics or which kinds of notes.",
+          text: "The Workgroup files one risk level for the tool. The form has no field for which clinics or which kinds of notes.",
         },
         c: {
           when: "Friday",
@@ -315,7 +316,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         named:
           "Two more clinics ask to use the tool. One is approved within a week; the other, for pediatric patients, is turned down at the request stage.",
         missing:
-          "The tool is in six clinics. The committee's records show one review, for medical oncology.",
+          "The tool is in six clinics. The Workgroup's records show one review, for medical oncology.",
       },
     },
     {
@@ -329,7 +330,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
       inject: (records) => {
         const c = choiceOf(records, "tier");
         const base =
-          "Monday's emails: the AI Oversight Committee chair writes that ongoing clinical use belongs to the Clinical Practice Council. The council chair replies that AI tools belong to the committee.";
+          "Monday's emails: the AI Governance Workgroup chair writes that the Workgroup reviews risk, and whether a tool stays in clinical use belongs to the Clinical Practice Council. The council chair replies that AI tools belong to the Workgroup.";
         if (c === null || c === "decline")
           return `${base} Because you left the risk level open, neither can point to a rule that says whose it is.`;
         return base;
@@ -337,14 +338,14 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
       options: [
         {
           id: "a",
-          label: "“Put it to a vote at a joint meeting of the committee and the council.”",
+          label: "“Put it to a vote at a joint meeting of the Workgroup and the council.”",
           hint: "Both groups own the result. The first date both can meet is five weeks out.",
           short: "Joint vote",
         },
         {
           id: "b",
-          label: "“One person decides by the end of next month, advised by the AI Oversight Committee.”",
-          hint: "One name on the result. The committee advises but doesn't vote.",
+          label: "“One person decides by the end of next month, advised by the AI Governance Workgroup.”",
+          hint: "One name on the result. The Workgroup advises on risk but doesn't vote.",
           short: "One decider",
         },
         {
@@ -384,7 +385,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         named:
           "The GI medical director asks whether GI can keep the tool while the review runs. The question goes to the person you named and is answered in two days.",
         missing:
-          "The GI medical director asks whether GI can keep the tool while the review runs. The committee and the council each reply that the other should answer.",
+          "The GI medical director asks whether GI can keep the tool while the review runs. The Workgroup and the council each reply that the other should answer.",
       },
       later: {
         month: 6,
@@ -419,7 +420,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         {
           id: "b",
           label: "“Fund a proper validation study before we set any number.”",
-          hint: "Needs funding, a lead, and IRB review. First results in about four months.",
+          hint: "Needs funding, a lead, and research review board (IRB) approval. Results in about four months.",
           short: "Validation study",
         },
         {
@@ -443,7 +444,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         },
         b: {
           when: "Week 3",
-          text: "The study proposal goes to the IRB. The first review slot is in five weeks.",
+          text: "The study proposal goes to the IRB, the research review board. The first review slot is in five weeks.",
         },
         c: {
           when: "Week 4",
@@ -466,7 +467,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         named:
           "The miss rate goes over the agreed number. The tool is paused in GI for two weeks while the vendor looks into it.",
         missing:
-          "A new committee member asks how accurate the summaries are. The only answer is the pharmacist's 3 in 41.",
+          "A new Workgroup member asks how accurate the summaries are. The only answer is the pharmacist's 3 in 41.",
       },
     },
     {
@@ -536,7 +537,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         named:
           "Two things send the tool back for review this year: version 4.0 and a new clinic. Each review takes about a week.",
         missing:
-          "Someone asks which version the committee approved. It was 2.1. The clinics are on 4.1.",
+          "Someone asks which version the Workgroup approved. It was 2.1. The clinics are on 4.1.",
       },
     },
     {
@@ -617,23 +618,28 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
   // Villager beats: shown after the named node locks (PRD §7.2).
   villagers: {
     risk_accept: {
-      name: "The One Who Signs",
-      line: "I signed for the pilot fourteen months ago, as medical oncology's clinic director. I moved to another job in the spring. Nobody has asked me about the tool since.",
+      archetype: "The One Who Signs",
+      speaker: "The pilot's original sponsor",
+      line: "I signed for the pilot fourteen months ago. I moved to another job in the spring. Nobody has asked me about the tool since.",
     },
     tier: {
-      name: "The One Who Makes It Work Anyway",
-      line: "I copied the med-onc template for GI in January. Our notes were running two hours past clinic. I didn't know there was a list to be on.",
+      archetype: "The One Who Makes It Work Anyway",
+      speaker: "A GI oncology nurse manager",
+      line: "I copied the medical oncology template for GI in January. Our notes were running two hours past clinic. I didn't know there was a list to be on.",
     },
     stop: {
-      name: "The Person in the Chair",
+      archetype: "The Person in the Chair",
+      speaker: "A GI oncology patient",
       line: "My summary said my kidneys were stable. The fellow caught it before my appointment. I didn't know a computer had written it until she told me.",
     },
     proof: {
-      name: "The One Who Stopped Asking",
-      line: "I sent my spot check to the committee mailbox last spring. Now I check the labs in every summary myself before I sign off a med reconciliation.",
+      archetype: "The One Who Stopped Asking",
+      speaker: "The oncology pharmacist who ran the spot check",
+      line: "I sent my spot check to the Workgroup mailbox last spring. Now I check the labs in every summary myself before I sign off a medication reconciliation.",
     },
     funding: {
-      name: "The Third Pilot This Year",
+      archetype: "The Third Pilot This Year",
+      speaker: "A breast oncology nurse manager",
       line: "This is my clinic's third AI pilot this year. The first two stopped when their funding ran out. I stopped training my nurses on new tools after the second one.",
     },
   },

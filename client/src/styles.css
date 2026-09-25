@@ -99,7 +99,7 @@ h1, h2, h3, p { margin: 0; }
 .facbar .fac-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em; color: var(--on-dark-dim); margin-right: 4px; }
 .fac-btn {
   font-size: 15px; color: var(--on-dark); border: 1px solid rgba(247, 246, 243, 0.3);
-  border-radius: 2px; padding: 9px 16px;
+  border-radius: 2px; padding: 9px 14px; white-space: nowrap;
 }
 .fac-btn:hover { border-color: rgba(247, 246, 243, 0.6); }
 .fac-btn.armed { border-color: var(--rust); color: #e8b49e; }
@@ -108,7 +108,7 @@ h1, h2, h3, p { margin: 0; }
   border-radius: 2px; padding: 12px 26px;
 }
 .fac-primary:disabled { opacity: 0.45; }
-.fac-score-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--on-dark-dim); margin-left: auto; }
+.fac-score-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--on-dark-dim); margin-left: auto; white-space: nowrap; }
 .fac-score {
   font-size: 15px; color: var(--paper); border: 1px solid rgba(247, 246, 243, 0.5);
   border-radius: 2px; padding: 9px 16px;
@@ -248,11 +248,22 @@ h1, h2, h3, p { margin: 0; }
 .case-title { font-family: var(--serif); font-size: 30px; line-height: 1.08; }
 .case-tagline { font-size: 17px; color: var(--slate); line-height: 1.4; }
 
-/* ---------- villager beat ---------- */
-.villager { margin-top: 26px; border-top: 1px solid var(--hair); padding-top: 16px; max-width: 560px; }
-.villager-name { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); }
-.villager-line { font-family: var(--serif); font-size: 24px; line-height: 1.35; font-style: italic; margin: 8px 0 8px; }
-.villager-standing { font-size: 12px; color: var(--faint); line-height: 1.4; display: block; }
+/* ---------- villager beat: a speech bubble from someone who lives with the decision ---------- */
+.villager { margin-top: 14px; }
+.villager-eyebrow { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); display: block; margin-bottom: 6px; }
+.villager-bubble {
+  position: relative; background: #fff; border: 1px solid var(--hair4); border-radius: 14px;
+  padding: 11px 16px;
+}
+/* the tail points down at the speaker */
+.villager-bubble::after {
+  content: ""; position: absolute; left: 24px; bottom: -8px; width: 14px; height: 14px;
+  background: #fff; border-right: 1px solid var(--hair4); border-bottom: 1px solid var(--hair4);
+  transform: rotate(45deg);
+}
+.villager-line { font-family: var(--serif); font-size: 19px; line-height: 1.35; font-style: italic; margin: 0; }
+.villager-speaker { font-size: 14.5px; font-weight: 600; color: var(--deep); margin: 12px 0 4px 16px; }
+.villager-standing { font-size: 11px; color: var(--faint); line-height: 1.35; display: block; }
 
 /* ---------- briefing ---------- */
 .briefing { display: grid; grid-template-columns: 1.45fr 1fr; gap: 48px; height: 100%; }
@@ -364,7 +375,6 @@ h1, h2, h3, p { margin: 0; }
 .elder-seat { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-top: 6px; }
 .elder-text { font-size: 27px; line-height: 1.45; margin-top: 20px; }
 .elder.unavailable .elder-text { color: var(--muted); }
-.no-elder { font-size: 22px; line-height: 1.45; color: var(--slate); margin: 0 0 20px; }
 .cursor { color: var(--blue); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -388,8 +398,6 @@ h1, h2, h3, p { margin: 0; }
 .cq-meta { font-family: var(--mono); font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--slate); }
 .cq-meta .score { color: var(--purple); }
 .cq-right { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
-.cq-right .villager { margin: 0 0 16px; border-top: 0; padding-top: 0; }
-.cq-right .villager-line { font-size: 21px; }
 
 .moved-label { font-family: var(--mono); font-size: 13px; color: var(--slate); margin-bottom: 2px; }
 .moved-row {

@@ -17,6 +17,8 @@ export async function streamElderTurn({
   node,
   option,
   answer,
+  previous,
+  previousOption,
   pathSummary,
   priorTurns,
   onDelta,
@@ -47,12 +49,17 @@ export async function streamElderTurn({
       (pathSummary
         ? `The room's decision path so far:\n${pathSummary}\n\n`
         : "") +
-      `The room just committed its answer at the "${node.title}" node (type: ${node.type}).\n` +
-      `Question posed: ${node.question}\n` +
+      (previous
+        ? `The room has revised its answer at the "${node.title}" node (type: ${node.type}) after hearing from the Elders.\n` +
+          `Question posed: ${node.question}\n` +
+          `Their earlier answer: ${previousOption?.label} — "${previous.freeText}"\n` +
+          `Respond to the revised answer below, not the earlier one, and don't repeat your earlier comment.\n`
+        : `The room just committed its answer at the "${node.title}" node (type: ${node.type}).\n` +
+          `Question posed: ${node.question}\n`) +
       `Their choice: ${option.label}\n` +
       `Their written specifics (verbatim): "${answer.freeText}"\n` +
       `Who at the table made the final call (verbatim): "${answer.decidedBy}"\n\n` +
-      `Respond in character. If the answer names a real person or role with a real trigger or threshold, be movable — offer a conditional path or your sponsorship. If it is vague, press exactly where it is vague. If they ignored what you told them at an earlier node, show it. 2–4 sentences.`,
+      `Respond in character, briefly, politely, and supportively. If the answer names a real person or role with a real trigger or number, say so and offer your support or a condition. If something is missing, kindly ask for that one thing. If they didn't take up something you raised earlier, mention it gently. One to three short sentences, under 50 words.`,
   });
 
   console.log(`[npc] live call → ${elder.id} @ ${node.id} (model ${MODEL})`);

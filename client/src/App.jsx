@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 // evidence + AI Council available everywhere, score-at-lock in the
 // facilitator bar, decision-path strip, segmented meters.
 
-import { MEASURES } from "./measures.js";
+import { SCORING, GENERIC_ABSENT } from "./measures.js";
 
 const ROOM_CODE_KEY = "tt-room-code";
 
@@ -346,7 +346,8 @@ export default function App() {
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
     if (!state || state.phase !== "challenge" || !node) return;
-    const attempt = `${node.id}:${elderRetry}`;
+    // Each committed answer — the first and every revision — gets its own Elder round.
+    const attempt = `${node.id}:${state.record?.revisedAnswer?.at ?? "first"}:${elderRetry}`;
     if (npcForNode.current === attempt) return;
     npcForNode.current = attempt;
     setElderError(null);
@@ -397,7 +398,7 @@ export default function App() {
       setTurns((ts) => ts.map((turn) => turn.status === "streaming"
         ? { ...turn, status: "unavailable", text: "This response was interrupted." } : turn));
     });
-  }, [state?.phase, node?.id, elderRetry]);
+  }, [state?.phase, node?.id, elderRetry, state?.record?.revisedAnswer?.at]);
 
   useEffect(() => {
     setSkipArmed(false);
@@ -472,6 +473,17 @@ export default function App() {
     setRoster({});
     setDmOpen(false);
   });
+
+  // Back from scoring: reopen the answer for editing; the edit is kept as the
+  // revised answer, alongside the first.
+  const reopenAnswer = guard(async () => {
+    refresh(await api("reopen", {}));
+    setRevising(true);
+  });
+
+  // Undo the score just stamped: the meters roll back and the decision
+  // returns to scoring. Only while its consequence is on screen.
+  const undoLock = guard(async () => refresh(await api("unlock", {})));
 
   const commitAnswer = guard(async (a) => {
     const d = await api("answer", a);
@@ -584,9 +596,12 @@ export default function App() {
       <>
         {commonFacBtns}
         {phase !== "score" && skipBtn}
-        <span className="fac-score-label" title={`${MEASURES[node.type].id} ${MEASURES[node.type].name}: ${MEASURES[node.type].def}`}>
-          SCORE AT LOCK
-        </span>
+        {phase === "score" && (
+          <button className="fac-btn" onClick={reopenAnswer}>
+            Edit the answer
+          </button>
+        )}
+        <span className="fac-score-label">SCORE AT LOCK</span>
         {scoreBtns}
       </>
     );
@@ -594,6 +609,9 @@ export default function App() {
     facbar = (
       <>
         {commonFacBtns}
+        <button className="fac-btn" onClick={undoLock}>
+          Undo this score
+        </button>
         <button className="fac-primary" onClick={advance}>
           {node
             ? node.index + 2 > progress.length
@@ -723,6 +741,8 @@ export default function App() {
       </div>
     );
   } else if ((phase === "challenge" || phase === "revise" || phase === "score") && node) {
+    // Show (and score) the room's latest answer, not only its first.
+    const shown = record.revisedAnswer ?? record.firstAnswer;
     main = revising ? (
       <div className="discuss recording">
         <div className="d-left">
@@ -737,7 +757,7 @@ export default function App() {
           decidedByPrompt={decidedByPrompt}
           roles={roles}
           roleAssignments={roleAssignments}
-          initial={record.firstAnswer}
+          initial={shown}
           onCommit={commitAnswer}
           commitLabel="Commit the revised answer"
           setCommit={setCommit}
@@ -746,30 +766,27 @@ export default function App() {
     ) : (
       <div className="challenge">
         <div>
-          <div className="committed-label">THE ROOM COMMITTED</div>
+          <div className="committed-label">{record.revisedAnswer ? "THE ROOM REVISED" : "THE ROOM COMMITTED"}</div>
           <div className="committed-card">
             <div className="cc-choice">
               <span className="letter">
                 {optLetter(
-                  node.options.find((o) => o.id === record.firstAnswer.choice),
-                  node.options.findIndex((o) => o.id === record.firstAnswer.choice),
+                  node.options.find((o) => o.id === shown.choice),
+                  node.options.findIndex((o) => o.id === shown.choice),
                 )}
               </span>
               <span className="cc-label">
-                {node.options.find((o) => o.id === record.firstAnswer.choice).label}
+                {node.options.find((o) => o.id === shown.choice).label}
               </span>
             </div>
-            <p className="cc-quote">“{record.firstAnswer.freeText}”</p>
+            <p className="cc-quote">“{shown.freeText}”</p>
             <div className="cc-rule">
               <div className="cc-final-label">FINAL CALL</div>
-              <div className="cc-final">{record.firstAnswer.decidedBy}</div>
+              <div className="cc-final">{shown.decidedBy}</div>
             </div>
           </div>
         </div>
         <div className="elder-col">
-          {node.elders.length === 0 && (
-            <p className="no-elder">No Elder weighs in on this decision. The room's answer goes straight to scoring.</p>
-          )}
           {phase === "challenge" && elderError && (
             <div className="elder-retry" role="alert">
               <p>{elderError}</p>
@@ -800,7 +817,7 @@ export default function App() {
             <div className="hold-revise">
               <button className="hr-cell" onClick={guard(async () => refresh(await api("hold", {})))}>
                 <span className="hr-title">Hold</span>
-                <span className="hr-sub">The first answer locks as written.</span>
+                <span className="hr-sub">The answer locks as written.</span>
               </button>
               <button className="hr-cell" onClick={() => setRevising(true)}>
                 <span className="hr-title">Revise</span>
@@ -812,10 +829,9 @@ export default function App() {
             <div className="hold-revise">
               <div className="hr-cell" style={{ gridColumn: "1 / -1" }}>
                 <span className="hr-title">Ready to lock</span>
-                {/* The framework's measure appears at scoring, not during the room's discussion. */}
+                {/* What counts as Specific for this measure, shown at scoring, not during discussion. */}
                 <span className="hr-sub">
-                  Score it as {MEASURES[node.type].id} {MEASURES[node.type].name}: {MEASURES[node.type].def}.
-                  Specific names a person or role plus a trigger or number. Stamp the score in the bar below.
+                  Specific: {SCORING[node.type]}. {GENERIC_ABSENT} Stamp the score in the bar below.
                 </span>
               </div>
             </div>
@@ -839,17 +855,10 @@ export default function App() {
           </div>
           <p className="cq-meta">
             LOCKED · <span className="score">{record.score}</span>
-            {record.held ? " · HELD AFTER CHALLENGE" : record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : ""}
+            {record.revisedAnswer ? " · REVISED AFTER CHALLENGE" : record.held ? " · HELD AFTER CHALLENGE" : ""}
           </p>
         </div>
         <div className="cq-right">
-          {record.villager && (
-            <div className="villager">
-              <span className="villager-name">{record.villager.name}</span>
-              <p className="villager-line">“{record.villager.line}”</p>
-              <span className="villager-standing">{villagerStandingLine}</span>
-            </div>
-          )}
           <div className="moved-label">WHAT MOVED</div>
           {Object.keys(METER_FULL).map((k) => {
             const before = prevMeter?.[k] ?? state.meter[k];
@@ -869,6 +878,17 @@ export default function App() {
               </div>
             );
           })}
+          {/* The Villager: a voice from the people who live with the decision. */}
+          {record.villager && (
+            <div className="villager">
+              <span className="villager-eyebrow">Who lives with this decision</span>
+              <div className="villager-bubble">
+                <p className="villager-line">“{record.villager.line}”</p>
+              </div>
+              <div className="villager-speaker">{record.villager.speaker}</div>
+              <span className="villager-standing">{villagerStandingLine}</span>
+            </div>
+          )}
         </div>
         <PathStrip
           progress={progress}
@@ -917,7 +937,7 @@ export default function App() {
             <div
               key={p.id}
               className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}
-              title={`${MEASURES[p.type].id} ${MEASURES[p.type].name} — ${MEASURES[p.type].def}`}
+              title={`Specific: ${SCORING[p.type]}`}
             >
               <span className="num">{nn(i)}</span>
               {RAIL_LABELS[p.type]}

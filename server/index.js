@@ -328,11 +328,12 @@ app.post("/api/answer", roomAuth, (req, res) => {
   if (room.phase === "posed") {
     r.firstAnswer = answer;
     r.timings.firstAnswerAt = answer.at;
-    // A decision with no Elder has no challenge to revise against: straight to scoring.
-    room.phase = node.elders.length ? "challenge" : "score";
+    room.phase = "challenge";
   } else if (room.phase === "revise") {
+    // A revised answer goes back to the Elders, who respond to what changed.
+    r.previousAnswer = finalAnswer(r);
     r.revisedAnswer = answer;
-    room.phase = "score";
+    room.phase = "challenge";
   } else {
     return res.status(409).json({ error: `cannot answer in phase ${room.phase}` });
   }
@@ -356,8 +357,11 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
   const r = getRecord(room, node.id);
-  const answer = r.firstAnswer;
+  const answer = finalAnswer(r);
   const option = node.options.find((o) => o.id === answer.choice);
+  // On a revision, the Elders see the answer they last responded to.
+  const previous = r.revisedAnswer ? r.previousAnswer : null;
+  const previousOption = previous ? node.options.find((o) => o.id === previous.choice) : null;
   const pathSummary = scenario.nodes
     .slice(0, room.nodeIndex)
     .map((n) => {
@@ -381,6 +385,8 @@ app.post("/api/npc", roomAuth, async (req, res) => {
         node,
         option,
         answer,
+        previous,
+        previousOption,
         pathSummary,
         priorTurns,
         onDelta: (t) => send({ type: "delta", text: t }),
@@ -436,6 +442,40 @@ app.post("/api/hold", roomAuth, (req, res) => {
     return res.status(409).json({ error: `cannot hold in phase ${room.phase}` });
   }
   getRecord(room, currentNode(room).id).held = true;
+  room.phase = "score";
+  persist();
+  res.json(publicState(room, req.roomNumber));
+});
+
+// Back from scoring: reopen the room's answer for editing before it locks.
+// The edit is recorded as the revised answer, so both stay on the record.
+app.post("/api/reopen", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "score") {
+    return res.status(409).json({ error: "The answer can only be reopened before it's scored." });
+  }
+  getRecord(room, node.id).held = false;
+  room.phase = "revise";
+  persist();
+  res.json(publicState(room, req.roomNumber));
+});
+
+// Undo the most recent lock, while its consequence is still on screen:
+// the meters roll back and the decision returns to scoring.
+app.post("/api/unlock", roomAuth, (req, res) => {
+  const room = req.room;
+  const node = currentNode(room);
+  if (!node || room.epilogue || room.phase !== "consequence") {
+    return res.status(409).json({ error: "Only the score just stamped can be undone." });
+  }
+  const r = getRecord(room, node.id);
+  const deltas = node.meterDeltas[finalAnswer(r).choice];
+  for (const k of Object.keys(deltas)) room.meter[k] -= deltas[k];
+  r.score = null;
+  r.consequence = null;
+  r.villager = null;
+  r.timings.lockedAt = null;
   room.phase = "score";
   persist();
   res.json(publicState(room, req.roomNumber));
