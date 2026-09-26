@@ -1,7 +1,8 @@
 // Scenario 1 — "Three Worthy Requests, Capacity for One" (enters at Intake).
 // Fictional composite. The room does not pick the winner; it sets how the AI
-// Lab picks and what the winner must live by. The four properties: an
-// unstated purpose (the AI Lab's charter says "to be completed"); never-rated
+// Integration Environment picks and what the winner must live by. The four
+// properties: an unstated purpose (the AI Integration Environment's charter
+// says "to be completed"); never-rated
 // objects (no request has a risk level); a budget/authority split (the slot
 // is people, not money; the money sits with sponsors and outside parties);
 // an ambiguous evidence base with no ending (one savings claim from other
@@ -15,45 +16,45 @@ export default {
   tagline: "Three AI requests, one build slot this quarter, and no written rule for choosing.",
   opening: [
     {
-      text: "Monday morning. The AI Lab has one build-and-test slot this quarter. Three requests came in last week.",
+      text: "Monday morning. The AI Integration Environment has one build-and-test slot this quarter. Three requests came in last week.",
     },
     {
       channel: "Email",
       when: "8:12 a.m.",
       from: "Revenue cycle director",
-      to: "AI Lab intake",
+      to: "Intake",
       text: "Following up on the appeal-letter tool. The vendor can start in 30 days, and our prior-authorization denial backlog is around 4,000 claims. Can we get on this week's list?",
     },
     {
       channel: "Email",
       when: "9:30 a.m.",
       from: "Lead researcher, trial-matching grant",
-      to: "AI Lab intake",
+      to: "Intake",
       text: "Our grant year starts next month. I don't need your money, I need your approval. Which committee do I write to — or can we just start in the department?",
     },
     {
       channel: "Teams",
       when: "11:47 a.m.",
       from: "Triage line charge nurse",
-      to: "AI Lab intake",
+      to: "Intake",
       text: "Hi — just checking our request arrived? It's for a tool to help draft callback notes. We had two callbacks last month that went out later than they should have.",
     },
     {
-      text: "The intake meeting is today. You're not picking the winner. You're deciding how the AI Lab picks, and what the winner has to live by.",
+      text: "The intake meeting is today. You're not picking the winner. You're deciding how the AI Integration Environment picks, and what the winner has to live by.",
     },
   ],
-  modelBrief: `The AI Lab has one build-and-test slot this quarter (about 90 days) and half of one analyst for evaluation. Its charter, drafted 11 months ago, still lists its purpose and intake process as "to be completed." Information Security's review wait is officially about six weeks.
+  modelBrief: `The AI Integration Environment has one build-and-test slot this quarter (about 90 days) and half of one analyst for evaluation. Its charter, drafted 11 months ago, still lists its purpose and intake process as "to be completed." Information Security's review wait is officially about six weeks.
 Three requests arrived in the same week; none has a risk level:
 1. An appeal-letter tool that drafts prior-authorization appeal letters from claims and clinical notes. Vendor product. Sponsor: a revenue cycle director with a backlog of around 4,000 denied claims. The vendor claims about $2.1M a year recovered, based on three other customers' self-reported results, and says it can go live in 30 days.
-2. A trial-matching tool that screens charts for clinical-trial eligibility. Academic collaboration; a grant covers year one. The lead researcher says the department will start it on its own if the AI Lab doesn't approve it. Needs read access to full charts.
+2. A trial-matching tool that screens charts for clinical-trial eligibility. Academic collaboration; a grant covers year one. The lead researcher says the department will start it on its own if the AI Integration Environment doesn't approve it. Needs read access to full charts.
 3. A triage-line assistant that drafts callback notes for the nurse triage phone line, for a nurse to edit and send. Requested by the triage nurses themselves after two late callbacks; no senior sponsor, no budget.
 The AI Governance Workgroup reviews AI tools for risk only; it does not rank requests or weigh business, financial, or clinician impact, and nobody else formally does either. Information Security also reviews risk, and which tools go to which is inconsistent.
-The room is not choosing the winner. It is deciding what the AI Lab is for, how requests get a risk level, who picks and who tells the others, what the winner must show at day 90, whose money builds it, and what can be said outside.`,
+The room is not choosing the winner. It is deciding what the AI Integration Environment is for, how requests get a risk level, who picks and who tells the others, what the winner must show at day 90, whose money builds it, and what can be said outside.`,
   evidence: [
     {
       id: "charter",
-      title: "AI Lab charter (draft, 11 months old)",
-      body: `AI LAB — CHARTER (DRAFT)
+      title: "AI Integration Environment charter (draft, 11 months old)",
+      body: `AI INTEGRATION ENVIRONMENT — CHARTER (DRAFT)
 
 Sponsor: Executive sponsor for AI
 Capacity: one build-and-test slot per quarter
@@ -103,10 +104,10 @@ Signed: 14 triage line nurses`,
     {
       id: "purpose",
       type: "purpose",
-      title: "What is the AI Lab for?",
+      title: "What is the AI Integration Environment for?",
       question:
-        "The AI Lab's charter still says “purpose: to be completed.” Before anyone ranks the three requests: what is the lab for, and what isn't it for?",
-      freeTextPrompt: "The lab's purpose in one sentence. One thing it is not for. Who signs off on that?",
+        "The AI Integration Environment's charter still says “purpose: to be completed.” Before anyone ranks the three requests: what is it for, and what isn't it for?",
+      freeTextPrompt: "The purpose in one sentence. One thing it is not for. Who signs off on that?",
       elders: ["cartographer"],
       options: [
         {
@@ -163,9 +164,9 @@ Signed: 14 triage line nurses`,
       later: {
         month: 5,
         named:
-          "The AI Lab turns down a request in writing, quoting its purpose statement. The requester appeals once, then withdraws.",
+          "The AI Integration Environment turns down a request in writing, quoting its purpose statement. The requester appeals once, then withdraws.",
         missing:
-          "The AI Lab has seven requests in its queue and no written way to rank them. The two with the most senior sponsors are at the top.",
+          "The AI Integration Environment has seven requests in its queue and no written way to rank them. The two with the most senior sponsors are at the top.",
       },
     },
     {
@@ -253,7 +254,7 @@ Signed: 14 triage line nurses`,
           return `${email} Because you used the strategic plan's wording, all three requests fit it, the lead researcher's included.`;
         if (c === "c" || c === "writein")
           return `${email} The purpose statement you wrote is the first thing anyone will quote back to the lead researcher.`;
-        return `${email} Because the lab has no written purpose, there is nothing to answer it with except the ranking.`;
+        return `${email} Because the AI Integration Environment has no written purpose, there is nothing to answer it with except the ranking.`;
       },
       options: [
         {
@@ -312,7 +313,7 @@ Signed: 14 triage line nurses`,
         named:
           "The two requests that didn't get the slot each have a date to reapply. Neither has started on its own.",
         missing:
-          "One of the requests that didn't get the slot is running anyway, inside its own department, outside the AI Lab.",
+          "One of the requests that didn't get the slot is running anyway, inside its own department, outside the AI Integration Environment.",
       },
     },
     {
@@ -398,9 +399,9 @@ Signed: 14 triage line nurses`,
       options: [
         {
           id: "a",
-          label: "“The AI Lab's budget pays. Outside money comes in only on our written terms.”",
-          hint: "The lab's budget becomes the limit on what gets built.",
-          short: "Lab pays, our terms",
+          label: "“The AI Integration Environment's budget pays. Outside money comes in only on our written terms.”",
+          hint: "Its budget becomes the limit on what gets built.",
+          short: "Own budget, our terms",
         },
         {
           id: "b",
@@ -425,7 +426,7 @@ Signed: 14 triage line nurses`,
       events: {
         a: {
           when: "Week 2",
-          text: "The AI Lab's budget is written into the intake record for the first time. Finance asks whether it is enough for the lab's stated purpose.",
+          text: "The AI Integration Environment's budget is written into the intake record for the first time. Finance asks whether it covers the stated purpose.",
         },
         b: {
           when: "Week 2",
@@ -437,7 +438,7 @@ Signed: 14 triage line nurses`,
         },
         decline: {
           when: "Week 3",
-          text: "The grant money starts being spent in the department, and the vendor's free pilot starts in revenue cycle. Neither went through the AI Lab.",
+          text: "The grant money starts being spent in the department, and the vendor's free pilot starts in revenue cycle. Neither went through the AI Integration Environment.",
         },
       },
       owner: {
@@ -452,7 +453,7 @@ Signed: 14 triage line nurses`,
         named:
           "The winner's renewal goes to Finance with a named owner and a price agreed a year earlier.",
         missing:
-          "A renewal invoice at list price arrives for a tool the AI Lab never chose. The tool has users by now, so it is paid.",
+          "A renewal invoice at list price arrives for a tool the AI Integration Environment never chose. The tool has users by now, so it is paid.",
       },
     },
     {
@@ -593,7 +594,7 @@ Signed: 14 triage line nurses`,
       ],
       asymmetric: [
         {
-          text: "The AI Lab's build budget this year is about $180,000, less than one year of the appeal-letter tool at list price.",
+          text: "The AI Integration Environment's build budget this year is about $180,000, less than one year of the appeal-letter tool at list price.",
           cue: "money comes up",
         },
         {
