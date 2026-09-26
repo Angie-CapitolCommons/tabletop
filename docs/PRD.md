@@ -1,9 +1,12 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.0 · September 26, 2026*
+*Version 1.1 · September 26, 2026*
 
-> **The code is the source of truth.** This document describes what
+> **The code is the source of truth.** Tabletop runs as two tracks, the web
+> app and the paper kit, and each track's code is its own source of truth:
+> `server/` and `client/` for the app, and `paper/` for the kit. The paper
+> track is expected to drift from the app (§12). This document describes what
 > `Angie-CapitolCommons/tabletop` does at `main` `47d33fc`, plus two open
 > changes: the paper kit (PR #24) and the purpose-rubric fix (the PR that
 > carries this document). Where this document and the code disagree, the code
@@ -42,9 +45,10 @@ recorded as a gap the room couldn't close, visible at plenary.
 
 **How the City of Hope session runs: on paper.** On September 26, 2026 the
 organization decided, for security reasons, to run the session on paper
-instead of the web app. The paper kit (§12) is generated from the app's
-scenario content, so the app remains the place where content is written and
-checked. The web app is complete, but it won't be used in this session.
+instead of the web app. The paper kit (§12) starts from the app's scenario
+content, but the paper process is being refined on its own and will drift from
+the app experience. The web app stays deployed; it won't be used in this
+session.
 
 ---
 
@@ -364,8 +368,9 @@ There's no per-room spend cap and no global circuit breaker.
 
 ## 12. The paper kit
 
-`npm run paper-kit` builds 27 editable Word documents from the scenario
-content (`paper/build-kit.mjs`; PR #24).
+`npm run paper-kit` builds 27 editable Word documents (`paper/build-kit.mjs`;
+PR #24). The paper process is refined on its own and is expected to drift from
+the app; it isn't a printout of the app.
 
 | Document | Who it's for |
 |---|---|
@@ -374,7 +379,10 @@ content (`paper/build-kit.mjs`; PR #24).
 | Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: room-to-case assignments for packing, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
 | Per case (color-coded) | Facilitator Booklet, Room Packet (opening and evidence), Decision Cards, Role Cards, Worksheet, 12-Month Report Cards |
 
-How the app's parts become paper, for one facilitator with no scribe:
+### Where paper differs from the app
+
+As of September 26, for one facilitator per room with no scribe. Keep this
+list current as the paper process moves further from the app.
 
 - **Assigned cases** instead of choosing.
 - **"Meanwhile" memos** as lookup tables: find what the room chose earlier,
@@ -382,7 +390,6 @@ How the app's parts become paper, for one facilitator with no scribe:
 - **Elders** as scripted lines (`paper/elder-cards.js`), one set per Elder per
   decision, with four versions: nobody named, named but missing a trigger or
   number or date, specific, and declined. Same rules as the live Elders.
-- **Scoring** with the same Class A rubric.
 - **The meter** judged by the room (§8).
 - **The 12-month report** as named and not-named cards laid out in month order.
 - **The dashboard** as a wall of colored sticky notes on the A1–A9 matrix.
@@ -391,8 +398,29 @@ How the app's parts become paper, for one facilitator with no scribe:
 - No "ask again", no undo, no "how we got here" chat, and no themes run. The
   lead facilitator covers those in synthesis.
 
-Content changes go in `server/content/`, then the kit is regenerated. Editing
-the Word files directly is fine for printing, but those edits don't flow back.
+### Where each piece lives
+
+| What | Source | Shared with the app? |
+|---|---|---|
+| Cases: opening, evidence, decisions, options, events, owner beats, 12-month entries, Villagers, role cards | `server/content/` | Yes, read by the kit at build time |
+| Scoring rubric | `client/src/measures.js` | Yes, read by the kit at build time |
+| Scripted Elder lines | `paper/elder-cards.js` | No, paper only |
+| Facilitator steps, meter board, worksheet, plenary wall, and all kit wording | `paper/build-kit.mjs` | No, paper only |
+
+**Rules for drift.**
+
+- A paper-only change goes under `paper/`. It never edits `server/content/`
+  or `client/` to get a different printout, because that changes the live
+  app too.
+- When paper needs a shared item (a case, an option, the rubric) to read
+  differently from the app, move that item's paper version under `paper/` and
+  have the kit read it from there. From then on, that item belongs to paper.
+- A change to `server/content/` or `measures.js` still flows into the kit
+  until paper has taken that item over. Regenerate the kit and check the
+  affected pages after any such change.
+- Editing the generated Word files is fine for a one-off printing fix, but
+  those edits are lost on the next build. Anything that should last goes in
+  `paper/`.
 
 ---
 
@@ -406,7 +434,8 @@ the Word files directly is fine for printing, but those edits don't flow back.
   room. `DATABASE_URL` is required.
 - **Deployment:** Replit Autoscale, custom domain
   `tabletop.virtual-insights.com` (Squarespace DNS). Any number of instances
-  can serve rooms. Don't redeploy during a session.
+  can serve rooms. Don't redeploy during a session. The deployment stays up
+  after the City of Hope session moves to paper (decided September 26).
 - **Access:** four distinct room codes (`ROOM_CODES`) and one admin code
   (`ADMIN_CODE`) are required; there are no defaults. Codes are compared in
   constant time. Ten wrong tries per IP per minute returns 429. Participants
@@ -436,6 +465,8 @@ the Word files directly is fine for printing, but those edits don't flow back.
 ## 15. Known gaps
 
 Things earlier drafts promised, and places where the code contradicts itself.
+The app stays deployed, so these matter even though this session runs on
+paper; the spend cap and the unauthenticated endpoints matter most.
 
 - **No delete-on-request or post-session shutdown.** Reset overwrites state,
   and the legacy `data` column is kept as a backup. There's no delete endpoint
@@ -464,12 +495,10 @@ Things earlier drafts promised, and places where the code contradicts itself.
 1. Derive the Elder personas from `CoH_Council_Actor_Encoding.md`, and review
    the paper kit's scripted Elder lines against them.
 2. Check scenario detail against the internal scout dispatch findings.
-3. With the session on paper: take down the Replit deployment and revoke the
-   Anthropic key, or keep the app running for later use?
-4. Whether the four planning-team topics (North Star, Categorization,
+3. Whether the four planning-team topics (North Star, Categorization,
    Operating Model, Success Metrics) stay as agenda labels over this
    structure (recommended) or are restated.
-5. An infusion nurse as a Villager in S4. Not added; S4 already has five
+4. An infusion nurse as a Villager in S4. Not added; S4 already has five
    Villagers.
 
 ---
@@ -482,4 +511,4 @@ Things earlier drafts promised, and places where the code contradicts itself.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). |
