@@ -15,7 +15,7 @@ export const MEASURES = {
 // What a Specific answer contains, per measure, in the room's own words.
 // Shown to the facilitator at scoring; the A-codes above stay on the dashboard.
 export const SCORING = {
-  purpose: "the purpose in one sentence, one thing it's not for, and who signs off on it",
+  purpose: "one purpose in a sentence, what it leaves out, and who signs off on that choice",
   tier: "who sets the risk level, and whether it covers the tool everywhere or each use",
   retier: "the events that send it back for review, and who watches for them",
   decide: "one person or role who decides, who they check with, and a date",
