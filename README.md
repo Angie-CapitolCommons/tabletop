@@ -56,10 +56,36 @@ instead of acknowledging a decision that was not saved. Without an Anthropic
 key or on an interrupted Elder stream, the challenge remains retryable, with
 an explicit option to hold the answer and continue.
 
+## Four-room rehearsal script
+
+`scripts/rehearse.mjs` plays all four scenarios in all four rooms at once
+against a running site — local or published — through the same API the room
+screens use, with real Claude calls: Elder rounds (including asking again and
+revisions), transcript lines, skips, declines, write-ins, the 12-month chat,
+and the admin themes run. It checks every step, times the Elders, watches for
+rooms going backwards (more than one server instance), and writes
+`summary.json` and `export.json` to a `rehearsal-<time>/` folder.
+
+```bash
+# From the Replit shell (reads ROOM_CODES and ADMIN_CODE from the environment)
+npm run rehearse -- --url https://tabletop.virtual-insights.com --reset
+
+# From your own machine
+ROOM_CODES=... ADMIN_CODE=... npm run rehearse -- --url https://... --reset
+```
+
+`--reset` wipes all four rooms first; the script refuses to run on rooms in
+use without it. Rooms are left finished for a look on `/admin` unless you
+pass `--reset-after`. `--seed N` repeats a run's choices; `--pace MS` slows
+each room down; `--chat N`, `--no-themes`, and `--transcripts` shape the end.
+`--help` lists everything. Exit code 0 means every check passed. Don't run it
+while real rooms are in session.
+
 ## Session-day runbook
 
-1. Rehearsal (day before): full run on the real app, then **admin → Export
-   all rooms → Full game reset** (type `RESET`).
+1. Rehearsal (day before): run the four-room rehearsal script against the
+   published site, then a full run by hand on the real app, then **admin →
+   Export all rooms → Full game reset** (type `RESET`).
 2. Session day: hand each facilitator their room code card; open `/admin`
    on the lead laptop. The dashboard consolidates live (2.5s poll).
 3. After synthesis: export, then reset — session data is deletable on
