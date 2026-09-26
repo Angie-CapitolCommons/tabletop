@@ -21,7 +21,8 @@ import {
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
-import { streamElderTurn, assessAnswer, generateThemes } from "./npc.js";
+import { streamElderTurn, assessAnswer, generateThemes, streamExplain } from "./npc.js";
+import { buildExplainBundle } from "./explain.js";
 import { scrubNames, scrubDecidedBy } from "./privacy.js";
 import { buildThemesBundle } from "./themes.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
@@ -112,9 +113,9 @@ app.use("/api", async (req, res, next) => {
     await Promise.all(nums.map((n) => roomTails[n]));
     return next();
   }
-  // The Elder round streams outside the queue and takes its room's turn only
-  // for its final save (see /api/npc).
-  if (req.path === "/npc") return next();
+  // The Elder round and the 12-month chat stream outside the queue and take
+  // their room's turn only for their final save (see /api/npc, /api/explain).
+  if (req.path === "/npc" || req.path === "/explain") return next();
   const release = await takeTurn(nums);
   const before = Object.fromEntries(nums.map((n) => [n, structuredClone(rooms[n])]));
   let finished = false;
@@ -580,9 +581,65 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   res.end();
 });
 
+// The 12-month report's chat: the room asks how the exercise got to its
+// results. Answers stream from Claude, grounded in the room's record
+// (explain.js, transcripts included, names removed); each question and answer
+// is saved with the room's record and is the conversation for the next one.
+const explainInFlight = new Set();
+app.post("/api/explain", roomAuth, async (req, res) => {
+  const n = req.roomNumber;
+  const room = req.room;
+  const scenario = currentScenario(room);
+  const question = String(req.body?.question ?? "").trim().slice(0, 1000);
+  if (!room.epilogue || !scenario) return res.status(409).json({ error: "Questions open once the 12-month report is in." });
+  if (!question) return res.status(400).json({ error: "Type a question first." });
+  if (explainInFlight.has(n)) return res.status(409).json({ error: "Still answering the last question." });
+  explainInFlight.add(n);
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  try {
+    const bundle = buildExplainBundle(room, scenario, { sectionLabels: SECTION_LABELS, elders });
+    const history = (room.epilogue.qa ?? [])
+      .slice(-8)
+      .map((q) => ({ question: scrubNames(q.question, room.roleAssignments), answer: q.answer }));
+    const answer = await streamExplain({
+      bundle,
+      history,
+      question: scrubNames(question, room.roleAssignments),
+      onDelta: (t) => send({ type: "delta", text: t }),
+    });
+    const release = await takeTurn([n]);
+    try {
+      if (rooms[n] !== room || !room.epilogue) throw new Error("The room was reset while answering.");
+      const qa = (room.epilogue.qa ??= []);
+      qa.push({ question, answer, at: Date.now() });
+      try {
+        await saveRooms({ [n]: room });
+      } catch (error) {
+        qa.pop();
+        throw error;
+      }
+    } finally {
+      release();
+    }
+    send({ type: "done" });
+  } catch (error) {
+    console.error("Explain failed:", error?.message ?? error);
+    send({ type: "error", message: "Couldn't answer that just now. Ask again." });
+  } finally {
+    explainInFlight.delete(n);
+  }
+  res.end();
+});
+
 // Live discussion transcription (facilitator-controlled, PRD §8): text
-// fragments only. No audio is stored by the app, no voices are attributed,
-// and the transcript is never included in any model prompt.
+// fragments only. No audio is stored by the app and no voices are
+// attributed. Transcripts go to the record and the export; the 12-month
+// report's chat reads them (names removed), and the admin themes run only
+// when the lead facilitator switches that on.
 app.post("/api/discussion", roomAuth, (req, res) => {
   const room = req.room;
   const text = (req.body?.text ?? "").trim();

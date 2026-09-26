@@ -297,6 +297,12 @@ export default function App() {
   const [evidenceOpen, setEvidenceOpen] = useState(null);
   // Read-only look back at a finished decision, opened from the step rail.
   const [review, setReview] = useState(null);
+  // The 12-month report's chat ("how did we get here?").
+  const [askOpen, setAskOpen] = useState(false);
+  const [askInput, setAskInput] = useState("");
+  const [askStream, setAskStream] = useState(null); // { question, text } while answering
+  const [askError, setAskError] = useState(null);
+  const askScroll = useRef(null);
   const [councilOpen, setCouncilOpen] = useState(false);
   const [council, setCouncil] = useState([]);
   const [skipArmed, setSkipArmed] = useState(false);
@@ -463,6 +469,12 @@ export default function App() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns, state?.council?.length]);
 
+  // Keep the newest answer in the 12-month chat in view.
+  useEffect(() => {
+    const el = askScroll.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [askOpen, askStream, state?.epilogue?.qa?.length]);
+
   useEffect(() => {
     setSkipArmed(false);
     setActionError(null);
@@ -513,6 +525,49 @@ export default function App() {
   });
 
   const openReview = guard(async (nodeId) => setReview(await api(`review/${nodeId}`)));
+
+  // Streams one answer; the saved conversation comes back with the room state.
+  const ask = async (question) => {
+    const q = question.trim();
+    if (!q || askStream) return;
+    setAskError(null);
+    setAskInput("");
+    setAskStream({ question: q, text: "" });
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
+        body: JSON.stringify({ question: q }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't ask that just now.");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let done = false;
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buf += decoder.decode(chunk.value, { stream: true });
+        const events = buf.split("\n\n");
+        buf = events.pop();
+        for (const ev of events) {
+          const line = ev.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          const msg = JSON.parse(line.slice(6));
+          if (msg.type === "error") throw new Error(msg.message);
+          if (msg.type === "done") done = true;
+          if (msg.type === "delta") setAskStream((a) => a && { ...a, text: a.text + msg.text });
+        }
+      }
+      if (!done) throw new Error("The answer was cut off. Ask again.");
+      setData(await api("state"));
+    } catch (error) {
+      setAskError(error.message);
+      setAskInput(q);
+    } finally {
+      setAskStream(null);
+    }
+  };
 
   const advance = guard(async () => {
     npcForNode.current = null;
@@ -604,10 +659,10 @@ export default function App() {
             className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
             title={
               transcribing
-                ? "Transcribing the discussion as text: no audio stored, no voices attributed, and the transcript never reaches the AI. It stops when the room submits its answer; click to stop it sooner."
+                ? "Transcribing the discussion as text: no audio stored, no voices attributed. The transcript goes to the record and the export, and the questions on the 12-month report can draw on it, with names removed. It stops when the room submits its answer; click to stop it sooner."
                 : transcribeError === "blocked"
                   ? "The browser blocked the microphone. Allow it from the address bar, then click to try again."
-                  : "Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
+                  : "Live-transcribes the room's discussion as text, attached to this decision. No audio is stored and no voices are attributed. The transcript goes to the record and the export, and the questions on the 12-month report can draw on it, with names removed."
             }
             onClick={() => (transcribing ? stopTranscription() : startTranscription())}
           >
@@ -1159,8 +1214,15 @@ export default function App() {
   } else if (phase === "epilogue") {
     main = (
       <div className="epilogue">
-        <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
-        <h1 className="epi-head-title">Twelve months later</h1>
+        <div className="epi-head">
+          <div>
+            <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
+            <h1 className="epi-head-title">Twelve months later</h1>
+          </div>
+          <button className="panel-btn epi-ask" onClick={() => setAskOpen(true)}>
+            Ask how we got here
+          </button>
+        </div>
         <PathStrip progress={progress} records={records} currentIndex={-1} epilogue onReview={openReview} />
         <div className="epi-rows" style={{ marginTop: 12 }}>
           {state.epilogue.parts.map((p) => (
@@ -1254,6 +1316,75 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {askOpen && phase === "epilogue" && (
+          <>
+            <div className="drawer-scrim" onClick={() => setAskOpen(false)} />
+            <div className="drawer ask-drawer" role="dialog" aria-label="Ask how we got here">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">Twelve months later · ask the record</span>
+                  <h3>How did we get here?</h3>
+                </div>
+                <div className="drawer-actions">
+                  <button className="panel-btn" onClick={() => setAskOpen(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="ask-thread" ref={askScroll}>
+                {[...(state.epilogue.qa ?? []), ...(askStream ? [{ question: askStream.question, answer: askStream.text, streaming: true }] : [])].map((m, i) => (
+                  <div key={i} className="ask-turn">
+                    <p className="ask-q">{m.question}</p>
+                    <p className="ask-a">
+                      {m.answer.replace(/\*\*/g, "")}
+                      {m.streaming && <span className="cursor">▋</span>}
+                    </p>
+                  </div>
+                ))}
+                {!(state.epilogue.qa ?? []).length && !askStream && (
+                  <div className="ask-suggest">
+                    <span className="rv-label">Try asking</span>
+                    {[
+                      "Why did clinician goodwill end where it did?",
+                      "Which decision cost us the most time, and why?",
+                      "What would Specific answers have changed?",
+                      "Where did our discussion and our written answers differ?",
+                    ].map((q) => (
+                      <button key={q} className="ask-chip" onClick={() => ask(q)}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {askError && <p className="ask-error">{askError}</p>}
+              </div>
+              <form
+                className="ask-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  ask(askInput);
+                }}
+              >
+                <input
+                  className="ask-input"
+                  value={askInput}
+                  onChange={(e) => setAskInput(e.target.value)}
+                  placeholder="Ask about a choice, a meter, or a twelve-month outcome"
+                  disabled={!!askStream}
+                  autoFocus
+                />
+                <button className="fac-primary ask-send" type="submit" disabled={!!askStream || !askInput.trim()}>
+                  {askStream ? "Answering…" : "Ask"}
+                </button>
+              </form>
+              <p className="ask-note">
+                Answers come from this room's record: the choices and their costs, the scores, the AI Council, and the
+                discussion transcripts. Names are removed before anything is sent.
+              </p>
+            </div>
+          </>
         )}
 
         {review && (

@@ -481,6 +481,24 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- epilogue ---------- */
 .epilogue { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .epi-head-title { font-family: var(--serif); font-size: 40px; line-height: 1.02; margin: 6px 0 14px; }
+.epi-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.epi-ask { margin-top: 4px; white-space: nowrap; border-color: var(--purple); color: var(--purple); font-weight: 600; }
+/* 12-month report chat */
+.ask-drawer { display: flex; flex-direction: column; height: 560px; }
+.ask-drawer .drawer-head { margin-bottom: 10px; }
+.ask-thread { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px; }
+.ask-turn { margin-bottom: 16px; }
+.ask-q { display: inline-block; font-size: 15.5px; font-weight: 600; background: var(--warm); border-left: 3px solid var(--purple); padding: 6px 12px; margin: 0; }
+.ask-a { font-size: 16.5px; line-height: 1.5; margin: 8px 0 0; white-space: pre-wrap; color: var(--deep); max-width: 1000px; }
+.ask-suggest { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ask-suggest .rv-label { margin: 0 6px 0 0; }
+.ask-chip { font-size: 14.5px; border: 1px solid var(--hair4); border-radius: 16px; padding: 7px 14px; background: #fff; }
+.ask-chip:hover { border-color: var(--purple); }
+.ask-error { color: var(--rust); font-size: 14.5px; margin: 8px 0 0; }
+.ask-form { display: flex; gap: 10px; margin-top: 12px; flex-shrink: 0; }
+.ask-input { flex: 1; font: inherit; font-size: 16px; padding: 11px 14px; border: 1px solid var(--hair4); border-radius: 2px; background: #fff; }
+.ask-send { margin-left: 0; background: var(--deep); color: var(--paper); }
+.ask-note { font-size: 12.5px; color: var(--slate); margin: 8px 0 0; flex-shrink: 0; }
 /* The whole year has to fit on the projected screen without scrolling. */
 .epilogue .path { height: 58px; }
 .epilogue .path-cell { padding: 8px 12px; }

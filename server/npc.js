@@ -258,3 +258,46 @@ export async function generateThemes(bundle) {
   if (!text) throw new Error("themes run returned no text");
   return JSON.parse(text);
 }
+
+// The 12-month report's chat: the room asks how the exercise produced its
+// results. Grounded only in the room's record (explain.js); earlier questions
+// and answers in this room are the conversation so far.
+const EXPLAIN_SYSTEM = `You answer a breakout room's questions at the end of an AI-governance tabletop exercise at a fictional academic cancer center. The room has just seen its twelve-month report. Explain how the exercise got to its results: which choices moved which meters and by how much, what the answer check found, how the facilitator's scores decided the follow-ups and the twelve-month outcomes, and what the room said along the way.
+
+Rules:
+- Use only the room's record below. If the record doesn't say, say so; never invent mechanics, numbers, or events.
+- Refer to decisions by their section name (Purpose, Tier, Risk, Decider, Proof, Funding, Re-review, Off switch, The story). Quote the room's own words when it helps.
+- When asked what could have gone differently, point to specific alternatives in the record: another option's costs, a Specific answer's outcome, or what the Council asked for.
+- The transcripts are fragmentary speech-to-text with no speakers; treat them as rough, and never guess who said what.
+- Plain, direct language for senior leaders. No acronyms unless the record uses them. Keep answers short: two to five sentences, or a short list when comparing.
+- People appear as roles in brackets, like [The Executive Sponsor]; refer to them by role.`;
+
+export async function streamExplain({ bundle, history, question, onDelta }) {
+  const messages = [];
+  for (const turn of history) {
+    messages.push({ role: "user", content: turn.question });
+    messages.push({ role: "assistant", content: turn.answer });
+  }
+  messages.push({ role: "user", content: question });
+  console.log(`[npc] explain (model ${MODEL}, ${bundle.length} chars, ${history.length} earlier questions)`);
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: 1500,
+    output_config: { effort: "medium" },
+    system: [
+      { type: "text", text: EXPLAIN_SYSTEM },
+      { type: "text", text: `THE ROOM'S RECORD\n\n${bundle}`, cache_control: { type: "ephemeral" } },
+    ],
+    messages,
+  });
+  let text = "";
+  stream.on("text", (delta) => {
+    text += delta;
+    onDelta(delta);
+  });
+  const final = await stream.finalMessage();
+  if (final.stop_reason === "refusal" || !text.trim()) {
+    throw new Error(`empty or refused answer (stop_reason: ${final.stop_reason})`);
+  }
+  return text;
+}
