@@ -1,306 +1,485 @@
-# PRD — AI Integration Environment Tabletop
+# Tabletop PRD
 
-*Virtual Insights LLC · City of Hope HCD session · Draft v0.8, September 23, 2026*
+*AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
+*Version 1.0 · September 26, 2026*
 
-> Canonical live copy: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k — this file is the repo mirror; update both together.
+> **The code is the source of truth.** This document describes what
+> `Angie-CapitolCommons/tabletop` does at `main` `47d33fc`, plus two open
+> changes: the paper kit (PR #24) and the purpose-rubric fix (the PR that
+> carries this document). Where this document and the code disagree, the code
+> wins and this document gets fixed. Section 15 lists what earlier drafts
+> promised that the code doesn't do. PR #23 (open) would make skipping cost
+> what declining costs and mark skipped decisions on the 12-month report; this
+> document describes `main` without it.
+>
+> Canonical live copy: https://claude.ai/artifact/JF66MvDzFKgVit8kg1e85k.
+> This file is the repo mirror; update both together.
 
 ---
 
 ## 1. Summary
 
-A facilitated tabletop exercise, run in four parallel breakout rooms during the City of Hope HCD session. Each room works a fictional scenario through the AI governance lifecycle, answering the same set of decision questions **as one group** — collective answers, argued out loud, entered on a single shared room screen. AI-played non-player characters challenge those answers in character. Each room's output is a decision flowchart. The four flowcharts are consolidated live on the lead facilitator's admin dashboard into a map of alignment, friction, collisions, and orphans, which drives the closing plenary.
+Tabletop is a facilitated exercise for four breakout rooms. Each room works
+one fictional case through the AI governance lifecycle. At each decision the
+room agrees on one answer, writes down who is on the hook, and says who made
+the final call. An AI Council of advisors (the Elders) presses on the answer.
+Each decision sets dated events in motion, and at the end the case runs twelve
+months forward to show what held and what broke. The four rooms' answers are
+compared side by side for the closing plenary.
 
-**Why it exists.** The sensing work says City of Hope's obstacle is not mechanics. Funding is committed, a sponsor is agreed, and a peer governance framework has been endorsed. What is unsettled is who decides, who accepts risk, what counts as proof, and what ends a thing. A discussion of those questions in the abstract produces principles. A scenario with consequences produces decisions.
+**Why it exists.** City of Hope's obstacle isn't mechanics. Funding is
+committed, a sponsor is agreed, and a peer governance framework is endorsed.
+What's unsettled is who decides, who accepts risk, what counts as proof, and
+what ends a thing. Discussing those questions in the abstract produces
+principles. A case with consequences produces decisions.
 
-**Forced collaboration is the design.** There is no private voting and no per-participant device. The room cannot hide behind a spread of individual answers; it must converge, in role, on one answer it owns — and then defend it to an NPC. A facilitator who needs a quick temperature check calls a show of hands, off-app.
+**Forced collaboration.** There's no private voting and no participant device.
+Each room has to agree on one answer, in role, and defend it.
 
-**Definition of success.** Every room leaves with a completed decision path in which each node names a specific role or person, a trigger, or a threshold — or is explicitly recorded as unanswerable, with that gap visible in the consolidation.
+**Definition of success.** Every room leaves with a decision path in which
+each decision names a person or role plus a trigger, number, or date, or is
+recorded as a gap the room couldn't close, visible at plenary.
 
-**Guiding constraint on build.** Keep it simple. One web app, five logins in the world (four room codes, one admin code), one screen per room, a live model behind it, and a printed worksheet in the bag if the technology fails. The exercise design carries the session; the application supports it.
+**How the City of Hope session runs: on paper.** On September 26, 2026 the
+organization decided, for security reasons, to run the session on paper
+instead of the web app. The paper kit (§12) is generated from the app's
+scenario content, so the app remains the place where content is written and
+checked. The web app is complete, but it won't be used in this session.
 
 ---
 
-## 2. Context and constraints
+## 2. Context
 
 | | |
 |---|---|
 | Session | Full day at Duarte, 20–25 attendees, late September / early October 2026 |
-| Breakouts | 4 rooms, mixed jurisdictions, ~90 minutes |
+| Breakouts | 4 rooms, about 90 minutes |
 | Attendees | Senior clinical, ETG, business strategy, innovation, security, data |
-| Facilitator | One human per room; the application supports, it does not replace |
-| Delivery | Hosted web app at `tabletop.virtual-insights.com`, deployed on Replit. Claude artifacts are not permitted at CoH. |
-| Room hardware | One laptop per room (the facilitator's), projected or on a large display. Nothing else. |
-| Network | InfoSec approval does not include whitelisting — `tabletop.virtual-insights.com` is an ordinary external site to the CoH network. Test reachability several ways: CoH network on the room laptops, the guest network, and personal devices. If nothing reaches the app, the exercise runs on printed worksheets — the app is the preferred vehicle, not a dependency. |
-| Clearance | **Approved.** InfoSec has signed off on live model calls in session: server-side API calls, no PHI, no PII, no CoH source material. The build must keep those conditions true. |
-
-**Hard constraint on content.** No City of Hope interview transcripts, survey responses, or attributable material is sent to the model or embedded in the application. Scenarios are fictional composites. The absolute attribution rule from the Council encoding applies: no finding is attributed to a person present unless they named it themselves in pre-work.
+| Facilitation | One facilitator per room, with no scribe. The lead facilitator (Angie) runs plenary. |
+| Delivery | The paper kit (§12). The web app at `tabletop.virtual-insights.com` (Replit) is built but not used for this session. |
+| Case assignment | The lead facilitator assigns each room one case in advance. (In the app, rooms choose; see §4.) |
+| Content | Fictional composites. No City of Hope interview transcripts, survey responses, or attributable material in the content, the prompts, or the repo. Nothing is attributed to a person present unless they named it themselves in pre-work. |
 
 ---
 
-## 3. Users
+## 3. Roles
 
-- **Participant.** A City of Hope leader at the table. Holds a role card, argues from its mandate, and answers as part of the room. Touches no device; sees the shared room screen.
-- **Room facilitator.** Logs in at `tabletop.virtual-insights.com` with a pre-defined room code; their laptop is the room screen. Selects the scenario with the group, records role assignments (first names against the five roles), drives pacing, enters the room's collective answers, marks nodes unanswerable or skipped, assigns the specificity score at lock.
-- **Lead facilitator (Angie).** Logs in with a pre-defined admin code to a separate **admin dashboard**: all four rooms' outputs consolidating live during breakouts, presenter mode for plenary, exports.
-
----
-
-## 4. Architecture
-
-A single hosted web application, one mode. Five clients at peak: four room screens and the admin dashboard. No City of Hope accounts, no participant devices, no claude.ai dependency in the room.
-
-### Stack
-
-- **Front end:** React
-- **Server:** Node, serving the API and the real-time channel
-- **Data:** Postgres (rooms, nodes, answers, events)
-- **Real time:** SSE from server to the admin dashboard (and for streaming NPC turns to room screens). Each room screen is the single writer for its room, so no bidirectional channel is needed.
-- **Deployment:** Replit, always-on (no scale-to-zero), at `tabletop.virtual-insights.com`
-- **DNS:** record added in Squarespace DNS for virtual-insights.com, per Replit's linking instructions (A + TXT verification). Existing site records untouched.
-- **TLS:** platform-issued certificate on the custom domain
-
-### Model calls
-
-All Anthropic API calls are **server-side**. The key lives in the server environment and is never exposed to a browser. Streaming responses so NPC turns appear progressively on the room screen. Prompt caching on the Council encoding and scenario state, which repeat on every turn in a room. Per-room spend cap and a global circuit breaker.
-
-### Access model
-
-- Room facilitators: four pre-defined room codes, issued before the session
-- Lead facilitator: one pre-defined admin code
-- Participants: no accounts, no codes, no devices
-- **First names only** — recorded by the facilitator against role assignments, nowhere else. No last names, no email, no titles, no PII. First names never appear in Class B/C reporting or in anything sent to the model.
-- Access is deliberately this simple. The app exists for one session, holds fictional content only, and is **disabled promptly after the session** — that lifecycle, not authentication, is the security model. Session data deleted after synthesis is delivered; retention window stated to CoH security in advance.
-
-### Failure handling
-
-- **If a live NPC call fails or stalls,** the app tells the room plainly ("The Steward is unavailable — continue") and the facilitator moves the node to lock. No canned-response engine, no offline build.
-- **If the app itself is unreachable,** the room switches to the printed worksheet: one per scenario, mirroring the node questions and answer options, filled in by hand and consolidated by the lead facilitator manually. The worksheets are a deliverable, not an afterthought — they are also the answer if InfoSec clearance for live calls does not land in time.
-
----
-
-## 5. Scenario model
-
-### 5.1 Structure
-
-Four scenarios. When a room facilitator logs in, the group decides which scenario to take on; once chosen it is unavailable to the other rooms (the admin dashboard shows who has claimed what). Each scenario **enters the governance lifecycle at a different point** and works forward through injects and backward to "what should have happened earlier."
-
-| # | Scenario | Enters at |
-|---|---|---|
-| 1 | Three worthy requests, capacity for one | Intake |
-| 2 | Approved in principle, stuck in evaluation | Evaluation |
-| 3 | Worked at one site, now being scaled | Deployment |
-| 4 | Live a year, drifted, spread beyond approval | Monitoring |
-
-Every scenario must carry four properties by construction, or a room will skip the matching question: an unstated purpose; a mis-tiered or never-tiered object; a split between entity and system or between budget and authority; an ambiguous evidence base with no defined ending.
-
-### 5.2 Node schema
-
-Every scenario is a path through typed nodes. Node types are identical across scenarios — this is what makes the four flowcharts merge.
-
-| Node | Question |
-|---|---|
-| `purpose` | Is this in scope for the environment? What is it not for? |
-| `tier` | What tier, who sets it, does it cover the tool or the use? |
-| `risk_accept` | Who accepts a residual risk when disclosure is incomplete? |
-| `decide` | Who decides, who is consulted, which body? |
-| `proof` | What threshold advances it? |
-| `funding` | Whose budget at build, at scale, at renewal? |
-| `retier` | What forces a re-review? |
-| `stop` | What ends it, and who can turn it off? |
-| `represent` | What may be said about this outside CoH, at what readiness? |
-
-Six to eight nodes per scenario. Not every scenario uses every node; coverage is guaranteed across the set, not within one room.
-
-**Evidence folder.** Each scenario ships with a small set of in-fiction documents — a memo, a dashboard screenshot, an old approval email — that the room can open on the shared screen at any time. Backstory lives there, not in the facilitator's mouth. (Pattern proven in the Pod Quest training game.)
-
-### 5.3 Node interaction loop
-
-1. **Pose.** The node question appears on the room screen, in scenario context.
-2. **Discuss.** The room works it out loud, role mandates in tension, until it converges on one answer it owns. This is the exercise; the facilitator holds the room to it.
-3. **Answer.** The facilitator enters the room's answer: multiple choice, plus a required free-text field naming the specific person, role, trigger, or threshold, plus a second required field — **who made that final decision?** A role, a first name, or “the group,” recorded verbatim. The room's own decision process is data (§8). Two standing options exist on every node: “We cannot answer this today” (recorded as an explicit gap, not a failure) and a **write-in** — “we choose a different path” — where the room's answer is the free text itself, honored verbatim: the consequence engine and the Elders hold the room to exactly what it wrote.
-4. **NPC challenge.** One or two NPCs respond in character to what was actually written. If the call fails, the beat is skipped and the room continues.
-5. **Revise or hold.** Both the first and revised answers are recorded.
-6. **Lock.** The facilitator scores the node (see §8), the flowchart grows, the cost meter moves.
-7. **Consequence.** The scenario advances based on what they decided.
-
-The facilitator can compress or skip a node under time pressure; a skipped node is recorded as *skipped*, distinct from *declined*.
-
-**Discussion capture (per decision, facilitator-controlled).** Each node has a Start/End discussion control. While on, the room’s spoken discussion is *live-transcribed as text* and attached to that decision’s record, tagged by beat (before the answer vs. after the Elder challenge) — because the lived tensions in the argument are where the problems are, not only in the verdict. Three hard properties: **no audio is ever stored** by the application; **no voices are attributed** — the transcription engine has no speaker identification at all; and the transcript **never reaches the model** — it goes to the record and the export only. A standing indicator is visible on the room screen whenever transcription is on, and it stops automatically when the decision locks. Transcription uses the browser’s built-in speech engine (Chrome), which processes audio transiently through the browser vendor’s service; noted to InfoSec as a one-line addendum. Transcripts of group discussion will be fragmentary — that is acceptable; they are mined for tension language, not minutes.
-
-### 5.4 Consequence engine
-
-Injects are not on a timer. They are caused. A vague `tier` answer produces, three months on, a tool doing something nobody approved. A deferred `risk_accept` produces a stalled vendor and continued unapproved use. A specific named owner at `decide` means someone is there to catch drift at `stop`. Declining a node has consequences too — a decline is never free.
-
-At the end, the scenario runs twelve months forward and reports in narrative what held and what broke. Not a score.
-
-**Implementation shape.** Pod Quest–style determinism: each scenario's later node briefs, injects, and the twelve-month epilogue are simple functions of earlier locked answers — a small authored branch table per scenario, not a generative engine. The live model plays the NPCs; the consequences are authored.
-
-### 5.5 Cost meter
-
-Four currencies, visible and moving: clinician goodwill, risk exposure, dollars committed, time to first value. Decisions move them in tension — the fast path spends goodwill, the safe path spends time, the thorough path spends money. **No win threshold and no scoring against the meter.** It exists to make trade-offs concrete and to kill the "let's do both" answer.
-
----
-
-## 6. Roles
-
-**Five roles per room, and full coverage is mandatory:** every person plays a role, and every role is played. More people than roles — a role is shared by two or three. More roles than people — someone plays two. No observers, no orphaned roles.
-
-The role names are a little humorous on purpose and completely unambiguous about the job (names are draft; final wording lands with the scenario content in Phase 2):
+Five roles per room. Every person plays a role and every role is played: two
+people can share a role, or one person can play two. Full coverage is a
+facilitation rule; the app doesn't enforce it.
 
 | Role | The job |
 |---|---|
-| **The Doctor** | Clinical impact — what this does to care, and whether clinicians will actually use it. |
-| **The Security Guard** | Security and risk. Cannot agree to anything without a named risk-acceptor. |
-| **The Money Manager** | Whose budget — at build, at scale, at renewal. Nothing is free. |
-| **The AI Guru** | Technology and integration. Knows what the tool actually does, versus what the slide said. |
-| **The Competitive Marketing Leader** | What may be said outside, peer pressure, reputation. Wants to announce; must not overclaim. |
+| **The Executive Sponsor** | The senior leader who sponsors the tool in this case. Defined per case: the senior revenue cycle leader (S1), the head of pathology (S2), the operations executive running the rollout (S3), the leader of the oncology clinics (S4). |
+| **The Security Guard** | Security and risk |
+| **The Money Manager** | Budgets, contracts, and renewals |
+| **The AI Guru** | What the tool actually does, versus what the slide said |
+| **The Competitive Marketing Leader** | What gets said outside, and when |
 
-Frontline workflow reality is deliberately not a seated role — that voice belongs to the NPCs (the Adoption Realist, the Recruiter) and the Villagers, who cannot be argued with.
+The Executive Sponsor replaced the earlier draft's "Doctor" (PR #18).
 
-**There is deliberately no decider card.** Who decides is the unsettled question at CoH — a role card that pre-assigns it would answer it for them. Instead the exercise measures it: every locked answer records *who made that final decision* (§5.3), and whether a decider emerges in a room, rotates node to node, or never lands is a primary finding, not a facilitation failure.
+**There's no decider card.** Who decides is the unsettled question at City of
+Hope; a card that pre-assigned it would answer it for them. Instead every
+answer records who made the final call (§5), and whether a decider emerges,
+rotates, or never lands is a finding.
 
-Cards are physical, dealt at setup; participants volunteer for them. The facilitator records the assignment in the app — **first names only** — including who shares and who doubles.
-
-Each card carries a mandate, not a personality: what you are responsible for, what you cannot agree to, what you are measured on. Each card also carries **asymmetric information** — facts only that role knows, without which the scenario cannot be solved. Asymmetric information forces the collective answer to route through every seat: the room cannot converge correctly without hearing from each card.
+**Role cards** are printed, one set per case. Each card has a three-line
+mandate (your job, what you won't go along with, what you're judged on) and two
+facts only that role knows, each with a cue for when to bring it up. The room
+screen never shows role cards. First names are recorded against roles on the
+briefing screen and in The Decisionmakers drawer.
 
 ---
 
-## 7. NPCs
+## 4. The four cases
 
-Two populations, visually and structurally distinct.
+| | Case | Enters at | Decisions, in order (Elders) |
+|---|---|---|---|
+| S1 | Three Worthy Requests, Capacity for One | Intake | purpose (Cartographer) · tier (Steward) · decide (Adoption Realist) · proof (Decoupler, Recruiter) · funding (Ledger) · represent (Beacon) |
+| S2 | Approved in Principle, Stuck in Evaluation | Evaluation | purpose (Adoption Realist) · proof (Decoupler) · risk_accept (Steward) · retier (Caretaker) · decide (Cartographer, Ledger) · represent (Beacon) |
+| S3 | Worked at One Site, Now Being Scaled | Deployment | tier (Steward) · risk_accept (Adoption Realist) · decide (Cartographer) · stop (Caretaker) · represent (Beacon) · funding (Ledger, Recruiter) |
+| S4 | Live a Year, Drifted, Spread Beyond Approval | Monitoring | risk_accept (Steward) · stop (Caretaker) · tier (Steward) · decide (Cartographer) · proof (Decoupler, Recruiter) · retier (Caretaker) · funding (Ledger) |
 
-### 7.1 Elders — they negotiate and can say no
+That's 6, 6, 6, and 7 decisions, and all nine decision types appear across the
+set. Each case is built to carry four things, or a room will skip the matching
+question: an unstated purpose, a tool that was never given a risk level (or
+was given the wrong one), a split between budget and authority, and evidence
+with no defined ending. Each case file's header comment says how it carries
+them.
 
-Drawn from `CoH_Council_Actor_Encoding.md`. Each becomes a person with a title, a caseload, and something to lose.
+**What a case contains** (the shape is documented at the top of
+`server/content/common.js`; `s4.js` is the reference):
 
-| Elder | Seat at the table | Fires on |
+- **Opening:** the moment something went wrong, as narration plus dated
+  messages (secure chat, email). No backstory summary.
+- **Model brief:** plain facts the Elders need. Never shown to the room.
+- **Evidence:** four or five in-fiction documents, plus the shared "Who's who".
+- **Decisions:** title, question, the prompt for the written answer, one or two
+  Elders, options A–C plus the room's own plan and "We can't answer this
+  today", and for each option its meter moves and a dated event. Each decision
+  also has an owner beat and a 12-month entry, each with a named and a
+  not-named version, and optionally a "Meanwhile" memo that depends on an
+  earlier answer.
+- **Villagers:** four or five first-person lines from people who live with a
+  decision, keyed to specific decisions. The room sees the speaker (for
+  example, "A GI oncology nurse manager").
+- **Role cards:** see §3.
+
+**Who's who.** One fictional org chart shared by every case, so rooms route
+decisions to the same named groups and cross-room collisions are visible: AI
+Governance Workgroup, Clinical Practice Council, AI Integration Environment, AI
+Leader, Information Security, Digital Health (IT), Quality & Patient Safety,
+Finance (including the Innovation Fund), Communications, and the IRB.
+
+**Choosing a case.** In the app, the room picks at the start, and a case can
+be held by one room only (enforced by the database). For the paper session,
+the lead facilitator assigns cases in advance.
+
+**Content version.** `CONTENT_VERSION` in `common.js` is bumped when saved room
+state would no longer make sense. Rooms saved under an older version start
+fresh at startup.
+
+---
+
+## 5. The decision loop (app)
+
+The room screen is a fixed 1280×800 stage for the projector. For each
+decision:
+
+1. **Start discussion.** A prompt covers the screen until the facilitator
+   starts the discussion, which also starts transcription (§11).
+2. **Pose.** Any "Meanwhile" memo, then the question and the options.
+3. **Record.** The facilitator selects the option and writes the room's
+   answer, then picks who made the final call: a "Role · Name" chip, "The
+   group", or "Other". The written answer and the final call are both
+   required.
+4. **AI Council round.** Starts automatically and streams. If any Elder fails,
+   the round fails and the screen offers **Retry Elders** or **Hold the answer
+   instead**.
+5. **Hold, revise, or ask again.** Revise reopens the answer prefilled and
+   runs a new round on the change. **Ask the AI Council again** runs another
+   round from a different angle, and earlier rounds stay visible. The first
+   and the latest answers are kept.
+6. **Score.** The facilitator taps Specific, Generic, or Absent (§9), or
+   chooses "Edit the answer".
+7. **Consequence.** The option's dated event, then the owner beat: the named
+   version if the score was Specific, the not-named version otherwise. The
+   screen shows what moved on the meter and why, the Villager if this
+   decision has one, and the decision path. **Undo this score** reverses the
+   lock.
+
+**Skip** (two clicks) is available before the consequence and is recorded as
+skipped, which is different from declined. **We can't answer this today** has
+its own authored hint and event and always adds time. **None of these — we'll
+write our own** records the room's plan word for word. The Elders and the
+answer check read it, but the event is a generic "the room's plan goes out
+exactly as written."
+
+The facilitator bar offers Evidence, the AI Council (the eight Elders and what
+they watch for), The Decisionmakers (the roster), and transcription in every
+phase. A finished decision can be reopened read-only from the step rail.
+
+---
+
+## 6. The AI Council (Elders)
+
+Eight Elders, one or two per decision, and every decision has at least one.
+
+| Elder | Seat | Watches for |
 |---|---|---|
-| Steward | Security and risk | A control called an obstacle; "safe to try" undefined; no named risk-acceptor |
-| Ledger | Finance | No stated cost; a decision described as free; no renewal answer |
-| Cartographer | Governance | Passive voice about a decision; "it went to committee"; two bodies claimed |
-| Decoupler | Quality and measurement | An aspiration with no owner; no threshold; no evidence |
-| Adoption Realist | Clinical informatics | An approval with no named approver; risk aversion offered as explanation |
-| Recruiter | Workforce | Work added to a role with nothing added to it; capacity assumed |
-| Beacon | Peer and external | An internal decision with an unnamed external consequence; peer comparison invoked |
-| Caretaker | Operations and sustainment | Launch treated as the finish line; no monitoring owner; no update or retraining path; run cost and on-call unassigned; "we'll revisit later" with no trigger |
+| The Steward | Security and risk | A safety check called red tape; "safe to try" has no definition; nobody will sign for the risk |
+| The Caretaker | Operations and sustainment | Go-live treated as the finish line; nobody watching after launch; no plan for updates; running costs with no owner |
+| The Cartographer | Governance | A decision with no name on it; "it went to committee"; two groups claiming the same call |
+| The Ledger | Finance | No price stated; "it's free"; nobody paying at renewal |
+| The Decoupler | Quality and measurement | A goal with no owner; no number to hit; no evidence |
+| The Adoption Realist | Clinical informatics | An approval with no clinical owner; assuming clinicians will use it |
+| The Recruiter | Workforce | New work added to a job with nothing taken off it; "someone will pick it up" |
+| The Beacon | Peer and external | Saying more outside than we can back up; "our peers are already doing it" |
 
-**The Caretaker exists because rooms consistently under-think the long term** — how a thing is watched, kept in line, updated, and paid for after everyone claps at go-live. It is the natural challenger on the `proof`, `retier`, and `stop` nodes and the anchor Elder for scenario 4. If `CoH_Council_Actor_Encoding.md` has no operations actor, author the Caretaker in the encoding's own format so it carries the same weight as the others.
+**How they talk** (the shared rules in `common.js`): one to three short
+sentences, under 50 words; polite and supportive; start with what's solid in
+the answer; ask for the one thing missing (a named person or role, a trigger,
+a number, a date); back a good answer rather than inventing objections; say
+plainly what happens when the room declines; plain hospital words, no jargon
+or acronyms; use the Who's who names. Each Elder remembers what it said
+earlier in the room and mentions it gently if the room didn't take it up.
 
-**Rules.** NPCs must be movable — a specific, well-reasoned answer earns cooperation (a conditional path, a sponsorship) rather than endless challenge. They persist across the scenario and remember: ignored at one node, less accommodating at the next. Maximum two NPC appearances per node; some nodes have none. They challenge the position, never the person playing it.
+The personas are **placeholders** until they're derived from
+`CoH_Council_Actor_Encoding.md`.
 
-### 7.2 Villagers — they live with the outcome
-
-They do not negotiate and cannot block. One short first-person line after a decision locks; four to five across the session.
-
-The One Who Stopped Asking · The Last to Be Asked · The Third Pilot This Year · The One Who Signs · The One Who Makes It Work Anyway · The Person in the Chair.
-
-**The Person in the Chair is consequence-only** and never at the table. When any Villager speaks, the screen shows the standing line: constructs built from published and public sources, never cited as testimony from staff or patients; no patient data is used.
-
-### 7.3 Implementation
-
-One server-side Messages API call per NPC turn. The prompt carries: the NPC's encoded profile, the scenario state, the room's answer at this node including free text, and what this NPC has already said in this room. It does **not** carry CoH source material, transcripts, survey responses, or participant identities. Response streams in character, capped at 2–4 sentences — a long NPC turn kills room energy. If the call fails or stalls, the room sees a plain in-character absence message and moves on.
+On paper, the Elders are scripted lines the facilitator reads (§12).
 
 ---
 
-## 8. Measurement
+## 7. Consequences and the 12-month report
 
-### Class A — decision content
+Consequences are authored, not generated. The model plays the Elders; it
+doesn't decide what happens.
 
-The nine node types, each scored **Specific** (names a role or person, plus a trigger or threshold), **Generic** (names a function), or **Absent/declined**. Specific is the only score that counts as an answer. The score is assigned by the room facilitator at lock — a one-tap choice on the facilitator view, against this rubric.
+- **"Meanwhile" memos** depend on the room's answer at one earlier decision.
+- **Events:** one dated event per option.
+- **Owner beat:** one dated beat per decision, in a named version (plays when
+  the score is Specific) and a not-named version.
+- **12-month report:** one dated entry per decision, sorted by month, again
+  named or not named by score. A skipped decision plays as not named.
 
-### Class B — decision behavior
+At the end of a case the app also offers:
 
-Recorded by the application, reported in aggregate with no room or person identified:
-
-- Time to first specific naming of a decider
-- Deferral moves: resolving by creating a body, commissioning analysis, or escalating without naming to whom
-- Claim and disclaim: which measures attract authority, which repel it
-- Reversal under inject: where an answer changes once a cost appears
-- Role assignment: who volunteered for what (shared, doubled) — as recorded by the facilitator; reported without names
-- **Decider emergence:** who made each final call — a named role, a person, or "the group" — and whether authority settles on one seat, rotates node to node, or never lands. This is the exercise's mirror of the org's own open question.
-- Language: unprompted appearance of terms like unwind, stalemate, roulette, chasing, it depends — in typed free text, and in the per-decision discussion transcript when the facilitator turns transcription on (text only, no audio stored, no voices attributed; see §5.3)
-
-### Class C — cross-room, at consolidation
-
-Computed where computable (choices, scores, timings); judged by the lead facilitator where the substance lives in free text, with the dashboard presenting answers side by side to make that judgment fast:
-
-- **Alignment:** same node, same substantive answer, three or more rooms
-- **Friction:** divergent answers on the same node
-- **Collision:** same authority assigned to different holders, or routed to different bodies
-- **Orphan:** node Absent in three or more of the rooms whose scenario presented it (a node a scenario never presented does not count)
-- **Drop-off:** which lifecycle step the rooms answer well and where specificity collapses
-- **Decider emergence across rooms:** which seat ended up making the calls in each room — four rooms, same five roles, do the same seats take (or dodge) authority?
-
-**Disclosure.** Class B is disclosed at the start: we are tracking how decisions get made, not only what gets decided, and it is reported without identifying rooms or individuals. When discussion transcription is on, the room screen says so the entire time — text only, no audio stored, no voices attributed.
+- **Ask how we got here:** a chat about the room's own record (§11).
+- **Talk it through:** a debrief that shows, for each decision, what the room
+  wrote, what a Specific answer needed, the month's outcome, the version the
+  other score would have produced, and what the Elders said.
 
 ---
 
-## 9. Admin dashboard (lead facilitator)
+## 8. The cost meter
 
-A separate view behind the admin code, subscribed to all rooms, updating live as they work.
+Four measures: clinician goodwill, risk exposure, dollars committed, and time
+to first value. There's no winning score. The meter exists to make trade-offs
+visible and to stop "let's do both."
 
-- Four flowcharts side by side, aligned on node type
-- Alignment, friction, collision, orphan, and drop-off panels — computed where possible, markable by the lead facilitator where judgment is needed
-- Scenario claims: which room took which scenario
-- Presenter mode for plenary
-- Export: JSON (all four rooms, all nodes, first and revised answers, scores, timings) and a rendered flowchart per room
-- **Full game reset:** admin-only, wipes all rooms, answers, NPC memory, scenario claims, and meters back to pristine while keeping scenario content — behind a type-to-confirm. Exists so the day-before rehearsal can run the real thing and leave no trace in the session data. Reset offers an export first.
+**In the app:** the meter starts at goodwill 10, risk 4, dollars 3, and time 5.
+At lock, the chosen option's authored moves apply, then the answer check
+adjusts for what the room wrote: time +1 (or +2) for added meetings, votes,
+sign-offs, reviews, or handoffs beyond the option itself, and goodwill −1 (or
+−2) for work put on clinicians with nothing taken off their plate. Undo
+reverses both. Values have no bounds.
+
+**On paper:** the room judges each decision's effect itself. After each
+answer it decides whether each measure went up or down and marks the meter
+board with a + to the right of the center line or a − to the left. No
+authored amounts and no answer check.
 
 ---
 
-## 10. Out of scope
+## 9. Measurement
 
-- Any use of real CoH cases, transcripts, or survey responses in scenario content
-- Scoring or ranking rooms against each other
+### Class A: decision content
+
+Each decision is scored **Specific**, **Generic**, or **Absent** at lock.
+Specific is the only score that counts as an answer. The score decides the
+owner beat and the 12-month entry; it doesn't move the meter. A declined
+decision isn't scored automatically.
+
+| Code | Measure | Specific means |
+|---|---|---|
+| A1 | Purpose boundary | one purpose in a sentence, what it leaves out, and who signs off on that choice |
+| A2 | Tier assignment | who sets the risk level, and whether it covers the tool everywhere or each use |
+| A3 | Re-tier trigger | the events that send it back for review, and who watches for them |
+| A4 | Decision rights | one person or role who decides, who they check with, and a date |
+| A5 | Risk acceptance | a person or role who signs for the risk, and what would make them revisit it |
+| A6 | Burden of proof | a number to hit, who measures it, and by when |
+| A7 | Stop condition | who can turn it off, and what would make them do it |
+| A8 | Funding carry | whose budget pays, and for what: the build, running it, the renewal |
+| A9 | External representation | who approves what's said outside, and what has to be true first |
+
+Generic is a committee or department instead of a person or role, or no
+trigger. Absent is no one named. (Source: `client/src/measures.js`. The A1
+wording was changed on September 26 to fit S2, whose purpose decision is
+which question the evaluation answers.) The A-codes appear only on the admin
+dashboard and the paper plenary wall, not on the room screen.
+
+### Class B: decision behavior
+
+**Recorded:** when each decision was posed, first answered, and locked; who
+made each final call; the first and latest answers; the discussion
+transcripts; the answer-check results.
+
+**Not computed by the app:** time to the first named decider, deferral moves,
+claim and disclaim, reversal after a memo, language tracking, and aggregated
+role-assignment reporting. These are synthesis work for the lead facilitator,
+from the export (or from the worksheets, on paper).
+
+### Class C: across rooms
+
+The admin dashboard flags, from scores only:
+
+- **Aligned:** at least three rooms (or all the rooms that were asked the
+  decision, if fewer) scored it Specific.
+- **Friction:** the settled rooms' scores differ.
+- **Orphan:** at least that many rooms skipped it, declined it, or scored it
+  Absent.
+
+**Collision** (the same authority given to different people, or sent to
+different groups) and **drop-off** (where specificity collapses along the
+lifecycle) aren't computed. The lead facilitator reads them from the matrix,
+or from the wall on paper.
+
+---
+
+## 10. Admin dashboard (app)
+
+At `/admin`, behind the admin code. Refreshes every 2.5 seconds.
+
+- **Room cards:** room number and code, case, phase and current decision,
+  progress dots, meters, roster with first names, debrief transcript, and
+  "Reset this room".
+- **Matrix:** the nine decision types (A1–A9 with definitions) by room. Each
+  cell shows the score, the short answer, and who made the final call; hover
+  for the written answer; link to the transcript with a word count. Flags per
+  §9.
+- **Decider emergence:** a tally of the final-call entries per room.
+- **Themes:** an AI read across finished rooms (overview, themes, open
+  questions), optionally including transcripts, downloadable as .md and
+  .json.
+- **Transcript viewer:** per decision and per debrief, downloadable as .txt.
+- **Export all rooms** (JSON), and **full reset** (type RESET; an export is
+  offered first). Per-room reset works the same way.
+- A link to the printables (`/api/print`).
+
+On paper, the plenary wall replaces the dashboard (§12).
+
+---
+
+## 11. Model calls, transcripts, and privacy (app)
+
+All Anthropic calls are server-side. The key lives only in the server
+environment. Model: `MODEL`, default `claude-opus-5`. The stable parts of each
+prompt are cached.
+
+| Call | When | Receives | Settings |
+|---|---|---|---|
+| Elder turn | Each Council round | Persona, Who's who, model brief, the path so far, the answer, the Elder's own earlier turns | Streamed; low effort; 8-second first-token timeout |
+| Answer check | After the round | The option, its hint, the written answer, the Elders' comments | 10-second timeout, one retry; rates clinician burden and added process |
+| Ask how we got here | 12-month report | The room's full record, including transcripts | Question up to 1,000 characters; the last 8 exchanges kept |
+| Themes | Admin, on request | The finished rooms; transcripts only if the admin opts in | High effort, JSON output |
+
+**Names.** Before any prompt is built, `privacy.js` replaces roster first names
+with roles. No first name reaches the model. First names do appear in the
+roster, on the admin room cards, in the final-call entries on the matrix and
+tally, and in exports. (The briefing screen says names never reach the
+reports; that's inaccurate. See §15.)
+
+**Transcripts.** Browser speech recognition, text only. No audio is stored and
+no voice is identified. Transcription starts from the decision gate (and on
+revise, edit, and in the debrief) and stops when the answer is submitted, at
+the consequence, and when the decision changes. Transcripts go to the record,
+the export, the admin viewer, the "how we got here" chat (always, with names
+removed), and the themes run (only if the admin opts in). They never go into
+Elder turns or the answer check.
+
+There's no per-room spend cap and no global circuit breaker.
+
+---
+
+## 12. The paper kit
+
+`npm run paper-kit` builds 27 editable Word documents from the scenario
+content (`paper/build-kit.mjs`; PR #24).
+
+| Document | Who it's for |
+|---|---|
+| Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter, what to print |
+| Meter Board | One per room |
+| Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: room-to-case assignments for packing, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
+| Per case (color-coded) | Facilitator Booklet, Room Packet (opening and evidence), Decision Cards, Role Cards, Worksheet, 12-Month Report Cards |
+
+How the app's parts become paper, for one facilitator with no scribe:
+
+- **Assigned cases** instead of choosing.
+- **"Meanwhile" memos** as lookup tables: find what the room chose earlier,
+  read that row.
+- **Elders** as scripted lines (`paper/elder-cards.js`), one set per Elder per
+  decision, with four versions: nobody named, named but missing a trigger or
+  number or date, specific, and declined. Same rules as the live Elders.
+- **Scoring** with the same Class A rubric.
+- **The meter** judged by the room (§8).
+- **The 12-month report** as named and not-named cards laid out in month order.
+- **The dashboard** as a wall of colored sticky notes on the A1–A9 matrix.
+- **Transcripts** replaced by the facilitator's notes on each decision: words,
+  never names.
+- No "ask again", no undo, no "how we got here" chat, and no themes run. The
+  lead facilitator covers those in synthesis.
+
+Content changes go in `server/content/`, then the kit is regenerated. Editing
+the Word files directly is fine for printing, but those edits don't flow back.
+
+---
+
+## 13. Architecture and operations (app)
+
+- **Client:** React and Vite. The room screen and the admin dashboard.
+- **Server:** Node and Express.
+- **Data:** Postgres is the source of truth. One row per room holding its whole
+  state as JSON (`tabletop_rooms`), plus `tabletop_meta` for the themes run.
+  Every change locks that room's row; a unique index keeps each case to one
+  room. `DATABASE_URL` is required.
+- **Deployment:** Replit Autoscale, custom domain
+  `tabletop.virtual-insights.com` (Squarespace DNS). Any number of instances
+  can serve rooms. Don't redeploy during a session.
+- **Access:** four distinct room codes (`ROOM_CODES`) and one admin code
+  (`ADMIN_CODE`) are required; there are no defaults. Codes are compared in
+  constant time. Ten wrong tries per IP per minute returns 429. Participants
+  have no accounts and no devices.
+- **Health:** `GET /api/health` (no auth) reports the running commit, the
+  model, whether the Anthropic key is present, and the storage mode.
+- **Rehearsal:** `npm run rehearse` plays all four cases in all four rooms
+  against a running site through the real API, with real model calls and
+  race tests.
+- **Printables:** `/api/print` (no auth) serves simpler worksheets and role
+  cards. The paper kit supersedes them for this session.
+
+---
+
+## 14. Out of scope
+
+- Real City of Hope cases, transcripts, or survey responses in any content
 - Patient data of any kind
-- Deciding *how* anything gets built — the room owns what, who, when, and who pays
+- Scoring or ranking rooms against each other
+- Deciding *how* anything gets built; the room owns what, who, when, and who
+  pays
 - Replacing the human facilitator
-- Per-participant devices, private voting, or individual answer entry — collective answers only, by design
-- An offline or canned-response mode — the printed worksheet is the fallback
-- Authentication beyond the pre-defined codes — the app's short life is its security model
+- Participant devices, private voting, or individual answers
 
 ---
 
-## 11. Build phases
+## 15. Known gaps
 
-| Phase | Deliverable | Gate |
-|---|---|---|
-| 0 | Single-node vertical slice: pose, discuss, answer with free text, live Steward challenge, revise, lock, consequence | Does the beat feel engaging? Angie plays it. |
-| 1 | Scenario 4 (monitoring) end to end, single room | Full 90-minute run-through |
-| 2 | Remaining three scenarios; role cards with asymmetric information; Villager beats; printed worksheets per scenario | Content review against the internal dispatch findings |
-| 3 | Facilitator codes, admin dashboard with consolidation, exports, and full game reset | Four-room dry run |
+Things earlier drafts promised, and places where the code contradicts itself.
 
-**Facilitator rehearsal is the day before the session**, with the chosen facilitators, on the real app. That makes the rehearsal a dress rehearsal, not a gate — everything, including all four scenarios and the admin dashboard, must be finished before it. After rehearsal: export, then full game reset.
-
-**Deploy a reachable skeleton before Phase 0 finishes** — a page at the real subdomain that a CoH device can be pointed at. The connectivity answer has the longest lead time of anything in this build, and finding out early decides how much weight the printed worksheets need to carry.
-
-Scenario detail, injects, and node emphasis are derived from the internal scout dispatch (survey plus five interviews), which runs once Zahra's interview lands.
-
----
-
-## 12. Open questions
-
-1. **Connectivity test.** The site is not whitelisted, so reachability must be established empirically, several ways: the room laptops on the CoH network, the guest network, and personal devices. The test is three steps — page loads, facilitator code logs in, one NPC turn streams. Run as soon as a skeleton is deployed; the winning path becomes the session-day plan, the worksheets remain the backup. Best case is the CoH network on the room laptops; guest network on the facilitators' own laptops is the likely fallback.
-2. Whether the four planning-team topics (North Star, Categorization, Operating Model, Success Metrics) stay as agenda labels over this structure — recommended — or are restated.
-3. Infusion nurse as a seated sixth Villager, decided against scenario 4.
-4. Whose laptops run the room screens — facilitators' own or CoH machines — and what the projector inputs are. (Interacts with the connectivity answer: personal laptops can use the guest network.)
-
-*Resolved:* InfoSec has approved live model calls (see §2). Facilitators are chosen and rehearse the day before the session (see §11). Five roles per room with mandatory full coverage regardless of room size (see §6).
+- **No delete-on-request or post-session shutdown.** Reset overwrites state,
+  and the legacy `data` column is kept as a backup. There's no delete endpoint
+  and no switch to disable the app.
+- **No per-room spend cap or global circuit breaker** on model calls.
+- **First names reach admin views and exports**, while the briefing screen
+  says names never reach the reports.
+- **Stale comments** in `server/index.js` (around lines 196 and 867) say
+  transcripts never reach the model. They do, in the "how we got here" chat
+  and in opted-in themes.
+- **One Elder failing drops the whole Council round.** The client also
+  handles an `elder-unavailable` event the server never sends.
+- **`/api/print` and `/api/elders` need no auth.** Both return fictional
+  content only.
+- **Not built:** collision and drop-off detection, presenter mode, flowchart
+  export, and the Class B metrics.
+- **Write-ins** get a generic event, not a consequence that follows the room's
+  own text.
+- **The README** still calls the Postgres store optional.
+- **Elder personas** are placeholders (§6).
 
 ---
 
-## 13. Acceptance criteria
+## 16. Open questions
 
-- A room can complete a scenario in 90 minutes including setup and extraction
-- Every locked node records: choice, free text, **who made the final decision**, first and revised answer, specificity score, timing
-- NPC responses are in character and respond to the room's actual free text; the prompt provably contains no CoH source material
-- A room can decline any node and have that recorded as a gap without penalty; a facilitator can skip a node and have that recorded as skipped; a room can write in its own answer at any node and have it recorded, challenged, and carried forward verbatim
-- A failed or stalled NPC call surfaces a plain message and never blocks the room from advancing
-- Discussion transcription is per-decision and facilitator-controlled; while on, an indicator is visible on the room screen; no audio is stored; no voices are attributed; the transcript appears in the record and export and never in a model prompt
-- The admin dashboard reflects all four rooms within seconds of a node locking
-- Printed worksheets exist for all four scenarios, mirroring the node questions and answer options
-- The room screen is legible when projected — large type, high contrast, no interaction required to read the current state
-- The API key is never present in any client bundle or network response
-- No patient data, no PII, no attributable CoH material, anywhere in the system — the only personal data is first names against role assignments, which never reach the model or the reports
-- The admin can fully reset the game to pristine (all rooms, answers, NPC memory, claims, meters) behind a type-to-confirm, with an export offered first — verified as part of the rehearsal-day runbook
-- Session data is exportable as JSON and deletable on request; the app is disabled promptly after the session
+1. Derive the Elder personas from `CoH_Council_Actor_Encoding.md`, and review
+   the paper kit's scripted Elder lines against them.
+2. Check scenario detail against the internal scout dispatch findings.
+3. With the session on paper: take down the Replit deployment and revoke the
+   Anthropic key, or keep the app running for later use?
+4. Whether the four planning-team topics (North Star, Categorization,
+   Operating Model, Success Metrics) stay as agenda labels over this
+   structure (recommended) or are restated.
+5. An infusion nurse as a Villager in S4. Not added; S4 already has five
+   Villagers.
+
+---
+
+## 17. History
+
+| Date | Change |
+|---|---|
+| Sep 23, 2026 | PRD drafts v0.1–v0.8. Phases 0–3 built: the vertical slice, S4 end to end, all four cases, four rooms and the admin dashboard (PRs #1–#5). Transcription (#6) and The Decisionmakers roster (#7). |
+| Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
+| Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
+| Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). |
