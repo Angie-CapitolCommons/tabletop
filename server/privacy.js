@@ -26,7 +26,7 @@ export function scrubNames(text, roleAssignments) {
   return out;
 }
 
-// "Who made the final call" is usually a roster chip, "The Doctor · Sam":
+// "Who made the final call" is usually a roster chip, "The Executive Sponsor · Sam":
 // keep the role, drop the name. Anything typed in is scrubbed as text.
 export function scrubDecidedBy(value, roleAssignments) {
   const v = String(value ?? "");

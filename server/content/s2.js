@@ -540,20 +540,20 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
   },
   // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
-    "The Doctor": {
+    "The Executive Sponsor": {
       mandate: [
-        "Your job: what the tool does to diagnostic accuracy and to how residents learn.",
-        "You won't go along with: an evaluation that measures speed and ignores training.",
-        "You're judged on: diagnostic accuracy, and pathologists' trust in what gets used.",
+        "Your job: getting the organization to a yes or a no on this tool, and making sure a yes can be paid for.",
+        "You won't go along with: another extension with no end date and nobody deciding.",
+        "You're judged on: tools that move from testing into use, or get stopped.",
       ],
       asymmetric: [
         {
-          text: "A junior pathologist asked Dr. Renner twice for protected time to test the tool properly and was told to keep it informal.",
-          cue: "the room asks who will do the testing",
+          text: "You were copied on the Workgroup's “approved in principle” note seven months ago. It named no owner, and you assumed pathology had one.",
+          cue: "the room asks who decides at the end",
         },
         {
-          text: "The residents using the sandbox to study are mostly first- and second-years, the ones who most need the routine slides.",
-          cue: "someone says the sandbox is only archived slides",
+          text: "Next year's capital list closes in six weeks. If the tool isn't on it, a yes can't be paid for until the year after.",
+          cue: "the room talks about what happens if the tool passes",
         },
       ],
     },

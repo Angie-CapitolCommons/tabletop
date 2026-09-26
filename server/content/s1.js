@@ -552,20 +552,20 @@ Signed: 14 triage line nurses`,
   },
   // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
-    "The Doctor": {
+    "The Executive Sponsor": {
       mandate: [
-        "Your job: what each request would do to patient care and to clinicians' time.",
-        "You won't go along with: a pick made without a clinician's view in the ranking.",
-        "You're judged on: whether clinicians use what gets built.",
+        "Your job: what the AI Integration Environment is for, and which requests fit the priorities you set.",
+        "You won't go along with: the slot going to the most senior sponsor by default.",
+        "You're judged on: whether this quarter's one slot produces something people use.",
       ],
       asymmetric: [
         {
-          text: "The triage nurses wrote their request after two late callbacks last month. To them it's a safety tool.",
-          cue: "the room compares the three requests",
+          text: "The charter's blank sections are yours to finish. You told the last intake meeting you'd do it this quarter.",
+          cue: "the room talks about what the AI Integration Environment is for",
         },
         {
-          text: "The lead researcher's last department pilot used about a day a week of clinic staff time for “optional” data checks.",
-          cue: "the room talks about what the winner has to show",
+          text: "The chief financial officer asked you last week whether AI will show savings this year. The appeal-letter tool is the only request with a dollar figure.",
+          cue: "the room ranks the requests on return",
         },
       ],
     },

@@ -129,7 +129,7 @@ export const elderFiresOn = {
 };
 
 export const roles = [
-  "The Doctor",
+  "The Executive Sponsor",
   "The Security Guard",
   "The Money Manager",
   "The AI Guru",

@@ -645,20 +645,20 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
   },
   // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
-    "The Doctor": {
+    "The Executive Sponsor": {
       mandate: [
-        "Your job: what the summaries do to clinical decisions in three clinics.",
-        "You won't go along with: more clinics using it before someone has looked into the misses.",
-        "You're judged on: patient outcomes, and whether clinicians trust the chart.",
+        "Your job: who owns this tool now that its original sponsor has moved on, and what the organization stands behind.",
+        "You won't go along with: a decision that leaves nobody's name on the tool.",
+        "You're judged on: whether an approval here means something, and what happens if a patient is harmed while it runs.",
       ],
       asymmetric: [
         {
-          text: "Two of the known misses changed when treatment was given. There was no harm, but only because someone double-checked.",
-          cue: "someone says no harm was found",
+          text: "When the original sponsor changed roles, they emailed you asking who should take the tool over. The email is still unanswered.",
+          cue: "someone asks who owns the tool now",
         },
         {
-          text: "You've noticed medical oncology doctors read the full chart less since the summaries arrived. Nobody has measured it.",
-          cue: "the room talks about what number is good enough",
+          text: "The chief medical officer has asked you for a one-page answer by Friday on whether the tool is safe to keep using.",
+          cue: "the room talks about leaving it on",
         },
       ],
     },
