@@ -21,8 +21,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const load = (p) => import(pathToFileURL(path.join(root, p)).href);
 const content = await load("server/content/index.js");
-const { scenarios, elders, elderFiresOn, roles, meterStart, meterLabels, buildEpilogue } = content;
-const { MEASURES, GENERIC_ABSENT } = await load("client/src/measures.js");
+const { scenarios, elders, elderFiresOn, roles, meterLabels } = content;
+const { MEASURES, SCORING, GENERIC_ABSENT } = await load("client/src/measures.js");
 const { elderCards } = await load("paper/elder-cards.js");
 
 const OUT = path.join(here, "out", "Tabletop Paper Kit");
@@ -87,7 +87,7 @@ let lineCount = 0;
 const writeLine = () =>
   new Paragraph({
     children: [run(" ")],
-    spacing: { after: 0, before: 140 },
+    spacing: { after: 0, before: 120 },
     border: { bottom: { style: BorderStyle.SINGLE, size: lineCount++ % 2 ? 5 : 4, color: "8A8FAE", space: 1 } },
   });
 // A non-breaking space keeps each checkbox on the same line as its label.
@@ -228,7 +228,15 @@ async function save(name, sections) {
 const written = [];
 
 // ---------- content helpers ----------
-const fmtDelta = (v) => (v > 0 ? `+${v}` : v < 0 ? `−${-v}` : "—");
+// Paper meter: the room judges each decision's effect; + means more of it.
+const METER_ORDER = ["goodwill", "risk", "dollars", "time"];
+const METER_ASK = {
+  goodwill: "Did this build clinicians' goodwill (+) or spend it (−)?",
+  risk: "Did this add risk (+) or take risk away (−)?",
+  dollars: "Did this commit more money (+) or less (−)?",
+  time: "Does value arrive later (+) or sooner (−)?",
+};
+const METER_QUESTIONS = [["Measure", "Ask the room"], ...METER_ORDER.map((k) => [meterLabels[k], METER_ASK[k]])];
 const optionLabel = (o) =>
   o.id === "writein" ? "None of these — we'll write our own" : o.label.replace(/^“|”$/g, "");
 
@@ -324,7 +332,7 @@ async function facilitatorBooklet(s, i) {
     "Deal the five role cards. Every person plays a role and every role is played: two people can share a role, or one person can play two.",
     "Write each person's first name next to their role on the worksheet's first page.",
     "Put the Room Packet on the table with the opening thread on top. The evidence documents and the who's who go in the middle of the table as the room's folder.",
-    `Set the meter board: Goodwill ${meterStart.goodwill}, Risk ${meterStart.risk}, Dollars ${meterStart.dollars}, Time ${meterStart.time}.`,
+    "Put the meter board in the middle of the table, where everyone can reach it, with a pen.",
     "Keep the Decision Cards face down in order. Hand out one at a time.",
     "Keep the 12-month report cards face down, sorted by decision.",
     "Worksheet, pen, and a clock where you can see them.",
@@ -359,16 +367,14 @@ async function facilitatorBooklet(s, i) {
   kids.push(...openingBlocks(s));
 
   // Decisions
-  let villagerIntroDone = false;
   s.nodes.forEach((node, k) => {
-    const m = MEASURES[node.type];
-    kids.push(pageBreak(), eyebrow(`Decision ${k + 1} of ${n}  ·  ${m.id} ${m.name}  ·  ${SECTION[node.type]}`, c), h2(node.title));
+    kids.push(pageBreak(), eyebrow(`Decision ${k + 1} of ${n}  ·  ${SECTION[node.type]}`, c), h2(node.title));
 
     // 1. Meanwhile
     const inj = unrollInject(s, node);
     let step = 1;
     if (inj) {
-      kids.push(h3(`${step++} · Read the memo first`));
+      kids.push(h3(`${step++} · Read the “Meanwhile” memo first`));
       if (!inj.dep) {
         kids.push(quote(inj.groups[0].text));
       } else {
@@ -457,21 +463,16 @@ async function facilitatorBooklet(s, i) {
 
     // 6. Score
     kids.push(h3(`${step++} · Score it`));
-    // Score against this decision's own prompt: the per-measure wording is
-    // generic and doesn't always fit (S2's purpose is a question, not a scope).
-    kids.push(p([run("Specific: ", { bold: true, color: "2F7D4F" }), run("it answers all of this, with a person or role named: "), run(node.freeTextPrompt, { bold: true })]));
+    // The same rubric the app shows the facilitator at scoring.
+    kids.push(p([run("Specific: ", { bold: true, color: "2F7D4F" }), run(`${SCORING[node.type]}.`)]));
     kids.push(p([run(GENERIC_ABSENT, { size: 20, color: SLATE })]));
     kids.push(note("Only Specific counts as an answer. Score the final answer (the revised one, if they revised)."));
 
-    // 7. Meter
-    kids.push(h3(`${step++} · Move the meter`));
-    const meterRows = [["Their final choice", "Goodwill", "Risk", "Dollars", "Time"]];
-    for (const o of node.options) {
-      const d = node.meterDeltas[o.id];
-      meterRows.push([LETTER[o.id], fmtDelta(d.goodwill), fmtDelta(d.risk), fmtDelta(d.dollars), fmtDelta(d.time)]);
-    }
-    kids.push(grid(meterRows, [3280, 1700, 1700, 1700, 1700], { fontSize: 19 }));
-    kids.push(p([run("Then adjust for what they wrote: ", { bold: true, size: 19 }), run("Time +1 if the answer adds a meeting, vote, sign-off, review, audit, or another group's approval beyond the choice itself (+2 if it adds several). Goodwill −1 if it puts new work on clinicians with nothing taken off their plate (−2 if it makes clinicians the ongoing safety net).", { size: 19 })], { spacing: { before: 100 } }));
+    // 7. Meter: on paper the room judges the effect itself (no authored amounts).
+    kids.push(h3(`${step++} · Ask the room how it moved the meter`));
+    kids.push(p(`For each measure, the room decides together whether this decision pushed it up, pushed it down, or left it alone. On the meter board, mark a + to the right of the center line or a − to the left, with the decision number (“+${k + 1}”, “−${k + 1}”). No change, no mark.`));
+    kids.push(grid(METER_QUESTIONS, [2800, 7280], { fontSize: 19 }));
+    kids.push(note("Let them argue it; the trade-off matters more than the mark. If every mark looks good, ask what this decision costs."));
 
     // 8. What happens
     kids.push(h3(`${step++} · Read what happens`));
@@ -497,11 +498,7 @@ async function facilitatorBooklet(s, i) {
     const v = s.villagers?.[node.id];
     if (v) {
       kids.push(h3(`${step++} · Who lives with this decision`));
-      if (!villagerIntroDone) {
-        kids.push(note("The first time, say: “These voices are composites built from published and public sources. They aren't anyone here, and no patient data is used.”"));
-        villagerIntroDone = true;
-      }
-      kids.push(p([run(`${v.speaker}:`, { bold: true, size: 20 })], { spacing: { after: 40 } }), quote(v.line));
+      kids.push(quote(v.line, { spacing: { after: 40 } }), p([run(`— ${v.speaker}`, { size: 20, color: SLATE })], { indent: { left: 360 } }));
     }
 
     kids.push(h3(`${step++} · Write the lock time on the worksheet`));
@@ -522,6 +519,7 @@ async function facilitatorBooklet(s, i) {
   kids.push(h3("Debrief questions"));
   [
     "Which month would you most want to change? What would you decide differently?",
+    "Look at the meter board. Where did the marks pile up, and what did the room trade for what?",
     "Look at who made the final call on each decision. Did one person end up deciding, or did it move around?",
     "Where did the room name a committee instead of a person? What stopped it from naming someone?",
     "What would you need to be true at the real organization to answer these the same way?",
@@ -567,7 +565,6 @@ async function decisionCards(s, i) {
   const n = s.nodes.length;
   const kids = [];
   s.nodes.forEach((node, k) => {
-    const m = MEASURES[node.type];
     if (k > 0) kids.push(pageBreak());
     kids.push(
       eyebrow(`Decision ${k + 1} of ${n}  ·  ${SECTION[node.type]}`, c),
@@ -608,8 +605,6 @@ async function decisionCards(s, i) {
         ],
         { fill: PAPER },
       ),
-      spacer(120),
-      p([run(`${m.name}: `, { bold: true, size: 18, color: SLATE }), run(`${m.def}.`, { size: 18, color: SLATE })]),
     );
   });
   await save(`${SCEN[s.id].short} - 3 Decision Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · Decision cards`, color: c })]);
@@ -666,7 +661,6 @@ async function worksheet(s, i) {
     p([run("Room ______     Facilitator ____________________     Date ____________     Start time ________", { size: 21 })], { spacing: { after: 160 } }),
     h3("Who is playing which role (first names only)"),
     grid([["Role", "First name(s)"], ...roles.map((r) => [r, ""])], [4000, 6080], { fontSize: 20 }),
-    p([run(`Meter at the start: Goodwill ${meterStart.goodwill}   Risk ${meterStart.risk}   Dollars ${meterStart.dollars}   Time ${meterStart.time}`, { size: 20, color: SLATE })], { spacing: { before: 140 } }),
     note("Write what the room decides, in their words. In the notes, write what was said, never who said it."),
     h3("Pace"),
     note(`About ${per} minutes per decision. Fill in the clock times when you start; if you fall more than one decision behind, skip one.`),
@@ -689,7 +683,18 @@ async function worksheet(s, i) {
         writeLine(),
       ],
       [
-        p([run("Score:  ", { size: 18, bold: true }), ...ticks(["Specific", "Generic", "Absent"], 18), run("        Meter after:  Goodwill ____  Risk ____  Dollars ____  Time ____", { size: 18 })], { spacing: { after: 0 } }),
+        p([run("Score:  ", { size: 18, bold: true }), ...ticks(["Specific", "Generic", "Absent"], 18)], { spacing: { after: 60 } }),
+        p(
+          [
+            run("Meter:  ", { size: 18, bold: true }),
+            ...["Goodwill", "Risk", "Dollars", "Time"].flatMap((m, mi) => [
+              run(`${m} `, { size: 18 }),
+              ...ticks(["+", "−"], 18),
+              run(mi < 3 ? "      " : "", { size: 18 }),
+            ]),
+          ],
+          { spacing: { after: 0 } },
+        ),
       ],
       [p([run("What was said (words, not names)", { size: 17, color: SLATE })], { spacing: { after: 0 } }), writeLine(), writeLine()],
     ];
@@ -702,10 +707,10 @@ async function worksheet(s, i) {
               new TableCell({ width: { size: 6800, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: c, color: "auto" }, margins: { top: 90, bottom: 90, left: 140, right: 80 }, children: [cells[0]] }),
               new TableCell({ width: { size: W - 6800, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: c, color: "auto" }, margins: { top: 90, bottom: 90, left: 80, right: 140 }, verticalAlign: VerticalAlign.CENTER, children: [cells[1]] }),
             ]
-          : [new TableCell({ columnSpan: 2, width: { size: W, type: WidthType.DXA }, margins: { top: 90, bottom: 110, left: 140, right: 140 }, children: cells })],
+          : [new TableCell({ columnSpan: 2, width: { size: W, type: WidthType.DXA }, margins: { top: 60, bottom: 80, left: 140, right: 140 }, children: cells })],
       });
     });
-    kids.push(new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [6800, W - 6800], layout: TableLayoutType.FIXED, borders: allBorders(line(HAIR, 6)), rows }), spacer(240));
+    kids.push(new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [6800, W - 6800], layout: TableLayoutType.FIXED, borders: allBorders(line(HAIR, 6)), rows }), spacer(120));
   });
   kids.push(
     pageBreak(),
@@ -777,7 +782,7 @@ async function facilitatorGuide() {
     ["Role Cards", "Five, one per role. Dealt at setup."],
     ["Worksheet", "The room's record. You fill it in."],
     ["12-Month Report Cards", "Two per decision. Face down until the end."],
-    ["Meter Board", "Four tracks: Goodwill, Risk, Dollars, Time. Pen or tokens."],
+    ["Meter Board", "Four measures. After each decision the room marks + or − on each one."],
     ["Also", "Pens, a clock or timer, four colors of sticky notes (green, yellow, pink, blue)."],
   ].forEach(([k, v]) => kids.push(p([run(`${k}: `, { bold: true }), run(v)])));
 
@@ -797,14 +802,14 @@ async function facilitatorGuide() {
 
   kids.push(h3("Every decision, the same nine steps"));
   [
-    "Read the memo, if the booklet has one for this decision. It depends on an earlier answer.",
+    "Read the “Meanwhile” memo, if the booklet has one for this decision. It depends on an earlier answer.",
     "Hand out the Decision Card and read the question.",
     "Let the room discuss, about 5 minutes. One answer the whole room owns.",
     "Record their choice, their written answer, and who made the final call.",
     "Read the Elder's line that fits what they wrote.",
     "Ask whether the answer stands or changes. Record any change.",
     "Score it: Specific, Generic, or Absent.",
-    "Move the meter, then read what happens.",
+    "Ask the room how the decision moved the meter, and mark it. Then read what happens.",
     "Read the voice of who lives with it (when there is one). Write the lock time.",
   ].forEach((t) => kids.push(numbered(t)));
 
@@ -832,15 +837,16 @@ async function facilitatorGuide() {
 
   kids.push(h3("The meter"));
   [
-    "Four currencies move with every decision: Goodwill (higher is better), Risk, Dollars, and Time to first value (lower is better).",
-    "The booklet gives the moves for each choice. Then two adjustments for what the room wrote: Time +1 (or +2) if it adds meetings, sign-offs, or reviews; Goodwill −1 (or −2) if it puts new work on clinicians.",
-    "There's no winning score. The meter exists to make trade-offs visible and to stop “let's do both.”",
+    "Four measures: clinician goodwill, risk exposure, dollars committed, and time to first value.",
+    "After each decision the room decides, together, whether the decision pushed each one up or down. A + goes to the right of the center line, a − to the left, with the decision number. No change, no mark.",
+    "“Up” means more of that thing: more goodwill (good), but also more risk, more dollars, and more time before it helps anyone.",
+    "There's no winning score. The meter exists to make trade-offs visible and to stop “let's do both.” The debrief starts from where the marks piled up.",
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(h3("Skips, declines, and the room's own plan"));
   [
     "“We can't answer this today” is always allowed. Record it; it's a gap, not a failure. It still has consequences, and the booklet reads them.",
-    "“None of these — we'll write our own” is allowed. Write their plan word for word. It moves Time +1 and reads “the room's plan goes out exactly as written.”",
+    "“None of these — we'll write our own” is allowed. Write their plan word for word. The booklet reads “the room's plan goes out exactly as written.”",
     "If you run out of time, skip a decision: tick Skipped and move on. Skipped is different from declined.",
   ].forEach((t) => kids.push(bullet(t)));
 
@@ -884,50 +890,44 @@ async function facilitatorGuide() {
   await save("00 - Facilitator Guide", [section(kids, { label: "Facilitator guide", color: PURPLE })]);
 }
 
+// The room's own meter: a center line per measure, minus marks to the left,
+// plus marks to the right. No starting values, no authored amounts.
 async function meterBoard() {
-  const tracks = [
-    ["goodwill", "Higher is better"],
-    ["risk", "Lower is better"],
-    ["dollars", "Lower is better"],
-    ["time", "Lower is better"],
-  ];
-  const labelW = 2880;
-  const cellW = Math.floor((LW - labelW) / 13);
-  const widths = [labelW, ...Array(13).fill(cellW)];
+  const labelW = 3400, centerW = 240;
+  const sideW = Math.floor((LW - labelW - centerW) / 2);
+  const widths = [labelW, sideW, centerW, sideW];
   const total = widths.reduce((a, b) => a + b, 0);
-  const rows = tracks.map(([key, dir]) =>
+  const cell = (w, children, o = {}) =>
+    new TableCell({ width: { size: w, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { left: 140, right: 140 }, children, ...o });
+  const header = new TableRow({
+    tableHeader: true,
+    children: [
+      cell(labelW, [p("")], { shading: { type: ShadingType.CLEAR, fill: WHITE, color: "auto" } }),
+      cell(sideW, [p([run("−   LESS", { font: MONO, size: 22, bold: true, color: SLATE, characterSpacing: 30 })], { alignment: AlignmentType.LEFT, spacing: { after: 0 } })], { shading: { type: ShadingType.CLEAR, fill: WARM, color: "auto" } }),
+      cell(centerW, [p("")], { shading: { type: ShadingType.CLEAR, fill: DEEP, color: "auto" } }),
+      cell(sideW, [p([run("MORE   +", { font: MONO, size: 22, bold: true, color: SLATE, characterSpacing: 30 })], { alignment: AlignmentType.RIGHT, spacing: { after: 0 } })], { shading: { type: ShadingType.CLEAR, fill: WARM, color: "auto" } }),
+    ],
+  });
+  const rows = METER_ORDER.map((key) =>
     new TableRow({
-      height: { value: 1500, rule: HeightRule.ATLEAST },
+      height: { value: 1700, rule: HeightRule.ATLEAST },
       cantSplit: true,
       children: [
-        new TableCell({
-          width: { size: labelW, type: WidthType.DXA },
-          verticalAlign: VerticalAlign.CENTER,
-          shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
-          margins: { left: 160, right: 120 },
-          children: [
-            p([run(meterLabels[key], { font: HEAD, size: 28, color: DEEP })], { spacing: { after: 20 } }),
-            p([run(`${dir.toUpperCase()} · STARTS AT ${meterStart[key]}`, { font: MONO, size: 14, color: SLATE })], { spacing: { after: 0 } }),
-          ],
-        }),
-        ...Array.from({ length: 13 }, (_, v) =>
-          new TableCell({
-            width: { size: cellW, type: WidthType.DXA },
-            verticalAlign: VerticalAlign.CENTER,
-            shading: { type: ShadingType.CLEAR, fill: v === meterStart[key] ? "DDE3F2" : WHITE, color: "auto" },
-            children: [p([run(String(v), { font: MONO, size: 30, color: v === meterStart[key] ? PURPLE : "8A8FAE", bold: v === meterStart[key] })], { alignment: AlignmentType.CENTER, spacing: { after: 0 } })],
-          }),
-        ),
+        cell(labelW, [
+          p([run(meterLabels[key], { font: HEAD, size: 30, color: DEEP })], { spacing: { after: 40 } }),
+          p([run(METER_ASK[key], { size: 17, color: SLATE })], { spacing: { after: 0 } }),
+        ], { shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" } }),
+        cell(sideW, [p("")]),
+        cell(centerW, [p("")], { shading: { type: ShadingType.CLEAR, fill: DEEP, color: "auto" } }),
+        cell(sideW, [p("")]),
       ],
     }),
   );
   const kids = [
     h2("The cost meter"),
-    note("Put a token (or a pen mark) on the starting value, shaded. After each decision, move it by the amounts in the booklet. There's no winning score: the meter shows what each choice cost."),
+    note("After each decision, the room decides together: did it push each measure up, push it down, or leave it alone? Mark a + to the right of the center line or a − to the left, with the decision number (“+3”, “−3”). No change, no mark. There's no winning score: the board shows what the room traded for what."),
     spacer(120),
-    new Table({ width: { size: total, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders: allBorders(line("B9BCCB", 8)), rows }),
-    spacer(120),
-    note("If a value goes past 12 or below 0, write it in the margin. It happens, and it's worth talking about."),
+    new Table({ width: { size: total, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders: allBorders(line("B9BCCB", 8)), rows: [header, ...rows] }),
   ];
   await save("00 - Meter Board", [section(kids, { label: "Meter board", color: PURPLE, landscape: true })]);
 }

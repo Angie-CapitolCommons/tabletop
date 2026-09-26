@@ -42,10 +42,13 @@ one room's kit:
 - **Elders** can't hear the room, so `elder-cards.js` holds scripted lines,
   one set per Elder per decision, with four branches: no one named, named but
   no trigger, specific, declined. Same rules as the live Elders.
-- **The answer check** (the app's model call that adjusts the meter for added
-  process and clinician burden) becomes two printed rules the facilitator
-  applies by judgment.
-- **Scoring** reads against each decision's own prompt.
+- **The cost meter is deliberately different on paper.** The app's authored
+  amounts (`meterDeltas`) and its answer check aren't used. After each
+  decision the room judges the effect on each of the four measures itself
+  and marks the board: a + to the right of the center line, a − to the left.
+- **Scoring** uses the same per-measure rubric the app shows the facilitator
+  (`client/src/measures.js`). The A-codes appear only on the plenary wall, as
+  they do only on the app's dashboard.
 - **The 12-month report** becomes cards the facilitator lays out in month
   order, choosing named or not named per decision from the score.
 - **The dashboard** becomes a wall of colored sticky notes on the A1–A9
