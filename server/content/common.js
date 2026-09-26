@@ -166,8 +166,8 @@ export const meterLabels = {
 const WHOS_WHO_LINES = [
   "AI Governance Workgroup — reviews AI tools for risk. It does not set priorities or weigh business, financial, or clinician impact. Meets monthly; its coordinator runs a shared mailbox.",
   "Clinical Practice Council — owns clinical workflows, note templates, and documentation standards.",
-  "AI Lab — a small team that builds and tests AI tools before wider use. One build-and-test slot per quarter.",
-  "Executive sponsor for AI — the senior executive who sets the AI Lab's priorities.",
+  "AI Integration Environment — where a small team builds and tests AI tools before wider use. One build-and-test slot per quarter.",
+  "Executive sponsor for AI — the senior executive who sets the AI Integration Environment's priorities.",
   "Information Security — reviews vendors and data security, and also assesses risk on its own form. Which tools go to it, to the Workgroup, or to both isn't consistent. Current wait: about six weeks.",
   "Digital Health (IT) — runs the electronic health record (EHR), turns tools on and off, and staffs the service desk.",
   "Quality & Patient Safety — runs the safety-event reporting system and chart audits.",
