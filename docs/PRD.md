@@ -1,7 +1,7 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.1 · September 26, 2026*
+*Version 1.2 · September 26, 2026*
 
 > **The code is the source of truth.** Tabletop runs as two tracks, the web
 > app and the paper kit, and each track's code is its own source of truth:
@@ -25,7 +25,8 @@
 Tabletop is a facilitated exercise for four breakout rooms. Each room works
 one fictional case through the AI governance lifecycle. At each decision the
 room agrees on one answer, writes down who is on the hook, and says who made
-the final call. An AI Council of advisors (the Elders) presses on the answer.
+the final call. Then the answer is challenged for what's missing: in the app
+by an AI Council of advisors (the Elders), and on paper by the facilitator.
 Each decision sets dated events in motion, and at the end the case runs twelve
 months forward to show what held and what broke. The four rooms' answers are
 compared side by side for the closing plenary.
@@ -211,7 +212,8 @@ earlier in the room and mentions it gently if the room didn't take it up.
 The personas are **placeholders** until they're derived from
 `CoH_Council_Actor_Encoding.md`.
 
-On paper, the Elders are scripted lines the facilitator reads (§12).
+There is no AI Council on paper. The facilitator challenges the answer
+instead (§12).
 
 ---
 
@@ -387,9 +389,12 @@ list current as the paper process moves further from the app.
 - **Assigned cases** instead of choosing.
 - **"Meanwhile" memos** as lookup tables: find what the room chose earlier,
   read that row.
-- **Elders** as scripted lines (`paper/elder-cards.js`), one set per Elder per
-  decision, with four versions: nobody named, named but missing a trigger or
-  number or date, specific, and declined. Same rules as the live Elders.
+- **No AI Council.** The facilitator challenges the answer in their own
+  voice, from one set of questions per decision (`paper/challenges.js`) with
+  four branches: nobody named, named but missing a trigger or number or date,
+  specific, and declined. They press on the answer, never on a person; when
+  the answer is already specific, they say so and the follow-up is optional.
+  The worksheet records "After the challenge: Held / Revised".
 - **The meter** judged by the room (§8).
 - **The 12-month report** as named and not-named cards laid out in month order.
 - **The dashboard** as a wall of colored sticky notes on the A1–A9 matrix.
@@ -404,7 +409,7 @@ list current as the paper process moves further from the app.
 |---|---|---|
 | Cases: opening, evidence, decisions, options, events, owner beats, 12-month entries, Villagers, role cards | `server/content/` | Yes, read by the kit at build time |
 | Scoring rubric | `client/src/measures.js` | Yes, read by the kit at build time |
-| Scripted Elder lines | `paper/elder-cards.js` | No, paper only |
+| Challenge questions | `paper/challenges.js` | No, paper only |
 | Facilitator steps, meter board, worksheet, plenary wall, and all kit wording | `paper/build-kit.mjs` | No, paper only |
 
 **Rules for drift.**
@@ -492,8 +497,7 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 
 ## 16. Open questions
 
-1. Derive the Elder personas from `CoH_Council_Actor_Encoding.md`, and review
-   the paper kit's scripted Elder lines against them.
+1. Derive the Elder personas (app only) from `CoH_Council_Actor_Encoding.md`.
 2. Check scenario detail against the internal scout dispatch findings.
 3. Whether the four planning-team topics (North Star, Categorization,
    Operating Model, Success Metrics) stay as agenda labels over this
@@ -511,4 +515,4 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. |

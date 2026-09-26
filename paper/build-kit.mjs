@@ -1,13 +1,15 @@
-// Builds the paper kit (editable Word documents) from the live scenario
-// content, so the paper and the app never drift apart.
+// Builds the paper kit (editable Word documents). Paper is its own track and
+// is expected to drift from the app (PRD §12): the cases and the scoring
+// rubric are still read from server/content and client/src/measures.js;
+// everything under paper/ is paper-only.
 //
 //   npm run paper-kit            → paper/out/Tabletop Paper Kit/*.docx
 //
 // Per scenario: Facilitator Booklet, Room Packet, Decision Cards, Role Cards,
 // Worksheet, 12-Month Report Cards. Shared: Facilitator Guide, Meter Board,
-// Lead Facilitator's plenary wall. The only paper-specific content is the
-// scripted Elder cards in paper/elder-cards.js; everything else is read from
-// server/content and client/src/measures.js.
+// Lead Facilitator's plenary wall. Paper-only content: the facilitator's
+// challenge questions (paper/challenges.js) and all the kit's own wording.
+// There is no AI Council on paper.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -21,9 +23,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const load = (p) => import(pathToFileURL(path.join(root, p)).href);
 const content = await load("server/content/index.js");
-const { scenarios, elders, elderFiresOn, roles, meterLabels } = content;
+const { scenarios, roles, meterLabels } = content;
 const { MEASURES, SCORING, GENERIC_ABSENT } = await load("client/src/measures.js");
-const { elderCards } = await load("paper/elder-cards.js");
+const { challenges } = await load("paper/challenges.js");
 
 const OUT = path.join(here, "out", "Tabletop Paper Kit");
 
@@ -401,61 +403,45 @@ async function facilitatorBooklet(s, i) {
     kids.push(h3(`${step++} · Record the room's answer`));
     kids.push(p([run("On the worksheet: tick their choice, write their answer, and tick who made the final call. Their answer should say: ", { size: 20 }), run(node.freeTextPrompt, { size: 20, bold: true })]));
 
-    // 4. Elders
-    const who = node.elders.map((id) => elders[id].name).join(" and ");
-    kids.push(h3(`${step++} · Read ${who}`));
-    kids.push(note(node.elders.length > 1 ? "Read one Elder, then the other. Pick the line that fits what the room wrote." : "Pick the line that fits what the room wrote. Read it once, plainly."));
-    for (const id of node.elders) {
-      const card = elderCards[s.id]?.[node.id]?.[id];
-      if (!card) throw new Error(`${s.id}/${node.id}: no paper Elder card for ${id}`);
-      const e = elders[id];
-      const rows = [
-        [[p([run(e.name, { font: HEAD, size: 26, color: WHITE })], { spacing: { after: 0 } }), p([run(`${e.seat.toUpperCase()}  ·  WATCHES FOR: ${elderFiresOn[id]}`, { font: MONO, size: 14, color: "D5D8E8" })], { spacing: { after: 0 } })], ""],
-        ["If no person or role is named (a committee, a department, “leadership”)", card.noName],
-        ["If someone is named, but the trigger, number, or date is missing", card.noTrigger],
-        ["If it names a person or role and a trigger, number, or date", card.specific],
-        ["If the room chose “We can't answer this today”", card.declined],
-      ];
-      kids.push(
-        new Table({
-          width: { size: W, type: WidthType.DXA },
-          columnWidths: [3000, 7080],
-          layout: TableLayoutType.FIXED,
-          borders: allBorders(line(HAIR)),
-          rows: rows.map((r, ri) =>
+    // 4. Challenge: the facilitator presses for the missing piece, in their own voice.
+    const ch = challenges[s.id]?.[node.id];
+    if (!ch) throw new Error(`${s.id}/${node.id}: no challenge questions in paper/challenges.js`);
+    kids.push(h3(`${step++} · Challenge the answer`));
+    kids.push(note("Ask the one that fits what they wrote, in your own words if you like. Press on the answer, never on a person."));
+    const chRows = [
+      ["If no person or role is named (a committee, a department, “leadership”)", ch.noName],
+      ["If someone is named, but the trigger, number, or date is missing", ch.noTrigger],
+      ["If it names a person or role and a trigger, number, or date: say what's solid; the question is optional", ch.specific],
+      ["If the room chose “We can't answer this today”", ch.declined],
+    ];
+    kids.push(
+      new Table({
+        width: { size: W, type: WidthType.DXA },
+        columnWidths: [3000, 7080],
+        layout: TableLayoutType.FIXED,
+        borders: allBorders(line(HAIR)),
+        rows: chRows.map(
+          (r) =>
             new TableRow({
               cantSplit: true,
-              children:
-                ri === 0
-                  ? [
-                      new TableCell({
-                        columnSpan: 2,
-                        width: { size: W, type: WidthType.DXA },
-                        shading: { type: ShadingType.CLEAR, fill: DEEP, color: "auto" },
-                        margins: { top: 100, bottom: 100, left: 160, right: 160 },
-                        children: r[0],
-                      }),
-                    ]
-                  : [
-                      new TableCell({
-                        width: { size: 3000, type: WidthType.DXA },
-                        shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
-                        margins: { top: 90, bottom: 90, left: 140, right: 120 },
-                        children: [p([run(r[0], { size: 17, color: SLATE })], { spacing: { after: 0 } })],
-                      }),
-                      new TableCell({
-                        width: { size: 7080, type: WidthType.DXA },
-                        margins: { top: 90, bottom: 90, left: 160, right: 140 },
-                        children: [p([run(r[1], { size: 20 })], { spacing: { after: 0 } })],
-                      }),
-                    ],
+              children: [
+                new TableCell({
+                  width: { size: 3000, type: WidthType.DXA },
+                  shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
+                  margins: { top: 90, bottom: 90, left: 140, right: 120 },
+                  children: [p([run(r[0], { size: 17, color: SLATE })], { spacing: { after: 0 } })],
+                }),
+                new TableCell({
+                  width: { size: 7080, type: WidthType.DXA },
+                  margins: { top: 90, bottom: 90, left: 160, right: 140 },
+                  children: [p([run(r[1], { size: 20 })], { spacing: { after: 0 } })],
+                }),
+              ],
             }),
-          ),
-        }),
-        spacer(100),
-      );
-    }
-    kids.push(note("If the room ignored something this Elder raised at an earlier decision, add one sentence saying so, kindly."));
+        ),
+      }),
+      spacer(100),
+    );
 
     // 5. Hold or revise
     kids.push(h3(`${step++} · Hold or revise`));
@@ -678,7 +664,7 @@ async function worksheet(s, i) {
       [p([run(`Their answer (${node.freeTextPrompt})`, { size: 17, color: SLATE })], { spacing: { after: 0 } }), writeLine(), writeLine(), writeLine()],
       [p([run("Final call:  ", { size: 18, bold: true }), ...ticks(deciders, 17)], { spacing: { after: 0 } })],
       [
-        p([run("After the Elder:  ", { size: 18, bold: true }), ...ticks(["Held", "Revised to"], 18), run("   ", { size: 18 }), ...ticks(["A", "B", "C", "Own plan"], 18)], { spacing: { after: 0 } }),
+        p([run("After the challenge:  ", { size: 18, bold: true }), ...ticks(["Held", "Revised to"], 18), run("   ", { size: 18 }), ...ticks(["A", "B", "C", "Own plan"], 18)], { spacing: { after: 0 } }),
         p([run("New wording:", { size: 17, color: SLATE })], { spacing: { before: 60, after: 0 } }),
         writeLine(),
       ],
@@ -806,7 +792,7 @@ async function facilitatorGuide() {
     "Hand out the Decision Card and read the question.",
     "Let the room discuss, about 5 minutes. One answer the whole room owns.",
     "Record their choice, their written answer, and who made the final call.",
-    "Read the Elder's line that fits what they wrote.",
+    "Challenge the answer: ask the booklet's question that fits what they wrote.",
     "Ask whether the answer stands or changes. Record any change.",
     "Score it: Specific, Generic, or Absent.",
     "Ask the room how the decision moved the meter, and mark it. Then read what happens.",
@@ -827,12 +813,13 @@ async function facilitatorGuide() {
   );
   kids.push(note("Each decision page in the booklet says exactly what a Specific answer contains for that question."));
 
-  kids.push(h3("Reading the Elders"));
+  kids.push(h3("Challenging the answer"));
   [
-    "The Elders are the AI Council: advisors who respond to the room's written answer. On paper, you read their lines.",
-    "Pick the one branch that fits what the room wrote: nobody named, named but missing a trigger or number, specific, or declined.",
-    "Read it once, plainly. Don't perform it, and don't add your own opinion.",
-    "They press on the answer, never on a person. If the room is doing well, the Elder says so.",
+    "After you record the answer, press for the piece that's missing. The booklet gives one question for each case: nobody named, named but missing a trigger or number or date, specific, or declined.",
+    "Ask it in your own voice. One question, then wait. Let the room answer before you say anything else.",
+    "Press on the answer, never on a person. Don't argue for an option, and don't hint at what happens next.",
+    "If the answer is already specific, say so plainly. The follow-up question is optional; never invent an objection.",
+    "If the room let something slide at an earlier decision, you can bring it back once, kindly.",
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(h3("The meter"));
