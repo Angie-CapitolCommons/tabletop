@@ -16,7 +16,8 @@
 //                 Time to first value: anything that adds a meeting, vote,
 //                 sign-off, review, audit, contract change, or another
 //                 group's approval raises it; declining always raises it
-//                 (the question comes back to another meeting). Process the
+//                 (the question comes back to another meeting), and skipping
+//                 a decision costs what declining it costs. Process the
 //                 room writes into its own answer is priced at lock by the
 //                 answer check in npc.js (+1 some, +2 heavy).
 //     events      one dated event per option: what the position sets moving
@@ -258,6 +259,7 @@ export function buildEpilogue(scenario, records) {
         title: n.title,
         month: n.later.month,
         named,
+        skipped: !!r?.skipped,
         text: named ? n.later.named : n.later.missing,
         // The debrief's "other way it could have gone": the branch not taken.
         alt: named ? n.later.missing : n.later.named,

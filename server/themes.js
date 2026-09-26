@@ -50,7 +50,7 @@ export function buildThemesBundle(items, { includeTranscripts, sectionLabels, el
       const label = sectionLabels[node.type];
       out.push(`${i + 1}. ${label}: ${node.question}`);
       if (!r || r.skipped) {
-        out.push("   Skipped: the room never answered it.");
+        out.push("   Skipped: the room never answered it (it cost what declining costs, and nobody owned it).");
       } else {
         const a = final(r);
         const option = node.options.find((o) => o.id === a.choice);

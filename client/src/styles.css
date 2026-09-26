@@ -508,6 +508,10 @@ h1, h2, h3, p { margin: 0; }
 .epi-row .pc-eyebrow { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--slate); }
 .epi-month { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); }
 .epi-line { font-size: 16px; line-height: 1.4; }
+.epi-skipped {
+  display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--paper); background: var(--slate); padding: 1px 6px; margin-right: 8px; vertical-align: 2px;
+}
 
 /* ---------- slide-up drawers (Evidence, AI Council) ---------- */
 .drawer-scrim {

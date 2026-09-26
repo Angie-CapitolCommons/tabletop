@@ -535,6 +535,7 @@ export default function App() {
   const doSkip = guard(async () => {
     if (!skipArmed) return setSkipArmed(true);
     setSkipArmed(false);
+    setPrevMeter(state.meter); // the top bar shows what the skip cost
     refresh(await api("skip", {}));
   });
 
@@ -694,7 +695,11 @@ export default function App() {
     </>
   );
   const skipBtn = (
-    <button className={`fac-btn ${skipArmed ? "armed" : ""}`} onClick={doSkip}>
+    <button
+      className={`fac-btn ${skipArmed ? "armed" : ""}`}
+      onClick={doSkip}
+      title="Skipping costs the same as “We can't answer this today”: the question comes back to another meeting, and nobody owns it."
+    >
       {skipArmed ? "Confirm skip?" : "Skip this decision"}
     </button>
   );
@@ -1243,7 +1248,10 @@ export default function App() {
             <div key={p.nodeId} className="epi-row">
               <span className="epi-month">Month {p.month}</span>
               <span className="pc-eyebrow">{RAIL_LABELS[p.type]}</span>
-              <span className="epi-line">{p.text}</span>
+              <span className="epi-line">
+                {p.skipped && <span className="epi-skipped">Skipped</span>}
+                {p.text}
+              </span>
             </div>
           ))}
         </div>
@@ -1422,7 +1430,10 @@ export default function App() {
                 <div>
                   <p className="rv-question">{review.question}</p>
                   {review.skipped ? (
-                    <p className="rv-skipped">The room skipped this decision. Nothing was locked and nothing moved.</p>
+                    <p className="rv-skipped">
+                      The room skipped this decision. Skipping costs what “We can't answer this today” costs, and nobody
+                      owned it.
+                    </p>
                   ) : (
                     <>
                       <span className="rv-label">
