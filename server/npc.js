@@ -4,7 +4,7 @@
 // node including free text, and what this Elder already said in this room. It
 // carries NO CoH source material and no participant identities (PRD §7.3).
 import Anthropic from "@anthropic-ai/sdk";
-import { whosWhoForModel, SECTION_LABELS } from "./content/index.js";
+import { whosWhoForModel } from "./content/index.js";
 
 const MODEL = process.env.MODEL || "claude-opus-5";
 const FIRST_TOKEN_TIMEOUT_MS = Number(process.env.NPC_FIRST_TOKEN_TIMEOUT_MS) || 8000;
@@ -190,18 +190,12 @@ export async function assessAnswer({ scenario, node, option, answer, elderTexts 
 // resolution. Streams (a long, high-effort call) and returns parsed JSON.
 const THEMES_SYSTEM = `You are an analyst supporting the lead facilitator of an AI-governance tabletop exercise. Several breakout rooms of senior leaders each worked a fictional scenario about an AI tool at an academic cancer center. At each decision the room chose a position, wrote its specifics, and named who made the final call; AI "Elders" challenged the answer; the facilitator scored it (Specific means it named a person or role plus a trigger or number). The organizational questions under test: who decides, who accepts risk, what counts as proof, what ends a tool, who pays, and who does what between the AI Governance Workgroup (which today reviews risk only) and Information Security.
 
-From the data, identify the themes that matter for resolving those questions:
-- patterns that recur across rooms and scenarios, and which are specific to one scenario;
-- where rooms agreed, where they diverged, and where they assigned the same authority to different people or bodies;
-- what no room owned or answered, and where specificity dropped;
-- which seats ended up making the calls;
-- where answers changed after the Elders' challenge or once a cost appeared.
+Write a brief synthesis of the whole session, highlighting only the key points:
+- overview: two or three sentences on what the session showed.
+- themes: three to five patterns that matter most, each a short title and one or two sentences. Speak to patterns across the session. Don't cite rooms, decisions, scores, or individual answers, and don't walk through the scenarios.
+- open_questions: four to seven questions the organization still has to answer, or gaps it has to fill, to settle who does what and when. Each is one short question. Don't prescribe solutions, owners, or deadlines.
 
-Cite evidence by room and section (for example "Room 2, Decider"). Stay with what the data shows; don't invent facts. The scenarios are fictional; the patterns in how the rooms decided are the point.
-
-Then suggest next steps that would move the organization toward resolution. Each step concrete, in priority order, with the kind of owner (a role or a body from the who's who, never a person's name) and a timing (for example "before the next Workgroup meeting").
-
-Write in plain language. No acronyms unless the data uses them. Five to eight themes; five to ten next steps.`;
+Stay with what the data shows; the scenarios are fictional, and the patterns in how the rooms decided are the point. Plain language, no acronyms unless the data uses them.`;
 
 const THEMES_SCHEMA = {
   type: "object",
@@ -211,34 +205,14 @@ const THEMES_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: {
-          title: { type: "string" },
-          summary: { type: "string" },
-          evidence: { type: "array", items: { type: "string" } },
-          rooms: { type: "array", items: { type: "integer" } },
-          sections: { type: "array", items: { type: "string", enum: Object.values(SECTION_LABELS) } },
-        },
-        required: ["title", "summary", "evidence", "rooms", "sections"],
+        properties: { title: { type: "string" }, summary: { type: "string" } },
+        required: ["title", "summary"],
         additionalProperties: false,
       },
     },
-    next_steps: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          step: { type: "string" },
-          why: { type: "string" },
-          owner: { type: "string" },
-          timing: { type: "string" },
-          related_themes: { type: "array", items: { type: "string" } },
-        },
-        required: ["step", "why", "owner", "timing", "related_themes"],
-        additionalProperties: false,
-      },
-    },
+    open_questions: { type: "array", items: { type: "string" } },
   },
-  required: ["overview", "themes", "next_steps"],
+  required: ["overview", "themes", "open_questions"],
   additionalProperties: false,
 };
 
