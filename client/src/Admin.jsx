@@ -63,18 +63,16 @@ function themesMarkdown(t) {
   const lines = [
     "# Themes across rooms",
     "",
-    `Generated ${new Date(t.finishedAt).toLocaleString()} from rooms ${t.rooms.join(", ")}${t.includeTranscripts ? ", including discussion transcripts" : ""}.`,
+    `Generated ${new Date(t.finishedAt).toLocaleString()} from ${t.rooms.length} finished rooms${t.includeTranscripts ? ", including discussion transcripts" : ""}.`,
     "",
     r.overview,
     "",
-    "## Themes",
+    "## Key themes",
+    "",
   ];
-  for (const th of r.themes) {
-    lines.push("", `### ${th.title}`, "", th.summary, "", `Rooms ${th.rooms.join(", ")} · ${th.sections.join(", ")}`, "");
-    for (const e of th.evidence) lines.push(`- ${e}`);
-  }
-  lines.push("", "## Suggested next steps", "");
-  r.next_steps.forEach((s, i) => lines.push(`${i + 1}. **${s.step}** — ${s.owner}, ${s.timing}. ${s.why}`));
+  for (const th of r.themes) lines.push(`- **${th.title}.** ${th.summary}`);
+  lines.push("", "## Open questions", "");
+  for (const q of r.open_questions) lines.push(`- ${q}`);
   return lines.join("\n") + "\n";
 }
 
@@ -91,7 +89,8 @@ export default function Admin() {
   const [codeInput, setCodeInput] = useState("");
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
-  const [resetOpen, setResetOpen] = useState(false);
+  // "all" for the full game reset, or a room number to reset just that room.
+  const [resetOpen, setResetOpen] = useState(null);
   const [resetText, setResetText] = useState("");
   const [transcriptView, setTranscriptView] = useState(null);
   const [includeTranscripts, setIncludeTranscripts] = useState(false);
@@ -204,7 +203,7 @@ export default function Admin() {
           >
             Export all rooms
           </button>
-          <button className="fac-btn danger" onClick={() => setResetOpen(true)}>
+          <button className="fac-btn danger" onClick={() => setResetOpen("all")}>
             Full game reset
           </button>
         </div>
@@ -243,6 +242,9 @@ export default function Admin() {
                       Debrief transcript
                     </button>
                   )}
+                  <button className="admin-link room-reset" onClick={() => setResetOpen(r.roomNumber)}>
+                    Reset this room
+                  </button>
                   {Object.values(r.roleAssignments ?? {}).some(Boolean) && (
                     <div className="room-roster">
                       {Object.entries(r.roleAssignments)
@@ -303,7 +305,7 @@ export default function Admin() {
           {themesError && <p className="themes-error">{themesError}</p>}
           {themes.status === "running" && (
             <p className="themes-status">
-              Generating themes from rooms {themes.rooms.join(", ")}… this usually takes a minute or two.
+              Generating themes from {themes.rooms.length} finished rooms… this usually takes a minute or two.
             </p>
           )}
           {themes.status === "error" && <p className="themes-error">{themes.error}</p>}
@@ -311,7 +313,7 @@ export default function Admin() {
             <div className="themes-result">
               <div className="themes-meta">
                 <span>
-                  From rooms {themes.rooms.join(", ")}
+                  From {themes.rooms.length} finished rooms
                   {themes.includeTranscripts ? ", including discussion transcripts" : ""} ·{" "}
                   {new Date(themes.finishedAt).toLocaleTimeString()}
                 </span>
@@ -327,35 +329,21 @@ export default function Admin() {
               <p className="themes-overview">{themes.result.overview}</p>
               <div className="themes-grid">
                 <div>
-                  <h3>Themes</h3>
+                  <h3>Key themes</h3>
                   {themes.result.themes.map((th) => (
                     <div key={th.title} className="theme-card">
                       <div className="theme-title">{th.title}</div>
-                      <div className="theme-tags">
-                        Rooms {th.rooms.join(", ")} · {th.sections.join(", ")}
-                      </div>
                       <p>{th.summary}</p>
-                      <ul>
-                        {th.evidence.map((e) => (
-                          <li key={e}>{e}</li>
-                        ))}
-                      </ul>
                     </div>
                   ))}
                 </div>
                 <div>
-                  <h3>Suggested next steps</h3>
-                  <ol className="next-steps">
-                    {themes.result.next_steps.map((s) => (
-                      <li key={s.step}>
-                        <b>{s.step}</b>
-                        <span className="step-meta">
-                          {s.owner} · {s.timing}
-                        </span>
-                        <span className="step-why">{s.why}</span>
-                      </li>
+                  <h3>Open questions</h3>
+                  <ul className="open-questions">
+                    {themes.result.open_questions.map((q) => (
+                      <li key={q}>{q}</li>
                     ))}
-                  </ol>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -484,14 +472,21 @@ export default function Admin() {
       )}
 
       {resetOpen && (
-        <div className="admin-overlay" onClick={() => setResetOpen(false)}>
+        <div className="admin-overlay" onClick={() => setResetOpen(null)}>
           <div className="reset-panel" onClick={(e) => e.stopPropagation()}>
             <span className="eyebrow">Irreversible</span>
-            <h2>Full game reset</h2>
-            <p>
-              Wipes all four rooms — answers, Elder memory, scenario claims, meters — back to
-              pristine. Scenario content is kept. Export first.
-            </p>
+            <h2>{resetOpen === "all" ? "Full game reset" : `Reset Room ${resetOpen}`}</h2>
+            {resetOpen === "all" ? (
+              <p>
+                Wipes all four rooms — answers, Elder memory, scenario claims, meters — back to
+                pristine. Scenario content is kept. Export first.
+              </p>
+            ) : (
+              <p>
+                Wipes Room {resetOpen} only — its answers, Elder memory, meters, and its scenario
+                claim, so it can pick a scenario again. The other rooms keep going. Export first.
+              </p>
+            )}
             <button
               className="fac-btn"
               onClick={async () => download(await adminApi("export"), `tabletop-export-before-reset-${Date.now()}.json`)}
@@ -505,18 +500,19 @@ export default function Admin() {
               placeholder='Type RESET to confirm'
             />
             <div className="reset-actions">
-              <button className="fac-btn" onClick={() => setResetOpen(false)}>Cancel</button>
+              <button className="fac-btn" onClick={() => setResetOpen(null)}>Cancel</button>
               <button
                 className="fac-primary danger"
                 disabled={resetText !== "RESET"}
                 onClick={async () => {
-                  await adminApi("reset", { confirm: "RESET" });
-                  setResetOpen(false);
+                  if (resetOpen === "all") await adminApi("reset", { confirm: "RESET" });
+                  else await adminApi("reset-room", { room: resetOpen, confirm: "RESET" });
+                  setResetOpen(null);
                   setResetText("");
                   load();
                 }}
               >
-                Reset the game
+                {resetOpen === "all" ? "Reset the game" : `Reset Room ${resetOpen}`}
               </button>
             </div>
           </div>

@@ -146,7 +146,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
       owner: {
         when: "Week 4",
         named:
-          "Main campus IT finds that 3 of the 14 fields are simply empty there. The finding goes to the person you named, who adds a check before the rating is signed.",
+          "Main campus IT finds that 3 of the 14 fields are simply empty there. The finding goes to the person you named, who adds a check before the AI Risk Assessment is signed.",
         missing:
           "Main campus IT finds that 3 of the 14 fields are simply empty there. The finding goes into the integration tracker as low priority.",
       },

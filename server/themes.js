@@ -74,6 +74,7 @@ export function buildThemesBundle(items, { includeTranscripts, sectionLabels, el
       if (said.length) out.push(`   The Elders said: ${said.join(" | ")}`);
       if (r?.adjustment?.goodwill) out.push(`   Goodwill cost for work pushed onto clinicians: ${r.adjustment.goodwill} (${r.adjustment.note})`);
       if (r?.adjustment?.time) out.push(`   Added time for process the answer adds: +${r.adjustment.time} (${r.adjustment.timeNote})`);
+      if (r?.checkSkipped) out.push("   The answer check didn't run for this decision; its meters moved by the chosen option only.");
       const later = room.epilogue?.parts?.find((p) => p.nodeId === node.id);
       if (later) out.push(`   Twelve months later (month ${later.month}): ${later.text}`);
       if (includeTranscripts && r?.transcript) {

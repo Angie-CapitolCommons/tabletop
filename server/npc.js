@@ -4,7 +4,7 @@
 // node including free text, and what this Elder already said in this room. It
 // carries NO CoH source material and no participant identities (PRD §7.3).
 import Anthropic from "@anthropic-ai/sdk";
-import { whosWhoForModel, SECTION_LABELS } from "./content/index.js";
+import { whosWhoForModel } from "./content/index.js";
 
 const MODEL = process.env.MODEL || "claude-opus-5";
 const FIRST_TOKEN_TIMEOUT_MS = Number(process.env.NPC_FIRST_TOKEN_TIMEOUT_MS) || 8000;
@@ -19,6 +19,7 @@ export async function streamElderTurn({
   answer,
   previous,
   previousOption,
+  again = false,
   pathSummary,
   priorTurns,
   onDelta,
@@ -49,7 +50,11 @@ export async function streamElderTurn({
       (pathSummary
         ? `The room's decision path so far:\n${pathSummary}\n\n`
         : "") +
-      (previous
+      (again
+        ? `The room asked the AI Council again about the same answer at the "${node.title}" node (type: ${node.type}).\n` +
+          `Question posed: ${node.question}\n` +
+          `Give a different angle from what you said before about this answer: another gap, risk, owner, trigger, or question. Don't repeat your earlier comment.\n`
+        : previous
         ? `The room has revised its answer at the "${node.title}" node (type: ${node.type}) after hearing from the Elders.\n` +
           `Question posed: ${node.question}\n` +
           `Their earlier answer: ${previousOption?.label} — "${previous.freeText}"\n` +
@@ -160,7 +165,7 @@ export async function assessAnswer({ scenario, node, option, answer, elderTexts 
           },
         ],
       },
-      { timeout: ASSESS_TIMEOUT_MS, maxRetries: 0 },
+      { timeout: ASSESS_TIMEOUT_MS, maxRetries: 1 },
     );
     if (response.stop_reason !== "end_turn") return null;
     const text = response.content.find((b) => b.type === "text")?.text;
@@ -185,18 +190,12 @@ export async function assessAnswer({ scenario, node, option, answer, elderTexts 
 // resolution. Streams (a long, high-effort call) and returns parsed JSON.
 const THEMES_SYSTEM = `You are an analyst supporting the lead facilitator of an AI-governance tabletop exercise. Several breakout rooms of senior leaders each worked a fictional scenario about an AI tool at an academic cancer center. At each decision the room chose a position, wrote its specifics, and named who made the final call; AI "Elders" challenged the answer; the facilitator scored it (Specific means it named a person or role plus a trigger or number). The organizational questions under test: who decides, who accepts risk, what counts as proof, what ends a tool, who pays, and who does what between the AI Governance Workgroup (which today reviews risk only) and Information Security.
 
-From the data, identify the themes that matter for resolving those questions:
-- patterns that recur across rooms and scenarios, and which are specific to one scenario;
-- where rooms agreed, where they diverged, and where they assigned the same authority to different people or bodies;
-- what no room owned or answered, and where specificity dropped;
-- which seats ended up making the calls;
-- where answers changed after the Elders' challenge or once a cost appeared.
+Write a brief synthesis of the whole session, highlighting only the key points:
+- overview: two or three sentences on what the session showed.
+- themes: three to five patterns that matter most, each a short title and one or two sentences. Speak to patterns across the session. Don't cite rooms, decisions, scores, or individual answers, and don't walk through the scenarios.
+- open_questions: four to seven questions the organization still has to answer, or gaps it has to fill, to settle who does what and when. Each is one short question. Don't prescribe solutions, owners, or deadlines.
 
-Cite evidence by room and section (for example "Room 2, Decider"). Stay with what the data shows; don't invent facts. The scenarios are fictional; the patterns in how the rooms decided are the point.
-
-Then suggest next steps that would move the organization toward resolution. Each step concrete, in priority order, with the kind of owner (a role or a body from the who's who, never a person's name) and a timing (for example "before the next Workgroup meeting").
-
-Write in plain language. No acronyms unless the data uses them. Five to eight themes; five to ten next steps.`;
+Stay with what the data shows; the scenarios are fictional, and the patterns in how the rooms decided are the point. Plain language, no acronyms unless the data uses them.`;
 
 const THEMES_SCHEMA = {
   type: "object",
@@ -206,34 +205,14 @@ const THEMES_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: {
-          title: { type: "string" },
-          summary: { type: "string" },
-          evidence: { type: "array", items: { type: "string" } },
-          rooms: { type: "array", items: { type: "integer" } },
-          sections: { type: "array", items: { type: "string", enum: Object.values(SECTION_LABELS) } },
-        },
-        required: ["title", "summary", "evidence", "rooms", "sections"],
+        properties: { title: { type: "string" }, summary: { type: "string" } },
+        required: ["title", "summary"],
         additionalProperties: false,
       },
     },
-    next_steps: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          step: { type: "string" },
-          why: { type: "string" },
-          owner: { type: "string" },
-          timing: { type: "string" },
-          related_themes: { type: "array", items: { type: "string" } },
-        },
-        required: ["step", "why", "owner", "timing", "related_themes"],
-        additionalProperties: false,
-      },
-    },
+    open_questions: { type: "array", items: { type: "string" } },
   },
-  required: ["overview", "themes", "next_steps"],
+  required: ["overview", "themes", "open_questions"],
   additionalProperties: false,
 };
 
@@ -252,4 +231,47 @@ export async function generateThemes(bundle) {
   const text = final.content.find((b) => b.type === "text")?.text;
   if (!text) throw new Error("themes run returned no text");
   return JSON.parse(text);
+}
+
+// The 12-month report's chat: the room asks how the exercise produced its
+// results. Grounded only in the room's record (explain.js); earlier questions
+// and answers in this room are the conversation so far.
+const EXPLAIN_SYSTEM = `You answer a breakout room's questions at the end of an AI-governance tabletop exercise at a fictional academic cancer center. The room has just seen its twelve-month report. Explain how the exercise got to its results: which choices moved which meters and by how much, what the answer check found, how the facilitator's scores decided the follow-ups and the twelve-month outcomes, and what the room said along the way.
+
+Rules:
+- Use only the room's record below. If the record doesn't say, say so; never invent mechanics, numbers, or events.
+- Refer to decisions by their section name (Purpose, Tier, Risk, Decider, Proof, Funding, Re-review, Off switch, The story). Quote the room's own words when it helps.
+- When asked what could have gone differently, point to specific alternatives in the record: another option's costs, a Specific answer's outcome, or what the Council asked for.
+- The transcripts are fragmentary speech-to-text with no speakers; treat them as rough, and never guess who said what.
+- Plain, direct language for senior leaders. No acronyms unless the record uses them. Keep answers short: two to five sentences, or a short list when comparing.
+- People appear as roles in brackets, like [The Executive Sponsor]; refer to them by role.`;
+
+export async function streamExplain({ bundle, history, question, onDelta }) {
+  const messages = [];
+  for (const turn of history) {
+    messages.push({ role: "user", content: turn.question });
+    messages.push({ role: "assistant", content: turn.answer });
+  }
+  messages.push({ role: "user", content: question });
+  console.log(`[npc] explain (model ${MODEL}, ${bundle.length} chars, ${history.length} earlier questions)`);
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: 1500,
+    output_config: { effort: "medium" },
+    system: [
+      { type: "text", text: EXPLAIN_SYSTEM },
+      { type: "text", text: `THE ROOM'S RECORD\n\n${bundle}`, cache_control: { type: "ephemeral" } },
+    ],
+    messages,
+  });
+  let text = "";
+  stream.on("text", (delta) => {
+    text += delta;
+    onDelta(delta);
+  });
+  const final = await stream.finalMessage();
+  if (final.stop_reason === "refusal" || !text.trim()) {
+    throw new Error(`empty or refused answer (stop_reason: ${final.stop_reason})`);
+  }
+  return text;
 }

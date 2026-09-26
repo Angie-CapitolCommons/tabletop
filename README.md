@@ -40,6 +40,14 @@ npm start
 
 Set four distinct `ROOM_CODES`, a separate `ADMIN_CODE`, and `DATABASE_URL`
 before starting. No default codes or in-memory room storage are used.
+
+**Deploy as a single server (Replit Reserved VM), not Autoscale.** The server
+works from its in-memory copy of the four rooms and saves each change to
+Postgres before replying; a second instance would hold its own copy and
+overwrite the first's saves. Each room's changes apply one at a time and save
+only that room, so rooms never wait on each other. The admin themes result is
+kept in `tabletop_meta`, so it survives a restart (a run cut off by a restart
+shows as interrupted). Don't redeploy during a session.
 The existing `tabletop_rooms` table is reused; legacy `data` rows are
 migrated in place to `state`. Rooms saved under an older scenario-content
 version (`CONTENT_VERSION` in `server/content/common.js`) are discarded at
@@ -61,7 +69,10 @@ an explicit option to hold the answer and continue.
 
 - `server/` — Express API. `npc.js` holds every Anthropic call — Elder turns,
   the answer check (clinician goodwill, and time added by process the answer
-  writes in), and the admin themes run (key never reaches the client). `privacy.js` replaces roster first names with roles in
+  writes in), the 12-month report's "how did we get here?" chat, and the
+  admin themes run (key never reaches the client). `explain.js` builds the
+  room's record for that chat (rules, every option's costs, scores, Council,
+  outcomes, transcripts; names removed). `privacy.js` replaces roster first names with roles in
   anything sent to the model; `themes.js` bundles finished rooms for the
   themes run (transcripts only when the admin opts in). `content/` holds the four scenarios, Elders, roles,
   Villagers. The scenario shape is documented at the top of

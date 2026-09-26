@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Fragment, useEffect, useRef, useState } from "react";
 
 // Tabletop room screen — Virtual Insights brand v2 (design handoff).
 // Fixed 1280×800 stage scaled to fit. Server phases unchanged:
@@ -47,6 +47,10 @@ const LONG_NAMES = {
 const LETTERS = ["A", "B", "C"];
 const optLetter = (o, i) => (o.id === "decline" ? "–" : o.id === "writein" ? "✎" : LETTERS[i]);
 const nn = (i) => String(i + 1).padStart(2, "0");
+const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
+// When the answer check moved a meter, the row shows both parts of the change,
+// so a net of zero (say, choice +1 and answer check −1) isn't a mystery.
+const splitNote = (total, adj) => (adj ? `choice ${signed(total - adj)} · answer check ${signed(adj)}` : null);
 
 // ---------- stage scaling ----------
 function useStageScale() {
@@ -173,11 +177,20 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
 }
 
 // ---------- decision path strip ----------
-function PathStrip({ progress, records, currentIndex, epilogue }) {
+// Hovering (or focusing) a finished step shows what the room answered;
+// clicking one that's behind the room opens the full read-only review.
+function PathStrip({ progress, records, currentIndex, epilogue, onReview }) {
   const lastLockedIdx = progress.reduce(
     (acc, p, i) => (records[p.id]?.answer && records[p.id]?.score ? i : acc),
     -1,
   );
+  const lookBack = (p) =>
+    onReview && (p.status === "done" || p.status === "skipped")
+      ? { role: "button", onClick: () => onReview(p.id), onKeyDown: (e) => e.key === "Enter" && onReview(p.id) }
+      : {};
+  // Popups open below the strip on the 12-month report and above it on the
+  // consequence screen; the last two open leftward so they stay on the stage.
+  const popClass = (i) => `pc-pop ${epilogue ? "below" : "above"} ${i >= progress.length - 2 ? "rightward" : ""}`;
   return (
     <div className="path-strip">
       <div className="path-label">DECISION PATH</div>
@@ -186,17 +199,35 @@ function PathStrip({ progress, records, currentIndex, epilogue }) {
           const r = records[p.id];
           if (r?.skipped)
             return (
-              <div key={p.id} className="path-cell skipped-cell">
+              <div key={p.id} className="path-cell skipped-cell has-pop" tabIndex={0} {...lookBack(p)}>
                 <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · skipped</span>
                 <span className="pc-choice">Never asked</span>
+                <div className={popClass(i)} role="tooltip">
+                  <span className="pop-eyebrow">{nn(i)} {RAIL_LABELS[p.type]}</span>
+                  <p className="pop-free">The room skipped this decision.</p>
+                </div>
               </div>
             );
           if (r?.answer && r?.score)
             return (
-              <div key={p.id} className={`path-cell locked ${i === lastLockedIdx ? "latest" : ""}`}>
+              <div
+                key={p.id}
+                className={`path-cell locked has-pop ${i === lastLockedIdx ? "latest" : ""}`}
+                tabIndex={0}
+                {...lookBack(p)}
+              >
                 <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · {r.score}</span>
                 <span className="pc-choice">{r.answer.short}</span>
                 <span className="pc-detail">{r.answer.freeText}</span>
+                <div className={popClass(i)} role="tooltip">
+                  <span className="pop-eyebrow">
+                    {nn(i)} {RAIL_LABELS[p.type]} · <span className="pop-score">{r.score}</span>
+                    {r.revised ? " · revised after the challenge" : ""}
+                  </span>
+                  <p className="pop-choice">{r.answer.label ?? r.answer.short}</p>
+                  {r.answer.freeText && <p className="pop-free">“{r.answer.freeText}”</p>}
+                  <p className="pop-by">Final call: {r.answer.decidedBy || "not recorded"}</p>
+                </div>
               </div>
             );
           if (!epilogue && i === currentIndex + 1)
@@ -266,6 +297,12 @@ export default function App() {
   const [evidenceOpen, setEvidenceOpen] = useState(null);
   // Read-only look back at a finished decision, opened from the step rail.
   const [review, setReview] = useState(null);
+  // The 12-month report's chat ("how did we get here?").
+  const [askOpen, setAskOpen] = useState(false);
+  const [askInput, setAskInput] = useState("");
+  const [askStream, setAskStream] = useState(null); // { question, text } while answering
+  const [askError, setAskError] = useState(null);
+  const askScroll = useRef(null);
   const [councilOpen, setCouncilOpen] = useState(false);
   const [council, setCouncil] = useState([]);
   const [skipArmed, setSkipArmed] = useState(false);
@@ -285,6 +322,9 @@ export default function App() {
   const [actionError, setActionError] = useState(null);
   const [elderError, setElderError] = useState(null);
   const [elderRetry, setElderRetry] = useState(0);
+  // A Council round is streaming (the first one, or "Ask the AI Council again").
+  const [councilBusy, setCouncilBusy] = useState(false);
+  const councilScroll = useRef(null);
   const npcForNode = useRef(null);
   const recRef = useRef(null);
   const transcribingRef = useRef(false);
@@ -353,19 +393,19 @@ export default function App() {
   const state = data?.state;
   const { scenario, scenarios, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
 
-  // Elder turns stream automatically on entering challenge.
-  useEffect(() => {
-    if (!state || state.phase !== "challenge" || !node) return;
-    // Each committed answer — the first and every revision — gets its own Elder round.
-    const attempt = `${node.id}:${state.record?.revisedAnswer?.at ?? "first"}:${elderRetry}`;
-    if (npcForNode.current === attempt) return;
-    npcForNode.current = attempt;
+  // One AI Council round on the room's answer, streamed as it's written. The
+  // first round runs automatically on entering challenge; `again` is the
+  // facilitator asking the Council again about the same answer. Once saved,
+  // the replies come from the room state (they survive a reload).
+  const runCouncil = async (again) => {
     setElderError(null);
+    setCouncilBusy(true);
     setTurns([]);
-    (async () => {
+    try {
       const res = await fetch("/api/npc", {
         method: "POST",
-        headers: { "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
+        headers: { "Content-Type": "application/json", "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
+        body: JSON.stringify({ again }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -403,12 +443,37 @@ export default function App() {
       }
       if (!completed) throw new Error("The Elder connection closed before completion.");
       setData(await api("state"));
-    })().catch((error) => {
+      setTurns([]);
+    } catch (error) {
       setElderError(error.message || "Elder challenge failed. Try again.");
       setTurns((ts) => ts.map((turn) => turn.status === "streaming"
         ? { ...turn, status: "unavailable", text: "This response was interrupted." } : turn));
-    });
+    } finally {
+      setCouncilBusy(false);
+    }
+  };
+
+  // The first round streams automatically on entering challenge.
+  useEffect(() => {
+    if (!state || state.phase !== "challenge" || !node) return;
+    // Each committed answer — the first and every revision — gets its own Elder round.
+    const attempt = `${node.id}:${state.record?.revisedAnswer?.at ?? "first"}:${elderRetry}`;
+    if (npcForNode.current === attempt) return;
+    npcForNode.current = attempt;
+    runCouncil(false);
   }, [state?.phase, node?.id, elderRetry, state?.record?.revisedAnswer?.at]);
+
+  // Keep the newest Council round in view as it streams.
+  useEffect(() => {
+    const el = councilScroll.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [turns, state?.council?.length]);
+
+  // Keep the newest answer in the 12-month chat in view.
+  useEffect(() => {
+    const el = askScroll.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [askOpen, askStream, state?.epilogue?.qa?.length]);
 
   useEffect(() => {
     setSkipArmed(false);
@@ -458,6 +523,51 @@ export default function App() {
     setSkipArmed(false);
     refresh(await api("skip", {}));
   });
+
+  const openReview = guard(async (nodeId) => setReview(await api(`review/${nodeId}`)));
+
+  // Streams one answer; the saved conversation comes back with the room state.
+  const ask = async (question) => {
+    const q = question.trim();
+    if (!q || askStream) return;
+    setAskError(null);
+    setAskInput("");
+    setAskStream({ question: q, text: "" });
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-room-code": localStorage.getItem(ROOM_CODE_KEY) ?? "" },
+        body: JSON.stringify({ question: q }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't ask that just now.");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let done = false;
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buf += decoder.decode(chunk.value, { stream: true });
+        const events = buf.split("\n\n");
+        buf = events.pop();
+        for (const ev of events) {
+          const line = ev.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          const msg = JSON.parse(line.slice(6));
+          if (msg.type === "error") throw new Error(msg.message);
+          if (msg.type === "done") done = true;
+          if (msg.type === "delta") setAskStream((a) => a && { ...a, text: a.text + msg.text });
+        }
+      }
+      if (!done) throw new Error("The answer was cut off. Ask again.");
+      setData(await api("state"));
+    } catch (error) {
+      setAskError(error.message);
+      setAskInput(q);
+    } finally {
+      setAskStream(null);
+    }
+  };
 
   const advance = guard(async () => {
     npcForNode.current = null;
@@ -549,10 +659,10 @@ export default function App() {
             className={`fac-btn ${transcribing ? "transcribe-on" : ""}`}
             title={
               transcribing
-                ? "Transcribing the discussion as text: no audio stored, no voices attributed, and the transcript never reaches the AI. It stops when the room submits its answer; click to stop it sooner."
+                ? "Transcribing the discussion as text: no audio stored, no voices attributed. The transcript goes to the record and the export, and the questions on the 12-month report can draw on it, with names removed. It stops when the room submits its answer; click to stop it sooner."
                 : transcribeError === "blocked"
                   ? "The browser blocked the microphone. Allow it from the address bar, then click to try again."
-                  : "Live-transcribes the room's discussion as text, attached to this decision. No audio is stored, no voices are attributed, and the transcript never reaches the AI — it goes to the record and the export only."
+                  : "Live-transcribes the room's discussion as text, attached to this decision. No audio is stored and no voices are attributed. The transcript goes to the record and the export, and the questions on the 12-month report can draw on it, with names removed."
             }
             onClick={() => (transcribing ? stopTranscription() : startTranscription())}
           >
@@ -798,6 +908,15 @@ export default function App() {
   } else if ((phase === "challenge" || phase === "revise" || phase === "score") && node) {
     // Show (and score) the room's latest answer, not only its first.
     const shown = record.revisedAnswer ?? record.firstAnswer;
+    // Saved rounds for this answer, then the round streaming now; the latest
+    // round stays prominent and earlier ones shrink.
+    const saved = state.council ?? [];
+    const lastSaved = saved.length ? saved[saved.length - 1].round : 0;
+    const councilTurns = [
+      ...saved.map((t) => ({ ...t, status: "done", earlier: turns.length > 0 || t.round < lastSaved })),
+      ...turns.map((t) => ({ ...t, round: lastSaved + 1 })),
+    ];
+    const rounds = new Set(councilTurns.map((t) => t.round)).size;
     main = revising ? (
       <div className="discuss recording">
         <div className="d-left">
@@ -842,40 +961,60 @@ export default function App() {
           </div>
         </div>
         <div className="elder-col">
-          {phase === "challenge" && elderError && (
-            <div className="elder-retry" role="alert">
-              <p>{elderError}</p>
-              <button className="panel-btn" onClick={() => setElderRetry((value) => value + 1)}>
-                Retry Elders
-              </button>
-              <button className="panel-btn" onClick={guard(async () => refresh(await api("hold", {})))}>
-                Hold the answer instead
-              </button>
-            </div>
-          )}
-          {turns.map((t, i) => (
-            <div key={i} className={`elder ${i > 0 ? "secondary" : ""} ${t.status}`}>
-              <div className="elder-head">
-                <span className="elder-mark">{t.elder.name.replace(/^The /, "")[0]}</span>
-                <div>
-                  <div className="elder-name">{t.elder.name}</div>
-                  <div className="elder-seat">ELDER · {t.elder.seat}</div>
-                </div>
+          <div className="elder-turns" ref={councilScroll}>
+            {phase === "challenge" && elderError && (
+              <div className="elder-retry" role="alert">
+                <p>{elderError}</p>
+                <button className="panel-btn" onClick={() => setElderRetry((value) => value + 1)}>
+                  Retry Elders
+                </button>
+                <button className="panel-btn" onClick={guard(async () => refresh(await api("hold", {})))}>
+                  Hold the answer instead
+                </button>
               </div>
-              <p className="elder-text">
-                {t.text}
-                {t.status === "streaming" && <span className="cursor">▋</span>}
-              </p>
-            </div>
-          ))}
+            )}
+            {councilTurns.map((t, i) => (
+              <Fragment key={i}>
+                {rounds > 1 && (i === 0 || councilTurns[i - 1].round !== t.round) && (
+                  <div className="council-round">{t.round === 1 ? "First response" : `Asked again · round ${t.round}`}</div>
+                )}
+                <div className={`elder ${t.earlier ? "earlier" : ""} ${t.status}`}>
+                  <div className="elder-head">
+                    <span className="elder-mark">{t.elder.name.replace(/^The /, "")[0]}</span>
+                    <div>
+                      <div className="elder-name">{t.elder.name}</div>
+                      <div className="elder-seat">ELDER · {t.elder.seat}</div>
+                    </div>
+                  </div>
+                  <p className="elder-text">
+                    {t.text}
+                    {t.status === "streaming" && <span className="cursor">▋</span>}
+                  </p>
+                </div>
+              </Fragment>
+            ))}
+            {phase === "revise" && elderError && (
+              <div className="elder-retry" role="alert">
+                <p>{elderError}</p>
+                <button className="panel-btn" onClick={() => runCouncil(true)}>
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
           {phase === "revise" && (
             <div className="hold-revise">
-              <button className="hr-cell" onClick={guard(async () => refresh(await api("hold", {})))}>
+              <button
+                className="hr-cell"
+                disabled={councilBusy}
+                onClick={guard(async () => refresh(await api("hold", {})))}
+              >
                 <span className="hr-title">Hold</span>
                 <span className="hr-sub">The answer locks as written.</span>
               </button>
               <button
                 className="hr-cell"
+                disabled={councilBusy}
                 onClick={() => {
                   setRevising(true);
                   startTranscription(); // the discussion restarts for the revision
@@ -883,6 +1022,10 @@ export default function App() {
               >
                 <span className="hr-title">Revise</span>
                 <span className="hr-sub">Reopens the record, pre-filled. Both are kept.</span>
+              </button>
+              <button className="hr-cell hr-again" disabled={councilBusy} onClick={() => runCouncil(true)}>
+                <span className="hr-title">{councilBusy ? "The AI Council is responding…" : "Ask the AI Council again"}</span>
+                <span className="hr-sub">New responses to the same answer. Earlier ones stay above.</span>
               </button>
             </div>
           )}
@@ -922,15 +1065,18 @@ export default function App() {
         <div className="cq-right">
           <div className="moved-label">WHAT MOVED</div>
           {Object.keys(METER_FULL).map((k) => {
-            const before = prevMeter?.[k] ?? state.meter[k];
+            const before = record.meterBefore?.[k] ?? prevMeter?.[k] ?? state.meter[k];
             const after = state.meter[k];
             const delta = after - before;
             const worse = COST_UP[k] ? delta > 0 : delta < 0;
+            const split = splitNote(delta, record.adjustment?.[k] ?? 0);
             return (
               <div key={k} className="moved-row">
                 <span className="moved-name">
                   {METER_FULL[k]}
-                  <span className="moved-dir">{COST_UP[k] ? "Lower is better" : "Higher is better"}</span>
+                  <span className={`moved-dir ${split ? "split" : ""}`}>
+                    {split ?? (COST_UP[k] ? "Lower is better" : "Higher is better")}
+                  </span>
                 </span>
                 <span className="moved-vals">{before} → {after}</span>
                 <span className={`moved-delta ${delta === 0 ? "same" : worse ? "worse" : "better"}`}>
@@ -941,6 +1087,11 @@ export default function App() {
           })}
           {/* Beyond the option's own cost: goodwill lost to work this answer puts on
               clinicians, and time added by the process the answer writes in. */}
+          {record.checkSkipped && (
+            <div className="moved-notes quiet">
+              <p>The answer check didn't run, so the meters moved by the chosen option only.</p>
+            </div>
+          )}
           {record.adjustment && (
             <div className="moved-notes">
               {record.adjustment.goodwill < 0 && (
@@ -970,8 +1121,21 @@ export default function App() {
         </div>
         <PathStrip
           progress={progress}
-          records={{ ...records, [node.id]: { score: record.score, skipped: false, answer: { ...answer, short: node.options.find((o) => o.id === answer.choice).short } } }}
+          records={{
+            ...records,
+            [node.id]: {
+              score: record.score,
+              skipped: false,
+              revised: !!record.revisedAnswer,
+              answer: {
+                ...answer,
+                short: node.options.find((o) => o.id === answer.choice).short,
+                label: node.options.find((o) => o.id === answer.choice).label,
+              },
+            },
+          }}
           currentIndex={node.index}
+          onReview={openReview}
         />
       </div>
     );
@@ -1050,9 +1214,16 @@ export default function App() {
   } else if (phase === "epilogue") {
     main = (
       <div className="epilogue">
-        <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
-        <h1 className="epi-head-title">Twelve months later</h1>
-        <PathStrip progress={progress} records={records} currentIndex={-1} epilogue />
+        <div className="epi-head">
+          <div>
+            <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
+            <h1 className="epi-head-title">Twelve months later</h1>
+          </div>
+          <button className="panel-btn epi-ask" onClick={() => setAskOpen(true)}>
+            Ask how we got here
+          </button>
+        </div>
+        <PathStrip progress={progress} records={records} currentIndex={-1} epilogue onReview={openReview} />
         <div className="epi-rows" style={{ marginTop: 12 }}>
           {state.epilogue.parts.map((p) => (
             <div key={p.nodeId} className="epi-row">
@@ -1089,7 +1260,12 @@ export default function App() {
           </div>
           <div className="meters">
             {Object.keys(METER_LABELS).map((k) => (
-              <Meter key={k} id={k} value={state.meter[k]} prev={prevMeter?.[k]} />
+              <Meter
+                key={k}
+                id={k}
+                value={state.meter[k]}
+                prev={(phase === "consequence" ? state.record?.meterBefore?.[k] : undefined) ?? prevMeter?.[k]}
+              />
             ))}
           </div>
         </div>
@@ -1101,7 +1277,7 @@ export default function App() {
                 key={p.id}
                 className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""} reviewable`}
                 title="Review what the room decided here"
-                onClick={guard(async () => setReview(await api(`review/${p.id}`)))}
+                onClick={() => openReview(p.id)}
               >
                 <span className="num">{nn(i)}</span>
                 {RAIL_LABELS[p.type]}
@@ -1140,6 +1316,75 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {askOpen && phase === "epilogue" && (
+          <>
+            <div className="drawer-scrim" onClick={() => setAskOpen(false)} />
+            <div className="drawer ask-drawer" role="dialog" aria-label="Ask how we got here">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">Twelve months later · ask the record</span>
+                  <h3>How did we get here?</h3>
+                </div>
+                <div className="drawer-actions">
+                  <button className="panel-btn" onClick={() => setAskOpen(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="ask-thread" ref={askScroll}>
+                {[...(state.epilogue.qa ?? []), ...(askStream ? [{ question: askStream.question, answer: askStream.text, streaming: true }] : [])].map((m, i) => (
+                  <div key={i} className="ask-turn">
+                    <p className="ask-q">{m.question}</p>
+                    <p className="ask-a">
+                      {m.answer.replace(/\*\*/g, "")}
+                      {m.streaming && <span className="cursor">▋</span>}
+                    </p>
+                  </div>
+                ))}
+                {!(state.epilogue.qa ?? []).length && !askStream && (
+                  <div className="ask-suggest">
+                    <span className="rv-label">Try asking</span>
+                    {[
+                      "Why did clinician goodwill end where it did?",
+                      "Which decision cost us the most time, and why?",
+                      "What would Specific answers have changed?",
+                      "Where did our discussion and our written answers differ?",
+                    ].map((q) => (
+                      <button key={q} className="ask-chip" onClick={() => ask(q)}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {askError && <p className="ask-error">{askError}</p>}
+              </div>
+              <form
+                className="ask-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  ask(askInput);
+                }}
+              >
+                <input
+                  className="ask-input"
+                  value={askInput}
+                  onChange={(e) => setAskInput(e.target.value)}
+                  placeholder="Ask about a choice, a meter, or a twelve-month outcome"
+                  disabled={!!askStream}
+                  autoFocus
+                />
+                <button className="fac-primary ask-send" type="submit" disabled={!!askStream || !askInput.trim()}>
+                  {askStream ? "Answering…" : "Ask"}
+                </button>
+              </form>
+              <p className="ask-note">
+                Answers come from this room's record: the choices and their costs, the scores, the AI Council, and the
+                discussion transcripts. Names are removed before anything is sent.
+              </p>
+            </div>
+          </>
         )}
 
         {review && (
@@ -1216,13 +1461,20 @@ export default function App() {
                         {Object.keys(METER_FULL).map((k) => {
                           const d = review.moved[k] ?? 0;
                           const worse = COST_UP[k] ? d > 0 : d < 0;
+                          const split = splitNote(d, review.adjustment?.[k] ?? 0);
                           return (
                             <span key={k} className={`rv-chip ${d === 0 ? "same" : worse ? "worse" : "better"}`}>
                               {METER_FULL[k]} {d === 0 ? "—" : d > 0 ? `+${d}` : `−${-d}`}
+                              {split && <span className="rv-split"> ({split})</span>}
                             </span>
                           );
                         })}
                       </div>
+                      {review.checkSkipped && (
+                        <div className="moved-notes quiet">
+                          <p>The answer check didn't run, so the meters moved by the chosen option only.</p>
+                        </div>
+                      )}
                       {review.adjustment && (
                         <div className="moved-notes">
                           {review.adjustment.goodwill < 0 && (

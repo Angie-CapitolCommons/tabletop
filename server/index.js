@@ -21,14 +21,18 @@ import {
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
-import { streamElderTurn, assessAnswer, generateThemes } from "./npc.js";
+import { streamElderTurn, assessAnswer, generateThemes, streamExplain } from "./npc.js";
+import { buildExplainBundle } from "./explain.js";
 import { scrubNames, scrubDecidedBy } from "./privacy.js";
 import { buildThemesBundle } from "./themes.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
-import { initStore, saveRooms } from "./store.js";
+import { initStore, saveRooms, loadMeta, saveMeta } from "./store.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+// Behind Replit's proxy: take the client address from one forwarding hop so
+// the wrong-code limit applies per network, not to everyone at once.
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS ?? 1));
 app.use(express.json());
 
 // ---------- codes (pre-defined; override via env) ----------
@@ -63,28 +67,57 @@ function freshRoom() {
 }
 
 let rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
-// Admin themes run (see /api/admin/themes); in memory only.
+// Admin themes run (see /api/admin/themes), saved at every status change so a
+// restart or a reload of the admin screen keeps the result.
 let themes = { status: "idle" };
 
 const restored = await initStore();
 if (restored) for (const n of ROOM_NUMBERS) if (restored[n]) rooms[n] = restored[n];
+themes = (await loadMeta("themes")) ?? themes;
+if (themes.status === "running") {
+  themes = { ...themes, status: "error", finishedAt: Date.now(), error: "A server restart interrupted the run. Run it again." };
+  await saveMeta("themes", themes);
+}
+function setThemes(next) {
+  themes = next;
+  saveMeta("themes", next).catch((error) => console.error("Themes save failed:", error?.message ?? error));
+}
 // Successful mutations are persisted before responding by the middleware below.
 const persist = () => {};
 
-let mutationTail = Promise.resolve();
-const npcInFlight = new Set();
-app.use("/api", async (req, res, next) => {
-  if (req.method !== "POST") {
-    await mutationTail;
-    return next();
-  }
-  if (req.path === "/npc") return next();
+// One queue per room: a room's clicks and transcript lines apply one at a
+// time, but rooms never wait on each other. Admin requests take every room's
+// turn. Each change saves only the rooms it actually changed.
+const roomTails = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, Promise.resolve()]));
+function roomsFor(req) {
+  if (req.path.startsWith("/admin/")) return ROOM_NUMBERS;
+  const i = ROOM_CODES.indexOf((req.get("x-room-code") || "").trim().toUpperCase());
+  return i >= 0 ? [ROOM_NUMBERS[i]] : [];
+}
+// Takes the turn for every room in `nums` at once (so two requests can never
+// hold each other's rooms); resolves with the release function.
+async function takeTurn(nums) {
   let release;
   const turn = new Promise((resolve) => { release = resolve; });
-  const previous = mutationTail;
-  mutationTail = previous.then(() => turn);
+  const previous = Promise.all(nums.map((n) => roomTails[n]));
+  for (const n of nums) roomTails[n] = previous.then(() => turn);
   await previous;
-  const before = structuredClone(rooms);
+  return release;
+}
+
+const npcInFlight = new Set();
+app.use("/api", async (req, res, next) => {
+  const nums = roomsFor(req);
+  if (!nums.length) return next();
+  if (req.method !== "POST") {
+    await Promise.all(nums.map((n) => roomTails[n]));
+    return next();
+  }
+  // The Elder round and the 12-month chat stream outside the queue and take
+  // their room's turn only for their final save (see /api/npc, /api/explain).
+  if (req.path === "/npc" || req.path === "/explain") return next();
+  const release = await takeTurn(nums);
+  const before = Object.fromEntries(nums.map((n) => [n, structuredClone(rooms[n])]));
   let finished = false;
   const finish = () => { if (!finished) { finished = true; release(); } };
   res.once("close", finish);
@@ -94,11 +127,12 @@ app.use("/api", async (req, res, next) => {
       finish();
       return originalJson(body);
     }
-    saveRooms(rooms).then(() => {
+    const changed = nums.filter((n) => JSON.stringify(rooms[n]) !== JSON.stringify(before[n]));
+    saveRooms(Object.fromEntries(changed.map((n) => [n, rooms[n]]))).then(() => {
       originalJson(body);
       finish();
     }).catch((error) => {
-      rooms = before;
+      for (const n of nums) rooms[n] = before[n];
       console.error("Room write failed:", error);
       res.status(503);
       originalJson({ error: "Room was not saved. Please retry." });
@@ -175,6 +209,21 @@ function roomProgress(room, scenario) {
   });
 }
 
+// The AI Council's replies to the answer currently on screen, every round, in
+// order, so the screen can show them after a reload.
+function councilFor(room, node) {
+  const r = room.records[node.id];
+  const answer = r && finalAnswer(r);
+  if (!answer) return [];
+  return Object.entries(room.elderTurns)
+    .flatMap(([id, turns]) =>
+      turns
+        .filter((t) => t.nodeId === node.id && t.live && t.answerAt === answer.at)
+        .map((t) => ({ elder: { id, name: elders[id]?.name ?? id, seat: elders[id]?.seat ?? "" }, text: t.text, round: t.round ?? 1, at: t.at })),
+    )
+    .sort((a, b) => a.round - b.round || a.at - b.at);
+}
+
 function roomRecords(room, scenario) {
   return Object.fromEntries(
     Object.entries(room.records).map(([id, r]) => {
@@ -185,7 +234,10 @@ function roomRecords(room, scenario) {
         {
           score: r.score,
           skipped: r.skipped,
-          answer: a && n ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
+          answer: a && n
+            ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short, label: n.options.find((o) => o.id === a.choice)?.label }
+            : null,
+          revised: !!r.revisedAnswer,
           transcript: r.transcript ? { section: r.transcript.section, words: r.transcript.words } : null,
         },
       ];
@@ -233,6 +285,7 @@ function publicState(room, roomNumber) {
       phase: !room.scenarioId ? "select" : room.epilogue ? "epilogue" : room.phase,
       briefed: room.briefed,
       record: node ? room.records[node.id] ?? null : null,
+      council: node ? councilFor(room, node) : [],
       meter: room.meter,
       epilogue: room.epilogue,
       startedAt: room.startedAt,
@@ -243,21 +296,32 @@ function publicState(room, roomNumber) {
 // ---------- auth ----------
 
 const failedAttempts = new Map();
+// Codes already used successfully from each address. Rooms share one
+// hospital network address, so a burst of typos at one laptop must not lock
+// out the rooms already in; during a lockout only these codes still pass.
+const verifiedCodes = new Map();
 function guardedCode(req, header, valid) {
   const ip = req.ip || "unknown";
   const now = Date.now();
-  let record = failedAttempts.get(ip);
-  if (!record || now >= record.until) record = { count: 0, until: now + 60_000 };
-  if (record.count >= 10) return { limited: true };
   const input = Buffer.from((req.get(header) || "").trim().toUpperCase());
-  const match = valid.findIndex((code) => {
+  const matches = (code) => {
     const bytes = Buffer.from(code);
     return input.length === bytes.length && crypto.timingSafeEqual(input, bytes);
-  });
+  };
+  let record = failedAttempts.get(ip);
+  if (!record || now >= record.until) record = { count: 0, until: now + 60_000 };
+  if (record.count >= 10) {
+    const known = [...(verifiedCodes.get(ip) ?? [])];
+    return known.some(matches) ? { match: valid.findIndex(matches) } : { limited: true };
+  }
+  const match = valid.findIndex(matches);
   if (match < 0) {
     record.count++;
     failedAttempts.set(ip, record);
-  } else failedAttempts.delete(ip);
+  } else {
+    failedAttempts.delete(ip);
+    (verifiedCodes.get(ip) ?? verifiedCodes.set(ip, new Set()).get(ip)).add(valid[match]);
+  }
   return { match };
 }
 function roomAuth(req, res, next) {
@@ -336,6 +400,7 @@ app.get("/api/review/:nodeId", roomAuth, (req, res) => {
     consequence: r.consequence ?? [],
     moved: deltas,
     adjustment: r.adjustment ?? null,
+    checkSkipped: !!r.checkSkipped,
     villager: r.villager ?? null,
   });
 });
@@ -403,11 +468,16 @@ app.post("/api/answer", roomAuth, (req, res) => {
   res.json(publicState(room, req.roomNumber));
 });
 
+// The AI Council's round on the room's answer. `again`: the facilitator asked
+// the Council again about the same answer (after the first round), for a
+// fresh angle; its replies are added as a new round, and the phase stays.
 app.post("/api/npc", roomAuth, async (req, res) => {
   const room = req.room;
   const scenario = currentScenario(room);
   const node = currentNode(room);
-  if (!node || room.epilogue || room.phase !== "challenge") {
+  const again = req.body?.again === true;
+  const phase = again ? "revise" : "challenge";
+  if (!node || room.epilogue || room.phase !== phase) {
     return res.status(409).json({ error: `cannot run NPC in phase ${room.phase}` });
   }
   if (npcInFlight.has(req.roomNumber)) return res.status(409).json({ error: "Elders are already speaking" });
@@ -430,8 +500,11 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   const answer = finalAnswer(r);
   const safeAnswer = safe(answer);
   const option = node.options.find((o) => o.id === answer.choice);
+  // Turns already given on this exact answer (earlier rounds).
+  const onThisAnswer = (turns) => turns.filter((t) => t.nodeId === node.id && t.live && t.answerAt === answer.at);
+  const round = 1 + Math.max(0, ...Object.values(room.elderTurns).flatMap(onThisAnswer).map((t) => t.round ?? 1));
   // On a revision, the Elders see the answer they last responded to.
-  const previous = r.revisedAnswer ? safe(r.previousAnswer) : null;
+  const previous = r.revisedAnswer && !again ? safe(r.previousAnswer) : null;
   const previousOption = previous ? node.options.find((o) => o.id === previous.choice) : null;
   const pathSummary = scenario.nodes
     .slice(0, room.nodeIndex)
@@ -458,35 +531,46 @@ app.post("/api/npc", roomAuth, async (req, res) => {
         answer: safeAnswer,
         previous,
         previousOption,
+        again,
         pathSummary,
         priorTurns,
         onDelta: (t) => send({ type: "delta", text: t }),
       });
-      completed.push({ elderId, turn: { nodeId: node.id, text, live: true, at: Date.now() } });
+      completed.push({ elderId, turn: { nodeId: node.id, text, live: true, at: Date.now(), answerAt: answer.at, round } });
       send({ type: "elder-done" });
     } catch (err) {
       console.error(`${elder.name} turn failed:`, err?.message ?? err);
       throw new Error(`${elder.name} could not be reached. Retry the Elder challenge or hold the answer.`);
     }
   }
-  // With the Elders' comments in hand: does this answer put work on
-  // clinicians that belongs elsewhere (goodwill), or add process beyond the
-  // chosen option (time to first value)? Applied when it locks.
+  // With the Council's comments on this answer in hand (every round so far):
+  // does it put work on clinicians that belongs elsewhere (goodwill), or add
+  // process beyond the chosen option (time to first value)? Applied when it
+  // locks; the latest check on the answer is the one that counts.
+  const earlierTexts = Object.values(room.elderTurns).flatMap(onThisAnswer).map((t) => t.text);
   const assessment = await assessAnswer({
     scenario,
     node,
     option,
     answer: safeAnswer,
-    elderTexts: completed.map(({ turn }) => turn.text),
+    elderTexts: [...earlierTexts, ...completed.map(({ turn }) => turn.text)],
   });
-  if (rooms[req.roomNumber] !== room || room.phase !== "challenge" || currentNode(room)?.id !== node.id)
-    throw new Error("The room changed while the Elders were speaking. Refresh and retry.");
-  const nextRoom = structuredClone(room);
-  for (const { elderId, turn } of completed) (nextRoom.elderTurns[elderId] ??= []).push(turn);
-  nextRoom.records[node.id].assessment = assessment ? { ...assessment, answerAt: answer.at } : null;
-  nextRoom.phase = "revise";
-  await saveRooms({ [req.roomNumber]: nextRoom });
-  rooms[req.roomNumber] = nextRoom;
+  // The final save takes this room's turn in its queue.
+  const release = await takeTurn([req.roomNumber]);
+  try {
+    if (rooms[req.roomNumber] !== room || room.phase !== phase || currentNode(room)?.id !== node.id)
+      throw new Error("The room changed while the Elders were speaking. Refresh and retry.");
+    const nextRoom = structuredClone(room);
+    for (const { elderId, turn } of completed) (nextRoom.elderTurns[elderId] ??= []).push(turn);
+    // A failed check on a repeat round keeps the earlier check of this answer.
+    const rec = nextRoom.records[node.id];
+    rec.assessment = assessment ? { ...assessment, answerAt: answer.at } : again ? rec.assessment : null;
+    nextRoom.phase = "revise";
+    await saveRooms({ [req.roomNumber]: nextRoom });
+    rooms[req.roomNumber] = nextRoom;
+  } finally {
+    release();
+  }
   send({ type: "done" });
   } catch (error) {
     console.error("Elder challenge failed:", error);
@@ -497,9 +581,65 @@ app.post("/api/npc", roomAuth, async (req, res) => {
   res.end();
 });
 
+// The 12-month report's chat: the room asks how the exercise got to its
+// results. Answers stream from Claude, grounded in the room's record
+// (explain.js, transcripts included, names removed); each question and answer
+// is saved with the room's record and is the conversation for the next one.
+const explainInFlight = new Set();
+app.post("/api/explain", roomAuth, async (req, res) => {
+  const n = req.roomNumber;
+  const room = req.room;
+  const scenario = currentScenario(room);
+  const question = String(req.body?.question ?? "").trim().slice(0, 1000);
+  if (!room.epilogue || !scenario) return res.status(409).json({ error: "Questions open once the 12-month report is in." });
+  if (!question) return res.status(400).json({ error: "Type a question first." });
+  if (explainInFlight.has(n)) return res.status(409).json({ error: "Still answering the last question." });
+  explainInFlight.add(n);
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  try {
+    const bundle = buildExplainBundle(room, scenario, { sectionLabels: SECTION_LABELS, elders });
+    const history = (room.epilogue.qa ?? [])
+      .slice(-8)
+      .map((q) => ({ question: scrubNames(q.question, room.roleAssignments), answer: q.answer }));
+    const answer = await streamExplain({
+      bundle,
+      history,
+      question: scrubNames(question, room.roleAssignments),
+      onDelta: (t) => send({ type: "delta", text: t }),
+    });
+    const release = await takeTurn([n]);
+    try {
+      if (rooms[n] !== room || !room.epilogue) throw new Error("The room was reset while answering.");
+      const qa = (room.epilogue.qa ??= []);
+      qa.push({ question, answer, at: Date.now() });
+      try {
+        await saveRooms({ [n]: room });
+      } catch (error) {
+        qa.pop();
+        throw error;
+      }
+    } finally {
+      release();
+    }
+    send({ type: "done" });
+  } catch (error) {
+    console.error("Explain failed:", error?.message ?? error);
+    send({ type: "error", message: "Couldn't answer that just now. Ask again." });
+  } finally {
+    explainInFlight.delete(n);
+  }
+  res.end();
+});
+
 // Live discussion transcription (facilitator-controlled, PRD §8): text
-// fragments only. No audio is stored by the app, no voices are attributed,
-// and the transcript is never included in any model prompt.
+// fragments only. No audio is stored by the app and no voices are
+// attributed. Transcripts go to the record and the export; the 12-month
+// report's chat reads them (names removed), and the admin themes run only
+// when the lead facilitator switches that on.
 app.post("/api/discussion", roomAuth, (req, res) => {
   const room = req.room;
   const text = (req.body?.text ?? "").trim();
@@ -564,6 +704,8 @@ app.post("/api/unlock", roomAuth, (req, res) => {
   for (const k of Object.keys(deltas)) room.meter[k] -= deltas[k];
   for (const k of ["goodwill", "time"]) room.meter[k] -= r.adjustment?.[k] ?? 0;
   r.adjustment = null;
+  r.meterBefore = null;
+  r.checkSkipped = false;
   r.score = null;
   r.consequence = null;
   r.villager = null;
@@ -589,6 +731,8 @@ app.post("/api/lock", roomAuth, (req, res) => {
   r.timings.lockedAt = Date.now();
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
+  // Kept on the record so "What moved" survives a page refresh.
+  r.meterBefore = { ...room.meter };
   for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
   // Beyond the option's own cost: work pushed onto clinicians costs goodwill,
   // and process the written answer adds (meetings, approvals, reviews) costs
@@ -598,6 +742,9 @@ app.post("/api/lock", roomAuth, (req, res) => {
   const time = { some: +1, heavy: +2 }[a?.addedProcess] ?? 0;
   r.adjustment =
     goodwill || time ? { goodwill, note: goodwill ? a.note : "", time, timeNote: time ? a.processNote : "" } : null;
+  // No check of this answer ran (the AI was unreachable, or the room held
+  // without hearing from the Council): the meters moved by the option alone.
+  r.checkSkipped = !a;
   for (const k of ["goodwill", "time"]) room.meter[k] += r.adjustment?.[k] ?? 0;
   r.consequence = buildConsequence(node, choice, score);
   r.villager = scenario.villagers?.[node.id] ?? null;
@@ -822,14 +969,14 @@ app.post("/api/admin/themes", adminAuth, (req, res) => {
     { includeTranscripts, sectionLabels: SECTION_LABELS, elders },
   );
   const job = { status: "running", startedAt: Date.now(), includeTranscripts, rooms: finished };
-  themes = job;
+  setThemes(job);
   generateThemes(bundle)
     .then((result) => {
-      if (themes === job) themes = { ...job, status: "done", finishedAt: Date.now(), result };
+      if (themes === job) setThemes({ ...job, status: "done", finishedAt: Date.now(), result });
     })
     .catch((error) => {
       console.error("Themes generation failed:", error?.message ?? error);
-      if (themes === job) themes = { ...job, status: "error", finishedAt: Date.now(), error: "Themes couldn't be generated. Try again." };
+      if (themes === job) setThemes({ ...job, status: "error", finishedAt: Date.now(), error: "Themes couldn't be generated. Try again." });
     });
   res.json({ themes });
 });
@@ -841,9 +988,21 @@ app.post("/api/admin/reset", adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'confirmation required: send { "confirm": "RESET" }' });
   }
   rooms = Object.fromEntries(ROOM_NUMBERS.map((n) => [n, freshRoom()]));
-  themes = { status: "idle" };
+  setThemes({ status: "idle" });
   persist();
   res.json({ ok: true, resetAt: new Date().toISOString() });
+});
+
+// One room back to pristine (answers, Elder memory, meters, and its scenario
+// claim, so it can pick again). The other rooms are untouched.
+app.post("/api/admin/reset-room", adminAuth, (req, res) => {
+  const n = Number(req.body?.room);
+  if (!ROOM_NUMBERS.includes(n)) return res.status(400).json({ error: "unknown room" });
+  if (req.body?.confirm !== "RESET") {
+    return res.status(400).json({ error: 'confirmation required: send { "confirm": "RESET" }' });
+  }
+  rooms[n] = freshRoom();
+  res.json({ ok: true, room: n, resetAt: new Date().toISOString() });
 });
 
 // ---------- printables ----------
