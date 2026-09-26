@@ -40,6 +40,7 @@ export default {
   ],
   modelBrief: `The tool: a discharge-prediction tool that predicts which patients are likely ready to go home tomorrow. At the 90-bed community campus it drives the morning bed huddle, and has for 18 months.
 Results there: length of stay down about half a day compared with the campus's own prior year (no comparison site); huddle attendance up from about 60% to 96%. The charge nurse, Marisol, adjusts the tool's cut-offs by hand most mornings and overrides about 30% of its predictions; the override reason field is optional and is filled in about 12% of the time. Her notebook of adjustments is not in any system. The tool was rated low risk at launch, on the assumption a charge nurse reviews every prediction; the rating has never been revisited.
+At the table, The Executive Sponsor is the operations executive sponsoring the system-wide rollout; disagreements about the schedule go to them.
 The rollout plan: main campus (about 380 beds, a central bed command center, a different EHR setup where 14 fields the tool reads are mapped differently or empty) goes live June 2; two regional hospitals follow. Main campus has retired two bed-management dashboards in three years. The command center director was not invited to planning.
 A grant paid for the community campus; it ends at fiscal year-end, about four months away. Enterprise pricing requires four campuses. Communications has drafted a story, "AI cuts hospital stays across the system," to run two weeks before main campus goes live.`,
   evidence: [
@@ -543,19 +544,19 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
   },
   // Role cards with asymmetric information (PRD §6). Printed, dealt at setup.
   roleCards: {
-    "The Doctor": {
+    "The Executive Sponsor": {
       mandate: [
-        "Your job: what discharge predictions do to clinical judgment at four very different hospitals.",
-        "You won't go along with: a rollout based on one campus's before-and-after, with no comparison.",
-        "You're judged on: patient outcomes, and whether huddles stay about patients.",
+        "Your job: you sponsor the system-wide rollout. Is its schedule right for four very different hospitals?",
+        "You won't go along with: a go-live date nobody will hold, or one nobody is allowed to stop.",
+        "You're judged on: the system-wide results you promised, and how the next campuses go.",
       ],
       asymmetric: [
         {
-          text: "The community campus's length of stay started dropping the month the huddle format changed, before the tool's cut-offs were tuned.",
-          cue: "someone says the tool cut length of stay",
+          text: "You told the board in the spring that the tool would be live at all four campuses this fiscal year.",
+          cue: "someone suggests slowing the rollout",
         },
         {
-          text: "Two main campus hospitalists already call the tool “the bed police” in their group chat.",
+          text: "The command center director wasn't invited to planning because you asked for a small group to protect the date. The director has since asked you for a meeting.",
           cue: "the room talks about whether main campus is ready",
         },
       ],
