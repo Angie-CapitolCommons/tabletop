@@ -255,6 +255,7 @@ async function playRoom(room, scenarioId) {
     if (node.index > 0 && r() < 0.08) {
       s = await post(room, "skip", {});
       d.skipped = true;
+      d.meters = s.state.meter;
       log.decisions.push(d);
       await confirm(s, `skip ${label}`);
       continue;
@@ -413,7 +414,7 @@ async function main() {
         note(r.room, `transcript lines at ${key}: sent ${n}, saved ${got}`);
       }
     }
-    for (const d of r.decisions.filter((x) => !x.skipped && x.meters)) {
+    for (const d of r.decisions.filter((x) => x.meters)) {
       const rec = er.records[d.nodeId];
       // Meters before + what the decision moved = meters after the lock.
       const rv = await get(r.room, `review/${d.nodeId}`);
@@ -425,7 +426,7 @@ async function main() {
       }
       // A decision that heard the Council has its replies saved.
       const turns = Object.values(er.elderTurns ?? {}).flat().filter((t) => t.nodeId === d.nodeId && t.live);
-      if (!d.heldWithoutCouncil && !turns.length) {
+      if (!d.skipped && !d.heldWithoutCouncil && !turns.length) {
         check.problems++;
         note(r.room, `no Council replies saved for ${d.decision}`);
       }

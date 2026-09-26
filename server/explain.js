@@ -16,9 +16,9 @@ const costs = (d) =>
 
 const RULES = `HOW THE EXERCISE WORKS
 - Four meters start at: ${Object.entries(meterStart).map(([k, v]) => `${meterLabels[k].toLowerCase()} ${v}`).join(", ")}. Higher clinician goodwill is better; lower risk exposure, dollars committed, and time to first value are better.
-- Every answer option carries fixed costs on the meters, applied when the facilitator locks the decision. Writing your own answer adds 1 to time. "We can't answer this today" always adds time, because the question comes back to another meeting.
+- Every answer option carries fixed costs on the meters, applied when the facilitator locks the decision. Writing your own answer adds 1 to time. "We can't answer this today" always adds time, because the question comes back to another meeting. Skipping a decision costs the same as answering "We can't answer this today".
 - After the AI Council (the Elders) responds, an answer check reads what the room wrote. Work it pushes onto clinicians that belongs elsewhere costs goodwill (−1 for some, −2 for heavy). Meetings, approvals, reviews, or other process it adds beyond the chosen option cost time (+1 for some, +2 for heavy). If the check didn't run, only the option's own costs applied.
-- The facilitator scores each answer: Specific (names a person or role plus a trigger or number), Generic (a committee or department, or no trigger), or Absent (no one named, or declined). The score doesn't move the meters. It decides which follow-up plays after the decision and which 12-month outcome appears: Specific plays the version where the named owner acts; anything else, or skipping, plays the version where nobody owns it.
+- The facilitator scores each answer: Specific (names a person or role plus a trigger or number), Generic (a committee or department, or no trigger), or Absent (no one named, or declined). The score doesn't move the meters. It decides which follow-up plays after the decision and which 12-month outcome appears: Specific plays the version where the named owner acts; anything else, or skipping, plays the version where nobody owns it. The 12-month outcomes are written in advance for each decision, one for each case.
 - The 12-month report has one dated entry per decision.`;
 
 export function buildExplainBundle(room, scenario, { sectionLabels, elders }) {
@@ -36,7 +36,7 @@ export function buildExplainBundle(room, scenario, { sectionLabels, elders }) {
     out.push("Options and their meter costs:");
     for (const o of node.options) out.push(`- ${o.label} (${o.hint}) → ${costs(node.meterDeltas[o.id])}`);
     if (!r || r.skipped) {
-      out.push("The room skipped this decision: nothing locked and no meters moved.");
+      out.push(`The room skipped this decision. It cost what "We can't answer this today" costs → ${costs(node.meterDeltas.decline)}; nobody owned it.`);
     } else {
       const a = final(r);
       const option = node.options.find((o) => o.id === a.choice);
@@ -68,7 +68,7 @@ export function buildExplainBundle(room, scenario, { sectionLabels, elders }) {
     }
     const l = later[node.id];
     if (l) {
-      out.push(`Twelve months later (month ${l.month}, ${l.named ? "owner named" : "nobody owned it"}): ${l.text}`);
+      out.push(`Twelve months later (month ${l.month}, ${l.named ? "owner named" : l.skipped ? "skipped, so nobody owned it" : "nobody owned it"}): ${l.text}`);
       out.push(`With ${l.named ? "no named owner" : "a Specific answer"} it would have read: ${l.alt}`);
     }
     if (r?.transcript?.beforeAnswer) out.push(`Discussion before the answer (transcribed, fragmentary): ${scrub(r.transcript.beforeAnswer)}`);

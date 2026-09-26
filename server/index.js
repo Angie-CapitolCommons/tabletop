@@ -422,7 +422,7 @@ app.get("/api/review/:nodeId", roomAuth, (req, res) => {
   if (!finished) return res.status(404).json({ error: "Only a finished decision can be reviewed." });
   const label = (a) => node.options.find((o) => o.id === a.choice)?.label ?? a.choice;
   const said = (a) => a && { choice: label(a), freeText: a.freeText, decidedBy: a.decidedBy };
-  const deltas = r.skipped ? null : { ...node.meterDeltas[finalAnswer(r).choice] };
+  const deltas = { ...node.meterDeltas[r.skipped ? "decline" : finalAnswer(r).choice] };
   for (const k of ["goodwill", "time"]) if (deltas && r.adjustment?.[k]) deltas[k] += r.adjustment[k];
   res.json({
     id: node.id,
@@ -826,6 +826,10 @@ app.post("/api/skip", roomAuth, (req, res) => {
   const r = getRecord(room, node.id);
   r.skipped = true;
   r.timings.lockedAt = Date.now();
+  // Skipping costs what "We can't answer this today" costs: the question
+  // comes back to another meeting.
+  r.meterBefore = { ...room.meter };
+  for (const [k, v] of Object.entries(node.meterDeltas.decline)) room.meter[k] += v;
   r.transcript = transcriptArtifact(node, r);
   advance(room);
   persist();
