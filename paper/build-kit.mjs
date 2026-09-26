@@ -32,10 +32,10 @@ const DEEP = "10122D", PURPLE = "2F2E78", BLUE = "387DB7", SLATE = "4A4E70", MUT
 const RUST = "A24F2C", HAIR = "D9D6CE", WARM = "ECEAE4", PAPER = "F7F6F3", WHITE = "FFFFFF";
 const HEAD = "Georgia", BODY = "Calibri", MONO = "Consolas", SYM = "Segoe UI Symbol";
 const SCEN = {
-  s1: { color: "387DB7", short: "S1 Intake" },
-  s2: { color: "2F7D4F", short: "S2 Evaluation" },
-  s3: { color: "B98A2F", short: "S3 Deployment" },
-  s4: { color: "2F2E78", short: "S4 Monitoring" },
+  s1: { color: "387DB7", colorName: "Blue", short: "S1 Intake" },
+  s2: { color: "2F7D4F", colorName: "Green", short: "S2 Evaluation" },
+  s3: { color: "B98A2F", colorName: "Gold", short: "S3 Deployment" },
+  s4: { color: "2F2E78", colorName: "Purple", short: "S4 Monitoring" },
 };
 const PORTRAIT = { width: 12240, height: 15840 };
 const MARGIN = { top: 1000, bottom: 1000, left: 1080, right: 1080 };
@@ -305,6 +305,7 @@ async function facilitatorBooklet(s, i) {
   const n = s.nodes.length;
   const kids = [...coverBlock(s, i, "Facilitator booklet")];
   kids.push(
+    p([run("Assigned to Room ______     Facilitator ________________________", { size: 22 })], { spacing: { after: 200 } }),
     p([run("Keep this booklet on your side of the table. Everything the room sees comes from the Room Packet, the Decision Cards, and the report cards you lay out at the end.", { size: 21 })]),
     h3("In this booklet"),
     bullet("Before you start: setup, the roles at this table, and what to say first"),
@@ -544,7 +545,7 @@ function numberedList(kids, items) {
 async function roomPacket(s, i) {
   const c = SCEN[s.id].color;
   const kids = [...coverBlock(s, i, "Room packet")];
-  kids.push(eyebrow("The opening", c), h2("What happened"));
+  kids.push(p([run("Room ______", { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
   kids.push(...openingBlocks(s));
   for (const doc of s.evidence) {
     kids.push(pageBreak(), eyebrow(doc.id === "whos-who" ? "Who's who" : "From the folder", c), h2(doc.title));
@@ -766,7 +767,7 @@ async function reportCards(s, i) {
 async function facilitatorGuide() {
   const kids = [
     h1("Running the room on paper"),
-    p("Four rooms, one case each, about 90 minutes. The room answers as one group. You keep it answering, write down what it decides, and read the story back to it. Your scenario's Facilitator Booklet has every line you need, decision by decision. This guide is the part that's the same in every room."),
+    p("Four rooms, each assigned one case, about 90 minutes. The room answers as one group. You keep it answering, write down what it decides, and read the story back to it. Your scenario's Facilitator Booklet has every line you need, decision by decision. This guide is the part that's the same in every room."),
     h3("The kit for your room"),
   ];
   [
@@ -862,7 +863,7 @@ async function facilitatorGuide() {
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(pageBreak(), eyebrow("Printing", PURPLE), h2("What to print"));
-  kids.push(note("Each room chooses its case at the start, so print one full kit per scenario and color-code them. Print on US Letter."));
+  kids.push(note("Each room is assigned one case in advance, so print one full kit per scenario, color-coded, and write the room number on its booklet and room packet. Print on US Letter."));
   kids.push(
     grid(
       [
@@ -875,7 +876,7 @@ async function facilitatorGuide() {
         ["Worksheet (per scenario)", "1 per scenario + 2 spares", "Plain, single-sided"],
         ["12-Month Report Cards (per scenario)", "1 set per scenario", "Card stock; cut apart"],
         ["Meter Board", "4 + 1 spare", "Plain or card stock"],
-        ["Lead Facilitator: plenary wall", "1", "Tile the matrix on 11×17, or copy it onto flip chart paper"],
+        ["Lead Facilitator: assignments and plenary wall", "1", "Tile the matrix on 11×17, or copy it onto flip chart paper"],
       ],
       [4000, 3200, 2880],
     ),
@@ -934,7 +935,29 @@ async function meterBoard() {
 async function plenaryWall() {
   // The nine measures in framework order, A1 to A9.
   const types = Object.keys(MEASURES).sort((a, b) => Number(MEASURES[a].id.slice(1)) - Number(MEASURES[b].id.slice(1)));
+  const scenarioList = Object.values(scenarios);
   const guide = [
+    h1("Room assignments"),
+    p("Each room is assigned one case before the session; rooms don't choose. Fill this in when you assign them, and use it to pack the kits: each kit is color-coded by case."),
+    grid(
+      [
+        ["Room", "Case", "Kit color", "Facilitator", "Kit packed"],
+        ...[1, 2, 3, 4].map((n) => [`Room ${n}`, "", "", "", [p(ticks([""]), { spacing: { after: 0 } })]]),
+      ],
+      [1400, 3880, 1500, 2300, 1000],
+      { fontSize: 20 },
+    ),
+    h3("The four cases"),
+    grid(
+      [
+        ["Case", "Enters at", "Kit color", "Decisions"],
+        ...scenarioList.map((s, i) => [`S${i + 1} ${s.title}`, s.entersAt, SCEN[s.id].colorName, String(s.nodes.length)]),
+      ],
+      [5480, 1700, 1500, 1400],
+      { fontSize: 19 },
+    ),
+    note("With four rooms and four cases, every case is played once, so every measure is asked in at least one room."),
+    pageBreak(),
     h1("The plenary wall"),
     p("While the rooms work, the wall is empty. At hand-off, each facilitator brings one sticky note per decision: the short answer and who made the final call, colored by score. You put them on the matrix, and the wall shows the four rooms side by side."),
     h3("Sticky colors"),
@@ -960,7 +983,7 @@ async function plenaryWall() {
   ].forEach(([k, v]) => guide.push(p([run(`${k}: `, { bold: true }), run(v)])));
 
   guide.push(h3("Which case asks which measure"));
-  guide.push(note("Rooms choose their case, so first write each room's scenario at the top of its column, then grey out the measures that case doesn't ask."));
+  guide.push(note("Before the session, write each room's assigned case at the top of its matrix column, then grey out the measures that case doesn't ask."));
   const cov = [["Measure", ...Object.values(scenarios).map((s, i) => `S${i + 1} ${s.entersAt}`)]];
   for (const t of types) {
     cov.push([
@@ -1019,8 +1042,8 @@ async function plenaryWall() {
   const matrix = [
     new Table({ width: { size: 3000 + colW * 5, type: WidthType.DXA }, columnWidths: matrixWidths, layout: TableLayoutType.FIXED, borders: allBorders(line("B9BCCB", 6)), rows: matrixRows }),
   ];
-  await save("00 - Lead Facilitator - Plenary Wall", [
-    section(guide, { label: "Lead facilitator · plenary", color: PURPLE }),
+  await save("00 - Lead Facilitator - Assignments and Plenary Wall", [
+    section(guide, { label: "Lead facilitator · assignments and plenary", color: PURPLE }),
     section(matrix, { label: "Plenary wall · the matrix", color: PURPLE, landscape: true }),
   ]);
 }

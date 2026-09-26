@@ -19,9 +19,11 @@ Shared (print once, or once per facilitator):
 |---|---|
 | `00 - Facilitator Guide` | Every facilitator: run of show, the nine-step loop, scoring, the meter, what to print |
 | `00 - Meter Board` | One per room: four tracks, starting values shaded |
-| `00 - Lead Facilitator - Plenary Wall` | The lead facilitator: how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
+| `00 - Lead Facilitator - Assignments and Plenary Wall` | The lead facilitator: the room-to-case assignment table for packing kits, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
 
-Per scenario (`S1 Intake` … `S4 Monitoring`), color-coded:
+Per scenario (`S1 Intake` … `S4 Monitoring`), color-coded. Each room is
+assigned one case in advance (rooms don't choose), so each scenario's set is
+one room's kit:
 
 | File | For |
 |---|---|
