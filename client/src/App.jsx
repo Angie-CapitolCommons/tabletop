@@ -445,6 +445,20 @@ export default function App() {
       setData(await api("state"));
       setTurns([]);
     } catch (error) {
+      // Another request (say, before a page reload) is still running this
+      // round: wait for it to finish and show its replies.
+      if (/already speaking/.test(error.message)) {
+        setTurns([]);
+        for (let i = 0; i < 60; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const next = await api("state").catch(() => null);
+          if (next && next.state.phase !== "challenge" && !(again && next.state.council.length === state?.council?.length)) {
+            setData(next);
+            setCouncilBusy(false);
+            return;
+          }
+        }
+      }
       setElderError(error.message || "Elder challenge failed. Try again.");
       setTurns((ts) => ts.map((turn) => turn.status === "streaming"
         ? { ...turn, status: "unavailable", text: "This response was interrupted." } : turn));

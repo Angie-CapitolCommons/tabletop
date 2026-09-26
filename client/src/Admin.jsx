@@ -176,10 +176,21 @@ export default function Admin() {
   const themes = data.themes;
   const { started, finished } = themes.readiness;
   const allIn = finished.length > 0 && finished.length === started.length;
+  // The run happens inside this request (the server streams until it's done);
+  // meanwhile the dashboard's poll shows it running and then the result.
   const runThemes = async (force) => {
     setThemesError(null);
     try {
-      await adminApi("themes", { includeTranscripts, force });
+      const res = await fetch("/api/admin/themes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-code": localStorage.getItem(CODE_KEY) ?? "" },
+        body: JSON.stringify({ includeTranscripts, force }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+      load();
+      const text = await res.text();
+      const failed = text.split("\n").find((l) => l.startsWith("data: ") && JSON.parse(l.slice(6)).type === "error");
+      if (failed) setThemesError(JSON.parse(failed.slice(6)).message);
       load();
     } catch (e) {
       setThemesError(e.message);

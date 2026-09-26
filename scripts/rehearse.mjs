@@ -342,7 +342,8 @@ async function main() {
   let themes = null;
   if (THEMES && finished.length) {
     const tt = Date.now();
-    await post(1, "admin/themes", { includeTranscripts: flag("transcripts"), force: true }, { admin: true });
+    // The run happens inside this request, so allow it time to finish.
+    await post(1, "admin/themes", { includeTranscripts: flag("transcripts"), force: true }, { admin: true, timeout: 9 * 60_000 });
     for (;;) {
       await sleep(3000);
       themes = (await get(1, "admin/overview", { admin: true })).themes;
@@ -377,7 +378,7 @@ async function main() {
     const decided = r.decisions.filter((d) => !d.skipped).length;
     const skipped = r.decisions.length - decided;
     const again = r.elderRounds.filter((e) => e.again).length;
-    const meters = r.finalMeters ? Object.entries(r.finalMeters).map(([k, v]) => `${k} ${v}`).join(" · ") : "—";
+    const meters = r.finalMeters ? ["goodwill", "risk", "dollars", "time"].map((k) => `${k} ${r.finalMeters[k]}`).join(" · ") : "—";
     console.log(
       `Room ${r.room}  ${r.failed ? "STOPPED" : "finished"}  ${decided} decided${skipped ? `, ${skipped} skipped` : ""}  ` +
         `Elder rounds ${r.elderRounds.length} (${again} asked again), first word p50 ${secs(pct(firsts, 0.5))} max ${secs(pct(firsts, 1))}  ` +
