@@ -233,7 +233,10 @@ function roomRecords(room, scenario) {
         {
           score: r.score,
           skipped: r.skipped,
-          answer: a && n ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short } : null,
+          answer: a && n
+            ? { ...a, short: n.options.find((o) => o.id === a.choice)?.short, label: n.options.find((o) => o.id === a.choice)?.label }
+            : null,
+          revised: !!r.revisedAnswer,
           transcript: r.transcript ? { section: r.transcript.section, words: r.transcript.words } : null,
         },
       ];

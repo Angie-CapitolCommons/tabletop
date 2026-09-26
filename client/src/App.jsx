@@ -177,11 +177,20 @@ function RecordPanel({ node, decidedByPrompt, roles, roleAssignments, initial, o
 }
 
 // ---------- decision path strip ----------
-function PathStrip({ progress, records, currentIndex, epilogue }) {
+// Hovering (or focusing) a finished step shows what the room answered;
+// clicking one that's behind the room opens the full read-only review.
+function PathStrip({ progress, records, currentIndex, epilogue, onReview }) {
   const lastLockedIdx = progress.reduce(
     (acc, p, i) => (records[p.id]?.answer && records[p.id]?.score ? i : acc),
     -1,
   );
+  const lookBack = (p) =>
+    onReview && (p.status === "done" || p.status === "skipped")
+      ? { role: "button", onClick: () => onReview(p.id), onKeyDown: (e) => e.key === "Enter" && onReview(p.id) }
+      : {};
+  // Popups open below the strip on the 12-month report and above it on the
+  // consequence screen; the last two open leftward so they stay on the stage.
+  const popClass = (i) => `pc-pop ${epilogue ? "below" : "above"} ${i >= progress.length - 2 ? "rightward" : ""}`;
   return (
     <div className="path-strip">
       <div className="path-label">DECISION PATH</div>
@@ -190,17 +199,35 @@ function PathStrip({ progress, records, currentIndex, epilogue }) {
           const r = records[p.id];
           if (r?.skipped)
             return (
-              <div key={p.id} className="path-cell skipped-cell">
+              <div key={p.id} className="path-cell skipped-cell has-pop" tabIndex={0} {...lookBack(p)}>
                 <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · skipped</span>
                 <span className="pc-choice">Never asked</span>
+                <div className={popClass(i)} role="tooltip">
+                  <span className="pop-eyebrow">{nn(i)} {RAIL_LABELS[p.type]}</span>
+                  <p className="pop-free">The room skipped this decision.</p>
+                </div>
               </div>
             );
           if (r?.answer && r?.score)
             return (
-              <div key={p.id} className={`path-cell locked ${i === lastLockedIdx ? "latest" : ""}`}>
+              <div
+                key={p.id}
+                className={`path-cell locked has-pop ${i === lastLockedIdx ? "latest" : ""}`}
+                tabIndex={0}
+                {...lookBack(p)}
+              >
                 <span className="pc-eyebrow">{nn(i)} {RAIL_LABELS[p.type]} · {r.score}</span>
                 <span className="pc-choice">{r.answer.short}</span>
                 <span className="pc-detail">{r.answer.freeText}</span>
+                <div className={popClass(i)} role="tooltip">
+                  <span className="pop-eyebrow">
+                    {nn(i)} {RAIL_LABELS[p.type]} · <span className="pop-score">{r.score}</span>
+                    {r.revised ? " · revised after the challenge" : ""}
+                  </span>
+                  <p className="pop-choice">{r.answer.label ?? r.answer.short}</p>
+                  {r.answer.freeText && <p className="pop-free">“{r.answer.freeText}”</p>}
+                  <p className="pop-by">Final call: {r.answer.decidedBy || "not recorded"}</p>
+                </div>
               </div>
             );
           if (!epilogue && i === currentIndex + 1)
@@ -484,6 +511,8 @@ export default function App() {
     setSkipArmed(false);
     refresh(await api("skip", {}));
   });
+
+  const openReview = guard(async (nodeId) => setReview(await api(`review/${nodeId}`)));
 
   const advance = guard(async () => {
     npcForNode.current = null;
@@ -1037,8 +1066,21 @@ export default function App() {
         </div>
         <PathStrip
           progress={progress}
-          records={{ ...records, [node.id]: { score: record.score, skipped: false, answer: { ...answer, short: node.options.find((o) => o.id === answer.choice).short } } }}
+          records={{
+            ...records,
+            [node.id]: {
+              score: record.score,
+              skipped: false,
+              revised: !!record.revisedAnswer,
+              answer: {
+                ...answer,
+                short: node.options.find((o) => o.id === answer.choice).short,
+                label: node.options.find((o) => o.id === answer.choice).label,
+              },
+            },
+          }}
           currentIndex={node.index}
+          onReview={openReview}
         />
       </div>
     );
@@ -1119,7 +1161,7 @@ export default function App() {
       <div className="epilogue">
         <span className="eyebrow" style={{ fontSize: 14 }}>After-action report · {state.epilogue.minutes} minutes</span>
         <h1 className="epi-head-title">Twelve months later</h1>
-        <PathStrip progress={progress} records={records} currentIndex={-1} epilogue />
+        <PathStrip progress={progress} records={records} currentIndex={-1} epilogue onReview={openReview} />
         <div className="epi-rows" style={{ marginTop: 12 }}>
           {state.epilogue.parts.map((p) => (
             <div key={p.nodeId} className="epi-row">
@@ -1173,7 +1215,7 @@ export default function App() {
                 key={p.id}
                 className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""} reviewable`}
                 title="Review what the room decided here"
-                onClick={guard(async () => setReview(await api(`review/${p.id}`)))}
+                onClick={() => openReview(p.id)}
               >
                 <span className="num">{nn(i)}</span>
                 {RAIL_LABELS[p.type]}
