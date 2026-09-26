@@ -41,13 +41,16 @@ npm start
 Set four distinct `ROOM_CODES`, a separate `ADMIN_CODE`, and `DATABASE_URL`
 before starting. No default codes or in-memory room storage are used.
 
-**Deploy as a single server (Replit Reserved VM), not Autoscale.** The server
-works from its in-memory copy of the four rooms and saves each change to
-Postgres before replying; a second instance would hold its own copy and
-overwrite the first's saves. Each room's changes apply one at a time and save
-only that room, so rooms never wait on each other. The admin themes result is
-kept in `tabletop_meta`, so it survives a restart (a run cut off by a restart
-shows as interrupted). Don't redeploy during a session.
+**Runs on Replit Autoscale.** Postgres is the source of truth: every request
+loads the room it needs, and every change is saved in a transaction that locks
+that room's row, so any number of server instances can serve the rooms and an
+instance can stop at any time. A unique index keeps each scenario to one room.
+The Council round and the 12-month chat take a short lease on the room while
+they stream and save in one locked transaction at the end; the admin themes
+run happens inside its own request and keeps its status and result in
+`tabletop_meta` (a run older than six minutes that never finished shows as cut
+off). If Replit lets you cap Autoscale at one machine, that's a harmless extra
+safeguard. Don't redeploy during a session.
 The existing `tabletop_rooms` table is reused; legacy `data` rows are
 migrated in place to `state`. Rooms saved under an older scenario-content
 version (`CONTENT_VERSION` in `server/content/common.js`) are discarded at
