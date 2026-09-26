@@ -91,7 +91,8 @@ export default function Admin() {
   const [codeInput, setCodeInput] = useState("");
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
-  const [resetOpen, setResetOpen] = useState(false);
+  // "all" for the full game reset, or a room number to reset just that room.
+  const [resetOpen, setResetOpen] = useState(null);
   const [resetText, setResetText] = useState("");
   const [transcriptView, setTranscriptView] = useState(null);
   const [includeTranscripts, setIncludeTranscripts] = useState(false);
@@ -204,7 +205,7 @@ export default function Admin() {
           >
             Export all rooms
           </button>
-          <button className="fac-btn danger" onClick={() => setResetOpen(true)}>
+          <button className="fac-btn danger" onClick={() => setResetOpen("all")}>
             Full game reset
           </button>
         </div>
@@ -243,6 +244,9 @@ export default function Admin() {
                       Debrief transcript
                     </button>
                   )}
+                  <button className="admin-link room-reset" onClick={() => setResetOpen(r.roomNumber)}>
+                    Reset this room
+                  </button>
                   {Object.values(r.roleAssignments ?? {}).some(Boolean) && (
                     <div className="room-roster">
                       {Object.entries(r.roleAssignments)
@@ -484,14 +488,21 @@ export default function Admin() {
       )}
 
       {resetOpen && (
-        <div className="admin-overlay" onClick={() => setResetOpen(false)}>
+        <div className="admin-overlay" onClick={() => setResetOpen(null)}>
           <div className="reset-panel" onClick={(e) => e.stopPropagation()}>
             <span className="eyebrow">Irreversible</span>
-            <h2>Full game reset</h2>
-            <p>
-              Wipes all four rooms — answers, Elder memory, scenario claims, meters — back to
-              pristine. Scenario content is kept. Export first.
-            </p>
+            <h2>{resetOpen === "all" ? "Full game reset" : `Reset Room ${resetOpen}`}</h2>
+            {resetOpen === "all" ? (
+              <p>
+                Wipes all four rooms — answers, Elder memory, scenario claims, meters — back to
+                pristine. Scenario content is kept. Export first.
+              </p>
+            ) : (
+              <p>
+                Wipes Room {resetOpen} only — its answers, Elder memory, meters, and its scenario
+                claim, so it can pick a scenario again. The other rooms keep going. Export first.
+              </p>
+            )}
             <button
               className="fac-btn"
               onClick={async () => download(await adminApi("export"), `tabletop-export-before-reset-${Date.now()}.json`)}
@@ -505,18 +516,19 @@ export default function Admin() {
               placeholder='Type RESET to confirm'
             />
             <div className="reset-actions">
-              <button className="fac-btn" onClick={() => setResetOpen(false)}>Cancel</button>
+              <button className="fac-btn" onClick={() => setResetOpen(null)}>Cancel</button>
               <button
                 className="fac-primary danger"
                 disabled={resetText !== "RESET"}
                 onClick={async () => {
-                  await adminApi("reset", { confirm: "RESET" });
-                  setResetOpen(false);
+                  if (resetOpen === "all") await adminApi("reset", { confirm: "RESET" });
+                  else await adminApi("reset-room", { room: resetOpen, confirm: "RESET" });
+                  setResetOpen(null);
                   setResetText("");
                   load();
                 }}
               >
-                Reset the game
+                {resetOpen === "all" ? "Reset the game" : `Reset Room ${resetOpen}`}
               </button>
             </div>
           </div>

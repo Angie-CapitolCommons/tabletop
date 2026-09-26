@@ -40,6 +40,14 @@ npm start
 
 Set four distinct `ROOM_CODES`, a separate `ADMIN_CODE`, and `DATABASE_URL`
 before starting. No default codes or in-memory room storage are used.
+
+**Deploy as a single server (Replit Reserved VM), not Autoscale.** The server
+works from its in-memory copy of the four rooms and saves each change to
+Postgres before replying; a second instance would hold its own copy and
+overwrite the first's saves. Each room's changes apply one at a time and save
+only that room, so rooms never wait on each other. The admin themes result is
+kept in `tabletop_meta`, so it survives a restart (a run cut off by a restart
+shows as interrupted). Don't redeploy during a session.
 The existing `tabletop_rooms` table is reused; legacy `data` rows are
 migrated in place to `state`. Rooms saved under an older scenario-content
 version (`CONTENT_VERSION` in `server/content/common.js`) are discarded at

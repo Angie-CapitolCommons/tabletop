@@ -29,6 +29,13 @@ function validRoom(r) {
 export async function initStore() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for durable rooms");
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
+  // Small key/value store for session-wide results that aren't a room (the
+  // admin themes run).
+  await pool.query(`CREATE TABLE IF NOT EXISTS tabletop_meta (
+    key text PRIMARY KEY,
+    value jsonb NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`);
   // Same columns as the existing Drizzle schema. Never truncate or rename live data.
   await pool.query(`CREATE TABLE IF NOT EXISTS tabletop_rooms (
     room_number integer PRIMARY KEY,
@@ -85,6 +92,7 @@ export async function initStore() {
 }
 
 export async function saveRooms(rooms) {
+  if (!Object.keys(rooms).length) return;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -106,4 +114,16 @@ export async function saveRooms(rooms) {
   } finally {
     client.release();
   }
+}
+export async function loadMeta(key) {
+  const { rows } = await pool.query("SELECT value FROM tabletop_meta WHERE key = $1", [key]);
+  return rows[0]?.value ?? null;
+}
+
+export async function saveMeta(key, value) {
+  await pool.query(
+    `INSERT INTO tabletop_meta (key, value, updated_at) VALUES ($1, $2, now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [key, JSON.stringify(value)],
+  );
 }

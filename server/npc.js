@@ -19,6 +19,7 @@ export async function streamElderTurn({
   answer,
   previous,
   previousOption,
+  again = false,
   pathSummary,
   priorTurns,
   onDelta,
@@ -49,7 +50,11 @@ export async function streamElderTurn({
       (pathSummary
         ? `The room's decision path so far:\n${pathSummary}\n\n`
         : "") +
-      (previous
+      (again
+        ? `The room asked the AI Council again about the same answer at the "${node.title}" node (type: ${node.type}).\n` +
+          `Question posed: ${node.question}\n` +
+          `Give a different angle from what you said before about this answer: another gap, risk, owner, trigger, or question. Don't repeat your earlier comment.\n`
+        : previous
         ? `The room has revised its answer at the "${node.title}" node (type: ${node.type}) after hearing from the Elders.\n` +
           `Question posed: ${node.question}\n` +
           `Their earlier answer: ${previousOption?.label} — "${previous.freeText}"\n` +
@@ -160,7 +165,7 @@ export async function assessAnswer({ scenario, node, option, answer, elderTexts 
           },
         ],
       },
-      { timeout: ASSESS_TIMEOUT_MS, maxRetries: 0 },
+      { timeout: ASSESS_TIMEOUT_MS, maxRetries: 1 },
     );
     if (response.stop_reason !== "end_turn") return null;
     const text = response.content.find((b) => b.type === "text")?.text;
