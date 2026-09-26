@@ -203,7 +203,7 @@ Signed: 14 triage line nurses`,
         a: { goodwill: 0, risk: -2, dollars: 0, time: +1 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
         c: { goodwill: -1, risk: -1, dollars: 0, time: +2 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -346,9 +346,9 @@ Signed: 14 triage line nurses`,
       ],
       meterDeltas: {
         a: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
-        b: { goodwill: 0, risk: +1, dollars: 0, time: -1 },
+        b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
         c: { goodwill: -1, risk: -1, dollars: 0, time: +1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -417,10 +417,10 @@ Signed: 14 triage line nurses`,
         decline("Money comes in on whatever terms it arrives with."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -1, dollars: +2, time: 0 },
+        a: { goodwill: 0, risk: -1, dollars: +2, time: +1 },
         b: { goodwill: -1, risk: 0, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: +2, dollars: -1, time: -1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -490,7 +490,7 @@ Signed: 14 triage line nurses`,
         a: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: -1, risk: -1, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {

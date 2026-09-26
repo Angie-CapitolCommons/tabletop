@@ -251,6 +251,7 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---------- villager beat: a speech bubble from someone who lives with the decision ---------- */
 .villager { margin-top: 28px; }
+.moved-notes + .villager { margin-top: 10px; }
 .villager-eyebrow { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate); display: block; margin-bottom: 4px; }
 .villager-bubble {
   position: relative; background: #fff; border: 1px solid var(--hair4); border-radius: 14px;
@@ -409,8 +410,10 @@ h1, h2, h3, p { margin: 0; }
 .moved-dir { font-size: 12.5px; color: var(--muted); font-weight: 400; display: inline; margin-left: 8px; }
 .moved-vals { font-family: var(--serif); font-size: 22px; white-space: nowrap; }
 .moved-delta { font-family: var(--mono); font-size: 15px; text-align: right; }
-.moved-note { font-size: 14px; line-height: 1.4; color: var(--deep); margin: 4px 0 0; padding: 6px 10px; border-left: 3px solid var(--rust); background: #fff; }
-.moved-note b { color: var(--rust); font-weight: 600; margin-right: 4px; }
+.moved-notes { margin: 4px 0 0; padding: 5px 10px; border-left: 3px solid var(--rust); background: #fff; }
+.moved-notes p { font-size: 13.5px; line-height: 1.35; color: var(--deep); margin: 0; }
+.moved-notes p + p { margin-top: 3px; }
+.moved-notes b { color: var(--rust); font-weight: 600; margin-right: 4px; }
 .moved-delta.worse { color: var(--rust); }
 .moved-delta.better { color: var(--blue); }
 .moved-delta.same { color: var(--faint); }

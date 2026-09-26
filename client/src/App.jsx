@@ -937,12 +937,23 @@ export default function App() {
               </div>
             );
           })}
-          {/* Goodwill lost to work this answer puts on clinicians, beyond the option's own cost. */}
+          {/* Beyond the option's own cost: goodwill lost to work this answer puts on
+              clinicians, and time added by the process the answer writes in. */}
           {record.adjustment && (
-            <p className="moved-note">
-              <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
-              {record.adjustment.note || "for work this answer puts on clinicians."}
-            </p>
+            <div className="moved-notes">
+              {record.adjustment.goodwill < 0 && (
+                <p>
+                  <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
+                  {record.adjustment.note || "for work this answer puts on clinicians."}
+                </p>
+              )}
+              {record.adjustment.time > 0 && (
+                <p>
+                  <b>Time +{record.adjustment.time}</b>{" "}
+                  {record.adjustment.timeNote || "for the meetings and approvals this answer adds."}
+                </p>
+              )}
+            </div>
           )}
           {/* The Villager: a voice from the people who live with the decision. */}
           {record.villager && (

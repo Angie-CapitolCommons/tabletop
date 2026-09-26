@@ -214,7 +214,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         a: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: -2, dollars: +1, time: +1 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -284,7 +284,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         a: { goodwill: 0, risk: -1, dollars: 0, time: +2 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
         c: { goodwill: 0, risk: +2, dollars: 0, time: -1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -434,8 +434,8 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
       meterDeltas: {
         a: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: 0, risk: -1, dollars: +2, time: +2 },
-        c: { goodwill: 0, risk: -2, dollars: +1, time: 0 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        c: { goodwill: 0, risk: -2, dollars: +1, time: +1 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -502,10 +502,10 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         decline("Version 4.0 installs in 60 days either way."),
       ],
       meterDeltas: {
-        a: { goodwill: 0, risk: -2, dollars: 0, time: +1 },
-        b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
-        c: { goodwill: 0, risk: -1, dollars: +2, time: 0 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        a: { goodwill: 0, risk: -2, dollars: 0, time: +2 },
+        b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
+        c: { goodwill: 0, risk: -1, dollars: +2, time: +1 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {

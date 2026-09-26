@@ -60,8 +60,8 @@ an explicit option to hold the answer and continue.
 ## Layout
 
 - `server/` — Express API. `npc.js` holds every Anthropic call — Elder turns,
-  the clinician-goodwill check, and the admin themes run (key never reaches
-  the client). `privacy.js` replaces roster first names with roles in
+  the answer check (clinician goodwill, and time added by process the answer
+  writes in), and the admin themes run (key never reaches the client). `privacy.js` replaces roster first names with roles in
   anything sent to the model; `themes.js` bundles finished rooms for the
   themes run (transcripts only when the admin opts in). `content/` holds the four scenarios, Elders, roles,
   Villagers. The scenario shape is documented at the top of
