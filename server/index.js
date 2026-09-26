@@ -17,12 +17,11 @@ import {
   roles,
   SECTION_LABELS,
   decidedByPrompt,
-  villagerStandingLine,
   buildConsequence,
   buildEpilogue,
   meterStart,
 } from "./content/index.js";
-import { streamElderTurn, assessClinicianBurden, generateThemes } from "./npc.js";
+import { streamElderTurn, assessAnswer, generateThemes } from "./npc.js";
 import { scrubNames, scrubDecidedBy } from "./privacy.js";
 import { buildThemesBundle } from "./themes.js";
 import { worksheetPage, roleCardsPage, printIndexPage } from "./print.js";
@@ -212,7 +211,6 @@ function publicState(room, roomNumber) {
       ? { id: scenario.id, title: scenario.title, entersAt: scenario.entersAt, opening: scenario.opening, evidence: scenario.evidence }
       : null,
     decidedByPrompt,
-    villagerStandingLine,
     roles,
     roleAssignments: room.roleAssignments,
     progress: scenario ? roomProgress(room, scenario) : [],
@@ -435,8 +433,9 @@ app.post("/api/npc", roomAuth, async (req, res) => {
     }
   }
   // With the Elders' comments in hand: does this answer put work on
-  // clinicians that belongs elsewhere? Applied to goodwill when it locks.
-  const assessment = await assessClinicianBurden({
+  // clinicians that belongs elsewhere (goodwill), or add process beyond the
+  // chosen option (time to first value)? Applied when it locks.
+  const assessment = await assessAnswer({
     scenario,
     node,
     option,
@@ -526,7 +525,7 @@ app.post("/api/unlock", roomAuth, (req, res) => {
   const r = getRecord(room, node.id);
   const deltas = node.meterDeltas[finalAnswer(r).choice];
   for (const k of Object.keys(deltas)) room.meter[k] -= deltas[k];
-  if (r.adjustment) room.meter.goodwill -= r.adjustment.goodwill;
+  for (const k of ["goodwill", "time"]) room.meter[k] -= r.adjustment?.[k] ?? 0;
   r.adjustment = null;
   r.score = null;
   r.consequence = null;
@@ -554,12 +553,15 @@ app.post("/api/lock", roomAuth, (req, res) => {
   const choice = finalAnswer(r).choice;
   const deltas = node.meterDeltas[choice];
   for (const k of Object.keys(deltas)) room.meter[k] += deltas[k];
-  // Work pushed onto clinicians costs goodwill beyond the option's own cost,
-  // but only if the assessment was of this exact answer.
-  const a = r.assessment;
-  const burden = a && a.answerAt === finalAnswer(r).at ? { some: -1, heavy: -2 }[a.clinicianBurden] : undefined;
-  r.adjustment = burden ? { goodwill: burden, note: a.note } : null;
-  if (r.adjustment) room.meter.goodwill += r.adjustment.goodwill;
+  // Beyond the option's own cost: work pushed onto clinicians costs goodwill,
+  // and process the written answer adds (meetings, approvals, reviews) costs
+  // time. Only if the assessment was of this exact answer.
+  const a = r.assessment?.answerAt === finalAnswer(r).at ? r.assessment : null;
+  const goodwill = { some: -1, heavy: -2 }[a?.clinicianBurden] ?? 0;
+  const time = { some: +1, heavy: +2 }[a?.addedProcess] ?? 0;
+  r.adjustment =
+    goodwill || time ? { goodwill, note: goodwill ? a.note : "", time, timeNote: time ? a.processNote : "" } : null;
+  for (const k of ["goodwill", "time"]) room.meter[k] += r.adjustment?.[k] ?? 0;
   r.consequence = buildConsequence(node, choice, score);
   r.villager = scenario.villagers?.[node.id] ?? null;
   r.transcript = transcriptArtifact(node, r);

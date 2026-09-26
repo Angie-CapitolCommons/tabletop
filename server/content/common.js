@@ -12,7 +12,13 @@
 //     title, question, freeTextPrompt   hospital language, one question
 //     elders      one or two Elder ids; every answer hears from at least one
 //     options     a, b, c (positions, not grades), then decline()
-//     meterDeltas every option costs something on at least one meter
+//     meterDeltas every option costs something on at least one meter.
+//                 Time to first value: anything that adds a meeting, vote,
+//                 sign-off, review, audit, contract change, or another
+//                 group's approval raises it; declining always raises it
+//                 (the question comes back to another meeting). Process the
+//                 room writes into its own answer is priced at lock by the
+//                 answer check in npc.js (+1 some, +2 heavy).
 //     events      one dated event per option: what the position sets moving
 //     owner       one dated beat that holds under every option; `named`
 //                 plays when the facilitator scores the answer Specific
@@ -25,7 +31,7 @@
 // Bump when the room state shape or scenario content changes in a way that
 // makes saved rooms meaningless. Rooms saved under another version are
 // discarded at startup (store.js); nothing here needs to be kept.
-export const CONTENT_VERSION = 3;
+export const CONTENT_VERSION = 4;
 
 const ELDER_COMMON = `You are an Elder in a governance tabletop exercise at a fictional academic cancer center. Rules of engagement:
 - Be brief: one to three short sentences, under 50 words in total.
@@ -146,10 +152,6 @@ export const SECTION_LABELS = {
 
 export const decidedByPrompt =
   "Who at the table made that final decision? A role, a first name, or “the group.”";
-
-// Standing disclosure shown whenever a Villager speaks (PRD §7.2).
-export const villagerStandingLine =
-  "Villagers are constructs built from published and public sources — never testimony from staff or patients. No patient data is used.";
 
 export const meterStart = { goodwill: 10, risk: 4, dollars: 3, time: 5 };
 export const meterLabels = {

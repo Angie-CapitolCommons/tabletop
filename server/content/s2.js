@@ -120,7 +120,7 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
       ],
       meterDeltas: {
         a: { goodwill: +1, risk: 0, dollars: +1, time: +2 },
-        b: { goodwill: -1, risk: 0, dollars: 0, time: 0 },
+        b: { goodwill: -1, risk: 0, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
         decline: { goodwill: -1, risk: 0, dollars: 0, time: +1 },
       },
@@ -264,7 +264,7 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
         a: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: -1, risk: -2, dollars: +1, time: +2 },
         c: { goodwill: 0, risk: -1, dollars: 0, time: +1 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -336,7 +336,7 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
         a: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: 0, risk: -1, dollars: +1, time: +1 },
         c: { goodwill: 0, risk: -1, dollars: +1, time: +2 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -480,7 +480,7 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
         a: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
         b: { goodwill: -1, risk: 0, dollars: 0, time: 0 },
         c: { goodwill: 0, risk: -1, dollars: 0, time: +1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {

@@ -349,7 +349,7 @@ export default function App() {
   }, [needsLogin]);
 
   const state = data?.state;
-  const { scenario, scenarios, node, progress, decidedByPrompt, villagerStandingLine, roles, roleAssignments, records } = data ?? {};
+  const { scenario, scenarios, node, progress, decidedByPrompt, roles, roleAssignments, records } = data ?? {};
 
   // Elder turns stream automatically on entering challenge.
   useEffect(() => {
@@ -937,12 +937,23 @@ export default function App() {
               </div>
             );
           })}
-          {/* Goodwill lost to work this answer puts on clinicians, beyond the option's own cost. */}
+          {/* Beyond the option's own cost: goodwill lost to work this answer puts on
+              clinicians, and time added by the process the answer writes in. */}
           {record.adjustment && (
-            <p className="moved-note">
-              <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
-              {record.adjustment.note || "for work this answer puts on clinicians."}
-            </p>
+            <div className="moved-notes">
+              {record.adjustment.goodwill < 0 && (
+                <p>
+                  <b>Goodwill −{-record.adjustment.goodwill}</b>{" "}
+                  {record.adjustment.note || "for work this answer puts on clinicians."}
+                </p>
+              )}
+              {record.adjustment.time > 0 && (
+                <p>
+                  <b>Time +{record.adjustment.time}</b>{" "}
+                  {record.adjustment.timeNote || "for the meetings and approvals this answer adds."}
+                </p>
+              )}
+            </div>
           )}
           {/* The Villager: a voice from the people who live with the decision. */}
           {record.villager && (
@@ -952,7 +963,6 @@ export default function App() {
                 <p className="villager-line">“{record.villager.line}”</p>
               </div>
               <div className="villager-speaker">{record.villager.speaker}</div>
-              <span className="villager-standing">{villagerStandingLine}</span>
             </div>
           )}
         </div>

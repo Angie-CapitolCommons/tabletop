@@ -94,37 +94,52 @@ export async function streamElderTurn({
   }
 }
 
-// After the Elders speak: does the room's answer put work on clinicians that
-// belongs elsewhere? Drives the clinician-goodwill adjustment at lock. Reads
-// the same inputs the Elders saw, plus their comments (no transcript, no
-// names). Best-effort: any failure returns null and the meters move as
-// authored.
+// After the Elders speak, two checks on the room's written answer, in one
+// call: does it put work on clinicians that belongs elsewhere (goodwill), and
+// does it add meetings, approvals, or other process beyond what the chosen
+// option already involves (time to first value)? Applied when the score
+// locks. Reads the same inputs the Elders saw, plus their comments (no
+// transcript, no names). Best-effort: any failure returns null and the
+// meters move as authored.
 const ASSESS_TIMEOUT_MS = Number(process.env.ASSESS_TIMEOUT_MS) || 10000;
 
-const ASSESS_SYSTEM = `You review one answer from a governance tabletop exercise at a fictional academic cancer center. A room of leaders answered a decision question, and AI "Elders" then commented on the answer.
+const ASSESS_SYSTEM = `You review one answer from a governance tabletop exercise at a fictional academic cancer center. A room of leaders answered a decision question, and AI "Elders" then commented on the answer. Make two separate judgments.
 
-Decide whether the answer, as written, puts work on clinicians (doctors, nurses, pharmacists, or clinic staff) that belongs with IT, operations, quality, finance, or another part of the business. Examples: manually double-checking a tool's output, monitoring, audits, logging or data entry, validation work, workarounds, or making clinicians the safety net, without taking anything else off their plate or funding the time.
-
-Use the Elders' comments as evidence. If an Elder raised this and the answer still doesn't deal with it, count it.
+1. Clinician burden. Does the answer, as written, put work on clinicians (doctors, nurses, pharmacists, or clinic staff) that belongs with IT, operations, quality, finance, or another part of the business? Examples: manually double-checking a tool's output, monitoring, audits, logging or data entry, validation work, workarounds, or making clinicians the safety net, without taking anything else off their plate or funding the time. Use the Elders' comments as evidence: if an Elder raised this and the answer still doesn't deal with it, count it.
 
 clinician_burden:
 - none: no new work lands on clinicians, or the answer funds or staffs it.
 - some: a modest or temporary added task.
 - heavy: ongoing work, or clinicians become the safety net.
 
-note: for some or heavy, one plain sentence under 20 words saying what work lands on clinicians, for example "Clinicians double-check the labs in every summary until the review ends." No acronyms. For none, an empty string.`;
+note: for some or heavy, one plain sentence under 20 words saying what work lands on clinicians, for example "Clinicians double-check the labs in every summary until the review ends." For none, an empty string.
+
+2. Added process. Every meeting, committee, vote, sign-off, approval, review, audit, handoff between groups, or other added governance or complexity slows the time until the tool delivers value. The chosen option's own steps are already counted. Judge only what the written answer adds beyond what the chosen option already involves.
+
+added_process:
+- none: the answer adds no steps beyond the chosen option.
+- some: one added meeting, approval, sign-off, or review step.
+- heavy: several added steps, a new standing committee or recurring review, or approvals from more than one group.
+
+process_note: for some or heavy, one plain sentence under 20 words saying what the answer adds, for example "Adds a second sign-off from the department chair before each campus goes live." For none, an empty string.
+
+No acronyms in either note.`;
 
 const ASSESS_SCHEMA = {
   type: "object",
   properties: {
     clinician_burden: { type: "string", enum: ["none", "some", "heavy"] },
     note: { type: "string" },
+    added_process: { type: "string", enum: ["none", "some", "heavy"] },
+    process_note: { type: "string" },
   },
-  required: ["clinician_burden", "note"],
+  required: ["clinician_burden", "note", "added_process", "process_note"],
   additionalProperties: false,
 };
 
-export async function assessClinicianBurden({ scenario, node, option, answer, elderTexts }) {
+const LEVELS = ["none", "some", "heavy"];
+
+export async function assessAnswer({ scenario, node, option, answer, elderTexts }) {
   try {
     const response = await client.messages.create(
       {
@@ -150,10 +165,17 @@ export async function assessClinicianBurden({ scenario, node, option, answer, el
     if (response.stop_reason !== "end_turn") return null;
     const text = response.content.find((b) => b.type === "text")?.text;
     const parsed = text ? JSON.parse(text) : null;
-    if (!["none", "some", "heavy"].includes(parsed?.clinician_burden)) return null;
-    return { clinicianBurden: parsed.clinician_burden, note: String(parsed.note ?? "").trim() };
+    if (!parsed) return null;
+    const burden = LEVELS.includes(parsed.clinician_burden) ? parsed.clinician_burden : "none";
+    const added = LEVELS.includes(parsed.added_process) ? parsed.added_process : "none";
+    return {
+      clinicianBurden: burden,
+      note: burden === "none" ? "" : String(parsed.note ?? "").trim(),
+      addedProcess: added,
+      processNote: added === "none" ? "" : String(parsed.process_note ?? "").trim(),
+    };
   } catch (error) {
-    console.error("Clinician-burden assessment skipped:", error?.message ?? error);
+    console.error("Answer check skipped:", error?.message ?? error);
     return null;
   }
 }

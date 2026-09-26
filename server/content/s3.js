@@ -122,7 +122,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         a: { goodwill: 0, risk: -2, dollars: 0, time: +2 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -197,7 +197,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         a: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
         b: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
         c: { goodwill: +1, risk: -2, dollars: 0, time: +1 },
-        decline: { goodwill: -1, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: -1, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -265,7 +265,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         a: { goodwill: -1, risk: +1, dollars: 0, time: -1 },
         b: { goodwill: +1, risk: -1, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: 0, dollars: 0, time: +2 },
-        decline: { goodwill: -1, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: -1, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -335,7 +335,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         a: { goodwill: -1, risk: -2, dollars: 0, time: +1 },
         b: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
         c: { goodwill: 0, risk: +2, dollars: +1, time: 0 },
-        decline: { goodwill: 0, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -407,7 +407,7 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         a: { goodwill: +1, risk: +2, dollars: 0, time: 0 },
         b: { goodwill: -1, risk: -1, dollars: 0, time: +1 },
         c: { goodwill: 0, risk: -1, dollars: 0, time: +1 },
-        decline: { goodwill: 0, risk: +1, dollars: 0, time: 0 },
+        decline: { goodwill: 0, risk: +1, dollars: 0, time: +1 },
       },
       events: {
         a: {
@@ -479,10 +479,10 @@ Planned run date: May 19 (two weeks before main campus go-live)`,
         decline("The grant ends in four months either way."),
       ],
       meterDeltas: {
-        a: { goodwill: -1, risk: +1, dollars: +1, time: 0 },
+        a: { goodwill: -1, risk: +1, dollars: +1, time: +1 },
         b: { goodwill: +1, risk: -1, dollars: +3, time: 0 },
         c: { goodwill: 0, risk: +1, dollars: +1, time: +1 },
-        decline: { goodwill: -1, risk: +2, dollars: 0, time: 0 },
+        decline: { goodwill: -1, risk: +2, dollars: 0, time: +1 },
       },
       events: {
         a: {
