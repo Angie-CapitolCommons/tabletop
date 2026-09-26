@@ -69,6 +69,14 @@ and the admin themes run. It checks every step, times the Elders, watches for
 rooms going backwards (more than one server instance), and writes
 `summary.json` and `export.json` to a `rehearsal-<time>/` folder.
 
+It also tests what keeps the app safe on Autoscale: two rooms claiming one
+scenario at the same moment, two Council rounds and two chat questions at once
+on one room, and a second themes run while one is going (each: exactly one
+goes through). Transcript lines go in simultaneous bursts, and at the end the
+script reads every room back from the database: every line it sent must be
+saved, and every locked decision's meters must add up (before + what the
+decision moved = after). `--no-races` skips the at-the-same-moment checks.
+
 ```bash
 # From the Replit shell (reads ROOM_CODES and ADMIN_CODE from the environment)
 npm run rehearse -- --url https://tabletop.virtual-insights.com --reset
