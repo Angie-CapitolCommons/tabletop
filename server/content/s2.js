@@ -40,6 +40,7 @@ export default {
   ],
   modelBrief: `The tool: a pathology pre-screen tool that flags areas on digitized slides for the pathologist to look at first.
 History: seven months ago the AI Governance Workgroup approved it "in principle, pending satisfactory evaluation," with the evaluation approach "to be determined." No criteria, owner, or end date were ever set. The vendor's sandbox, using archived de-identified slides, has been extended twice; the current term ends in about three weeks, after which pilot pricing ends and the vendor's standard price applies. The vendor is cooperative and has asked for the evaluation criteria. The sandbox receives the vendor's model updates automatically; results so far span two versions.
+At the table, The Executive Sponsor is the head of the pathology department, who sponsored the request to evaluate the tool.
 The department is split: Dr. Renner, a senior pathologist, sees it as a way to clear routine slides faster; Dr. Vogel, also senior, worries residents will stop learning on the slides it clears. Two residents already use the sandbox as a study aid without approval.
 Evidence: the vendor's validation study reports 96% agreement with final diagnosis on the vendor's own slide set from other hospitals; another cancer center published 89% agreement on its slides, with more false flags. Nobody has run a structured test on our own slides. The vendor has not fully disclosed what data its model was trained on. The vendor lists the cancer center as an "evaluation partner." No budget exists for a purchase if the tool passes.`,
   evidence: [
@@ -542,14 +543,14 @@ Dr. Vogel: “Residents learn on the routine slides. If the tool clears them, wh
   roleCards: {
     "The Executive Sponsor": {
       mandate: [
-        "Your job: getting the organization to a yes or a no on this tool, and making sure a yes can be paid for.",
-        "You won't go along with: another extension with no end date and nobody deciding.",
-        "You're judged on: tools that move from testing into use, or get stopped.",
+        "Your job: you lead pathology and sponsored the request to evaluate this tool. Get a decision your pathologists will accept.",
+        "You won't go along with: letting the sandbox lapse with no answer after seven months.",
+        "You're judged on: turnaround times, and keeping both of your senior pathologists on board.",
       ],
       asymmetric: [
         {
-          text: "You were copied on the Workgroup's “approved in principle” note seven months ago. It named no owner, and you assumed pathology had one.",
-          cue: "the room asks who decides at the end",
+          text: "When the Workgroup approved it in principle, you took that to mean the Workgroup would run the evaluation. Nobody from the Workgroup has contacted you since.",
+          cue: "the room asks who will do the testing",
         },
         {
           text: "Next year's capital list closes in six weeks. If the tool isn't on it, a yes can't be paid for until the year after.",

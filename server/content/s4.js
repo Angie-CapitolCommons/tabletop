@@ -41,6 +41,7 @@ export default {
   ],
   modelBrief: `The tool: an AI visit-summary tool. It summarizes prior visits and drafts sections of the clinic note, and it is attached to a shared note template.
 History: approved 14 months ago by the AI Governance Workgroup as a six-month pilot in the medical oncology clinic only. Conditions: a monthly chart check (no owner named) and no use elsewhere without coming back to the Workgroup. No risk level was assigned. The sponsoring clinic director has since moved to another role. Nobody has reviewed the tool since launch.
+At the table, The Executive Sponsor is the leader of the oncology clinics; the original sponsoring clinic director reported to them, so the tool is theirs now in practice, though nothing says so in writing.
 Now: it runs in three clinics. GI oncology and breast oncology turned it on by copying the medical oncology note template; the service desk didn't know. About 1,800 notes a week use it, up from about 300 early in the pilot. The vendor has pushed two model updates (version 2.1 to 3.4); the release emails went to a shared mailbox nobody reads. One chart check has been done in 14 months: a pharmacist found 3 of 41 summaries left out an abnormal lab trend, with no harm found; her email to the Workgroup mailbox got no reply. This week a GI fellow caught a summary calling renal function stable when creatinine had doubled.
 Turning the tool off for a clinic takes a vendor support ticket; the fastest so far took 19 hours. The license renews automatically in 60 days at a price 38% higher unless written notice is given 30 days before; a monitoring add-on is sold separately. Version 4.0 installs for all customers in 60 days.`,
   evidence: [
@@ -350,8 +351,8 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         },
         {
           id: "c",
-          label: "“Send it up. Ask the executive sponsor for AI to pick who decides.”",
-          hint: "The sponsor's office usually answers requests in about a week.",
+          label: "“Send it up. Ask the AI Leader to pick who decides.”",
+          hint: "Their office usually answers requests in about a week.",
           short: "Send it up",
         },
         decline("It stays on both groups' agendas."),
@@ -373,7 +374,7 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
         },
         c: {
           when: "Week 2",
-          text: "The sponsor's office replies with a question: who does this group recommend?",
+          text: "The AI Leader's office replies with a question: who does this group recommend?",
         },
         decline: {
           when: "Week 4",
@@ -647,9 +648,9 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
   roleCards: {
     "The Executive Sponsor": {
       mandate: [
-        "Your job: who owns this tool now that its original sponsor has moved on, and what the organization stands behind.",
-        "You won't go along with: a decision that leaves nobody's name on the tool.",
-        "You're judged on: whether an approval here means something, and what happens if a patient is harmed while it runs.",
+        "Your job: you lead the oncology clinics. The pilot's sponsor reported to you, so the tool is yours now in practice.",
+        "You won't go along with: switching it off everywhere with no plan for the clinicians who now rely on it.",
+        "You're judged on: documentation time in your clinics, and whether a patient is harmed while it runs.",
       ],
       asymmetric: [
         {
@@ -657,8 +658,8 @@ Support: to turn the tool off for a clinic, open a support ticket.`,
           cue: "someone asks who owns the tool now",
         },
         {
-          text: "The chief medical officer has asked you for a one-page answer by Friday on whether the tool is safe to keep using.",
-          cue: "the room talks about leaving it on",
+          text: "GI and breast oncology asked you in the spring whether they could use it. You said yes in a hallway conversation, and nothing was written down.",
+          cue: "someone asks how it spread to three clinics",
         },
       ],
     },

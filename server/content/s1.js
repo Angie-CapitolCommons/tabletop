@@ -49,6 +49,7 @@ Three requests arrived in the same week; none has a risk level:
 2. A trial-matching tool that screens charts for clinical-trial eligibility. Academic collaboration; a grant covers year one. The lead researcher says the department will start it on its own if the AI Integration Environment doesn't approve it. Needs read access to full charts.
 3. A triage-line assistant that drafts callback notes for the nurse triage phone line, for a nurse to edit and send. Requested by the triage nurses themselves after two late callbacks; no senior sponsor, no budget.
 The AI Governance Workgroup reviews AI tools for risk only; it does not rank requests or weigh business, financial, or clinician impact, and nobody else formally does either. Information Security also reviews risk, and which tools go to which is inconsistent.
+At the table, The Executive Sponsor is the senior revenue cycle leader sponsoring the appeal-letter request (the revenue cycle director reports to them).
 The room is not choosing the winner. It is deciding what the AI Integration Environment is for, how requests get a risk level, who picks and who tells the others, what the winner must show at day 90, whose money builds it, and what can be said outside.`,
   evidence: [
     {
@@ -56,7 +57,7 @@ The room is not choosing the winner. It is deciding what the AI Integration Envi
       title: "AI Integration Environment charter (draft, 11 months old)",
       body: `AI INTEGRATION ENVIRONMENT — CHARTER (DRAFT)
 
-Sponsor: Executive sponsor for AI
+Sponsor: AI Leader
 Capacity: one build-and-test slot per quarter
 Evaluation support: half of one analyst
 
@@ -124,7 +125,7 @@ Signed: 14 triage line nurses`,
         },
         {
           id: "c",
-          label: "“Write it here today and send it to the executive sponsor to confirm.”",
+          label: "“Write it here today and send it to the AI Leader to confirm.”",
           hint: "This meeting plus about a week for sign-off. The grant year starts next month.",
           short: "Write it today",
         },
@@ -147,11 +148,11 @@ Signed: 14 triage line nurses`,
         },
         c: {
           when: "Next Monday",
-          text: "The executive sponsor confirms the purpose with one edit. The lead researcher emails the same day to ask whether a grant-funded research tool is in or out.",
+          text: "The AI Leader confirms the purpose with one edit. The lead researcher emails the same day to ask whether a grant-funded research tool is in or out.",
         },
         decline: {
           when: "Tuesday",
-          text: "The charter stays at “to be completed.” The revenue cycle director asks for a meeting with the executive sponsor directly.",
+          text: "The charter stays at “to be completed.” The revenue cycle director asks for a meeting with the AI Leader directly.",
         },
       },
       owner: {
@@ -271,8 +272,8 @@ Signed: 14 triage line nurses`,
         },
         {
           id: "c",
-          label: "“Send it up. The executive sponsor for AI makes the call.”",
-          hint: "Clear authority. The sponsor's calendar has an opening in about ten days.",
+          label: "“Send it up. The AI Leader makes the call.”",
+          hint: "Clear authority. Their calendar has an opening in about ten days.",
           short: "Send it up",
         },
         decline("All three keep waiting. The grant year starts next month."),
@@ -294,7 +295,7 @@ Signed: 14 triage line nurses`,
         },
         c: {
           when: "Day 10",
-          text: "The meeting with the sponsor runs short. The sponsor asks for a one-page recommendation by Friday.",
+          text: "The meeting with the AI Leader runs short. The AI Leader asks for a one-page recommendation by Friday.",
         },
         decline: {
           when: "Week 3",
@@ -394,7 +395,7 @@ Signed: 14 triage line nurses`,
       elders: ["ledger"],
       inject: (records) =>
         choiceOf(records, "decide") === "c"
-          ? "Because the pick went to the executive sponsor, it took ten days. In that time the appeal-letter vendor sent a new offer: six months free, then list price."
+          ? "Because the pick went to the AI Leader, it took ten days. In that time the appeal-letter vendor sent a new offer: six months free, then list price."
           : "The appeal-letter vendor sends a new offer: six months free, then list price. The terms are attached.",
       options: [
         {
@@ -554,18 +555,18 @@ Signed: 14 triage line nurses`,
   roleCards: {
     "The Executive Sponsor": {
       mandate: [
-        "Your job: what the AI Integration Environment is for, and which requests fit the priorities you set.",
-        "You won't go along with: the slot going to the most senior sponsor by default.",
-        "You're judged on: whether this quarter's one slot produces something people use.",
+        "Your job: you sponsor the appeal-letter request for revenue cycle. Get it a fair hearing against the other two.",
+        "You won't go along with: a ranking that ignores the money being lost on denied claims every month.",
+        "You're judged on: denied claims recovered this year.",
       ],
       asymmetric: [
         {
-          text: "The charter's blank sections are yours to finish. You told the last intake meeting you'd do it this quarter.",
-          cue: "the room talks about what the AI Integration Environment is for",
+          text: "The denial backlog grew by about 600 claims last quarter. The 4,000 figure in the director's email is from before that.",
+          cue: "the room compares the three requests",
         },
         {
-          text: "The chief financial officer asked you last week whether AI will show savings this year. The appeal-letter tool is the only request with a dollar figure.",
-          cue: "the room ranks the requests on return",
+          text: "Your budget could pay the vendor's first year, if the AI Integration Environment builds the connection.",
+          cue: "the room talks about whose money builds it",
         },
       ],
     },
