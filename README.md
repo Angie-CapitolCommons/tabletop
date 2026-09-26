@@ -92,6 +92,13 @@ each room down; `--chat N`, `--no-themes`, and `--transcripts` shape the end.
 `--help` lists everything. Exit code 0 means every check passed. Don't run it
 while real rooms are in session.
 
+## Paper kit
+
+The session can also run entirely on paper: `npm run paper-kit` builds 27
+editable Word documents (facilitator booklets, room packets, decision cards,
+role cards, worksheets, 12-month report cards, a meter board, and the plenary
+wall) from the same scenario content. See `paper/README.md`.
+
 ## Session-day runbook
 
 1. Rehearsal (day before): run the four-room rehearsal script against the
