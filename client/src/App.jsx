@@ -264,6 +264,8 @@ export default function App() {
   const [prevMeter, setPrevMeter] = useState(null);
   const [revising, setRevising] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(null);
+  // Read-only look back at a finished decision, opened from the step rail.
+  const [review, setReview] = useState(null);
   const [councilOpen, setCouncilOpen] = useState(false);
   const [council, setCouncil] = useState([]);
   const [skipArmed, setSkipArmed] = useState(false);
@@ -1070,7 +1072,18 @@ export default function App() {
         <div className="topbar">
           <div>
             <div className="eyebrow">
-              TABLETOP{scenario ? ` · ENTERS AT ${scenario.entersAt.toUpperCase()}` : " · BREAKOUT SESSION"}
+              {/* Unmarked on purpose: leaves this room for the room-code screen (for switching rooms
+                  while testing). The room itself is saved on the server; its code reopens it. */}
+              <span
+                onClick={() => {
+                  stopTranscription();
+                  localStorage.removeItem(ROOM_CODE_KEY);
+                  window.location.reload();
+                }}
+              >
+                TABLETOP
+              </span>
+              {scenario ? ` · ENTERS AT ${scenario.entersAt.toUpperCase()}` : " · BREAKOUT SESSION"}
             </div>
             <div className="title">{scenario ? scenario.title : "Choose the case"}</div>
           </div>
@@ -1081,16 +1094,25 @@ export default function App() {
           </div>
         </div>
         <div className="steprail">
-          {progress.map((p, i) => (
-            <div
-              key={p.id}
-              className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""}`}
-              title={`Specific: ${SCORING[p.type]}`}
-            >
-              <span className="num">{nn(i)}</span>
-              {RAIL_LABELS[p.type]}
-            </div>
-          ))}
+          {progress.map((p, i) =>
+            // Finished or skipped decisions open a read-only review; nothing restarts.
+            p.status === "done" || p.status === "skipped" ? (
+              <button
+                key={p.id}
+                className={`step ${p.status} ${records[p.id]?.skipped ? "skipped" : ""} reviewable`}
+                title="Review what the room decided here"
+                onClick={guard(async () => setReview(await api(`review/${p.id}`)))}
+              >
+                <span className="num">{nn(i)}</span>
+                {RAIL_LABELS[p.type]}
+              </button>
+            ) : (
+              <div key={p.id} className={`step ${p.status}`} title={`Specific: ${SCORING[p.type]}`}>
+                <span className="num">{nn(i)}</span>
+                {RAIL_LABELS[p.type]}
+              </div>
+            ),
+          )}
           {progress.length === 0 && <div className="step">The docket fills when a case is chosen</div>}
         </div>
         <div className="main">{main}</div>
@@ -1118,6 +1140,120 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {review && (
+          <>
+            <div className="drawer-scrim" onClick={() => setReview(null)} />
+            <div className="drawer review-drawer" role="dialog" aria-label="Review a decision">
+              <div className="drawer-head">
+                <div>
+                  <span className="eyebrow">
+                    Looking back · decision {nn(review.index)} of {nn(review.count - 1)} · {RAIL_LABELS[review.type]}
+                  </span>
+                  <h3>{review.title}</h3>
+                </div>
+                <div className="drawer-actions">
+                  <button className="panel-btn" onClick={() => setReview(null)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="rv-grid">
+                <div>
+                  <p className="rv-question">{review.question}</p>
+                  {review.skipped ? (
+                    <p className="rv-skipped">The room skipped this decision. Nothing was locked and nothing moved.</p>
+                  ) : (
+                    <>
+                      <span className="rv-label">
+                        The room's answer · <span className="rv-score">{review.score}</span>
+                        {review.firstAnswer ? " · revised after the challenge" : review.held ? " · held after the challenge" : ""}
+                      </span>
+                      <div className="rv-answer">
+                        <p className="rv-choice">{review.answer.choice}</p>
+                        {review.answer.freeText && <p className="rv-free">“{review.answer.freeText}”</p>}
+                        <p className="rv-by">Final call: {review.answer.decidedBy || "not recorded"}</p>
+                      </div>
+                      {review.firstAnswer && (
+                        <div className="rv-first">
+                          <span className="rv-label">Before the challenge</span>
+                          <p>
+                            {review.firstAnswer.choice}
+                            {review.firstAnswer.freeText ? ` “${review.firstAnswer.freeText}”` : ""}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {review.elders.length > 0 && (
+                    <>
+                      <span className="rv-label">What the AI Council said</span>
+                      {review.elders.map((e) => (
+                        <p key={e.name} className="rv-elder">
+                          <b>{e.name}</b> {e.text}
+                        </p>
+                      ))}
+                    </>
+                  )}
+                </div>
+                <div>
+                  {review.consequence.length > 0 && (
+                    <>
+                      <span className="rv-label">What happened next</span>
+                      {review.consequence.map((e, i) => (
+                        <div key={i} className="rv-event">
+                          <span className="cq-when">{e.when}</span>
+                          <p>{e.text}</p>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {review.moved && (
+                    <>
+                      <span className="rv-label">What moved</span>
+                      <div className="rv-moved">
+                        {Object.keys(METER_FULL).map((k) => {
+                          const d = review.moved[k] ?? 0;
+                          const worse = COST_UP[k] ? d > 0 : d < 0;
+                          return (
+                            <span key={k} className={`rv-chip ${d === 0 ? "same" : worse ? "worse" : "better"}`}>
+                              {METER_FULL[k]} {d === 0 ? "—" : d > 0 ? `+${d}` : `−${-d}`}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {review.adjustment && (
+                        <div className="moved-notes">
+                          {review.adjustment.goodwill < 0 && (
+                            <p>
+                              <b>Goodwill −{-review.adjustment.goodwill}</b>{" "}
+                              {review.adjustment.note || "for work this answer puts on clinicians."}
+                            </p>
+                          )}
+                          {review.adjustment.time > 0 && (
+                            <p>
+                              <b>Time +{review.adjustment.time}</b>{" "}
+                              {review.adjustment.timeNote || "for the meetings and approvals this answer adds."}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {review.villager && (
+                    <div className="villager">
+                      <span className="villager-eyebrow">Who lives with this decision</span>
+                      <div className="villager-bubble">
+                        <p className="villager-line">“{review.villager.line}”</p>
+                      </div>
+                      <div className="villager-speaker">{review.villager.speaker}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {evidenceOpen && (

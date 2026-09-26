@@ -303,6 +303,43 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/state", roomAuth, (req, res) => res.json(publicState(req.room, req.roomNumber)));
 
+// Read-only look back at a decision the room has finished or skipped, opened
+// from the step rail. Changes nothing.
+app.get("/api/review/:nodeId", roomAuth, (req, res) => {
+  const room = req.room;
+  const scenario = currentScenario(room);
+  const index = scenario?.nodes.findIndex((n) => n.id === req.params.nodeId) ?? -1;
+  const node = scenario?.nodes[index];
+  const r = node && room.records[node.id];
+  const finished = r && (r.skipped || (r.score && (room.epilogue || index < room.nodeIndex)));
+  if (!finished) return res.status(404).json({ error: "Only a finished decision can be reviewed." });
+  const label = (a) => node.options.find((o) => o.id === a.choice)?.label ?? a.choice;
+  const said = (a) => a && { choice: label(a), freeText: a.freeText, decidedBy: a.decidedBy };
+  const deltas = r.skipped ? null : { ...node.meterDeltas[finalAnswer(r).choice] };
+  for (const k of ["goodwill", "time"]) if (deltas && r.adjustment?.[k]) deltas[k] += r.adjustment[k];
+  res.json({
+    id: node.id,
+    type: node.type,
+    index,
+    count: scenario.nodes.length,
+    title: node.title,
+    question: node.question,
+    skipped: !!r.skipped,
+    answer: r.skipped ? null : said(finalAnswer(r)),
+    firstAnswer: r.revisedAnswer ? said(r.firstAnswer) : null,
+    held: !!r.held,
+    score: r.score ?? null,
+    elders: Object.entries(room.elderTurns ?? {})
+      .map(([id, turns]) => [id, (turns ?? []).filter((t) => t.nodeId === node.id && t.live).at(-1)])
+      .filter(([, t]) => t)
+      .map(([id, t]) => ({ name: elders[id]?.name ?? id, seat: elders[id]?.seat ?? "", text: t.text })),
+    consequence: r.consequence ?? [],
+    moved: deltas,
+    adjustment: r.adjustment ?? null,
+    villager: r.villager ?? null,
+  });
+});
+
 app.get("/api/elders", (_req, res) =>
   res.json(
     Object.values(elders).map((e) => ({ id: e.id, name: e.name, seat: e.seat, firesOn: elderFiresOn[e.id] })),
