@@ -36,7 +36,7 @@ Rooms don't choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4
 | File | For |
 |---|---|
 | `Facilitator Booklet` | The facilitator's script: setup, role nudges, background, the opening, then one spread per decision (memo branches, question, challenge questions, scoring, meter moves, what happens, the Villager), the debrief, and the hand-off |
-| `Room Packet` | Everything the room uses, in four sections with a section break between each: **1 Scenario** (the opening thread, evidence documents, who's who), **2 Role Cards** (five, with the "only you know this" facts), **3 Decision Cards** (one per page, handed out one at a time), **4 Worksheet** (the room's record, filled in by the facilitator) |
+| `Room Packet` | Everything the room uses, in four sections with a section break between each: **1 Scenario** (the opening thread only), **2 Role Cards** (five, with the "only you know this" facts), **3 Decision Cards** (one per page, handed out one at a time), **4 Worksheet** (the room's record, filled in by the facilitator) |
 
 ## How the app's moving parts become paper
 
@@ -55,6 +55,10 @@ Rooms don't choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4
 - **Scoring** uses the same per-measure rubric the app shows the facilitator
   (`client/src/measures.js`). The A-codes appear only on the plenary wall, as
   they do only on the app's dashboard.
+- **There is no evidence folder or who's who on paper.** It was too much
+  to read in the room. The Scenario section is the opening thread; the room's
+  other facts are on the role cards, and the facilitator answers questions
+  from the booklet's background.
 - **There is no 12-month report on paper.** The debrief works from the
   worksheet and the meter board. Each decision's owner beat (read at the
   decision) still depends on the score.

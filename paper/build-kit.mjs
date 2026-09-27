@@ -334,7 +334,7 @@ async function facilitatorBooklet(s, i) {
   [
     "Deal the five role cards (Room Packet, section 2). Every person plays a role and every role is played: two people can share a role, or one person can play two.",
     "Write each person's first name next to their role on the worksheet's first page (section 4).",
-    "Put the Scenario (section 1) on the table with the opening thread on top. The evidence documents and the who's who go in the middle of the table as the room's folder.",
+    "Put the Scenario (section 1), the opening thread, face down on the table.",
     "Put the meter board in the middle of the table, where everyone can reach it, with a pen.",
     "Keep the Decision Cards (section 3) face down in order. Hand out one at a time.",
     "Worksheet, pen, and a clock where you can see them.",
@@ -360,12 +360,12 @@ async function facilitatorBooklet(s, i) {
   kids.push(grid(cueRows, [2200, 4280, 3600], { fontSize: 18 }));
 
   kids.push(h3("What's true in this story"));
-  kids.push(note("Background for answering the room's questions. Don't read it aloud; the room finds these facts in the folder and on the role cards."));
+  kids.push(note("Background for answering the room's questions. Don't read it aloud. The room has only the opening and the role cards, so when it asks for a fact, answer from here."));
   for (const para of s.modelBrief.split("\n")) if (para.trim()) kids.push(p([run(para.trim(), { size: 19, color: "33375C" })], { spacing: { after: 80 } }));
 
   // Opening
   kids.push(pageBreak(), eyebrow("The opening", c), h2("Start the story"));
-  kids.push(p("Hand out the opening thread (the first pages of the Scenario, Room Packet section 1). Read the first paragraph aloud and let the room read the messages. Give them two minutes with the folder before the first decision."));
+  kids.push(p("Hand out the opening thread (the first pages of the Scenario, Room Packet section 1). Read the first paragraph aloud and let the room read the messages. Give them a minute before the first decision."));
   kids.push(...openingBlocks(s));
 
   // Decisions
@@ -508,7 +508,7 @@ async function facilitatorBooklet(s, i) {
   [
     "Write the finish time on the worksheet.",
     "Fill one sticky note per decision for the plenary wall: the short answer and who made the final call. Green for Specific, yellow for Generic, pink for Absent or declined, blue for skipped.",
-    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the folder behind.",
+    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the Scenario pages behind.",
   ].forEach((t) => kids.push(bullet(t)));
 
   await save(fileName(s, "Facilitator Booklet"), [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
@@ -534,18 +534,8 @@ function scenarioKids(s, i) {
   const kids = [...coverBlock(s, i, "Room packet")];
   kids.push(p([run(`Room ${SCEN[s.id].room}`, { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
   kids.push(...openingBlocks(s));
-  for (const doc of s.evidence) {
-    kids.push(pageBreak(), eyebrow(doc.id === "whos-who" ? "Who's who" : "From the folder", c), h2(doc.title));
-    const paras = doc.body.split("\n");
-    kids.push(
-      panel(
-        paras.map((l) =>
-          p([run(l.length ? l : " ", { font: doc.id === "whos-who" ? BODY : MONO, size: doc.id === "whos-who" ? 21 : 19 })], { spacing: { after: doc.id === "whos-who" ? 120 : 40 } }),
-        ),
-        { fill: WHITE },
-      ),
-    );
-  }
+  // Paper leaves out the app's evidence folder and who's who: too much to
+  // read in the room. The facilitator answers from the booklet's background.
   return kids;
 }
 
@@ -720,7 +710,7 @@ async function facilitatorGuide() {
   [
     ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the debrief."],
     ["Room Packet", "Two copies, each in four sections:"],
-    ["   1 Scenario", "The opening thread, the evidence folder, and the who's who. On the table from the start."],
+    ["   1 Scenario", "The opening thread: what happened, and the messages that started it. On the table from the start."],
     ["   2 Role Cards", "Five, one per role. Dealt at setup."],
     ["   3 Decision Cards", "One per decision. Hand out one at a time, face down until you pose it."],
     ["   4 Worksheet", "The room's record. You fill it in; the second copy is a spare."],
@@ -801,7 +791,7 @@ async function facilitatorGuide() {
     "“Who in this room would sign that?”",
     "“If this goes wrong in March, whose phone rings?”",
     "“What would have to happen for you to change your mind?”",
-    "“Check the folder. Is there anything in there that helps?”",
+    "“What does your role card say about this?”",
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(h3("After the session"));
@@ -850,7 +840,7 @@ async function printOrder() {
   kids.push(h3("After printing"));
   [
     "Each Room Packet has four sections, each starting on a new page with its name in the page header: 1 Scenario, 2 Role Cards, 3 Decision Cards, 4 Worksheet. Keep them in that order and clip each section separately.",
-    "Cut apart the role cards in section 2 along the printed borders. Keep the Scenario pages loose: the opening thread and each evidence document are separate pages the room spreads out on the table.",
+    "Cut apart the role cards in section 2 along the printed borders.",
     "Bundle one kit per room, by color: the room's Facilitator Booklet and two Room Packets, plus a Facilitator Guide and a Meter Board.",
     "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). Every file name and cover already carries the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
     "The poster goes on the wall of the plenary room before the rooms hand off; each answer cell is sized for a 3×3 in sticky note. If it can't be printed in time, the lead facilitator can copy the grid onto flip chart paper.",
@@ -944,7 +934,7 @@ async function plenaryWall() {
   [
     ["Alignment", "Three or more rooms gave the same substantive answer to the same measure."],
     ["Friction", "Rooms gave different answers to the same measure."],
-    ["Collision", "Rooms gave the same authority to different people, or sent the same kind of call to different groups. The shared who's who makes this visible: look for the same decision landing on the Workgroup in one room and the AI Leader in another."],
+    ["Collision", "Rooms gave the same authority to different people, or sent the same kind of call to different groups. Look for the same decision landing on the Workgroup in one room and the AI Leader in another."],
     ["Orphan", "Pink or blue in three or more of the rooms whose case asked it. A cell whose case didn't ask that measure doesn't count."],
     ["Drop-off", "Read top to bottom: where along the lifecycle do rooms stop naming people?"],
     ["Who decides", "Look at the “final call” names across the wall. Did the same role end up deciding in every room, or did it move around? That is the organization's own open question."],
