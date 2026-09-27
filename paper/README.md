@@ -4,7 +4,7 @@ The whole exercise on paper: no app, no network, no AI in the room. Paper is
 its own track and is expected to drift from the app (PRD §12).
 
 ```bash
-npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (13 editable .docx files)
+npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (17 editable .docx files)
 ```
 
 **What's shared and what's paper-only.** The cases (`server/content/`) and the
@@ -31,12 +31,13 @@ Shared (the Print Order says how many of each):
 Per room (`Room 1 - S1 Intake` … `Room 4 - S4 Monitoring`), color-coded.
 Rooms don't choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4
 (lifecycle order, left to right on the plenary wall; set in `SCEN` in
-`build-kit.mjs`). Two files per room:
+`build-kit.mjs`). Three files per room:
 
 | File | For |
 |---|---|
 | `Facilitator Booklet` | The facilitator's script: setup, role nudges, background, the opening, then one spread per decision (memo branches, question, challenge questions, scoring, meter moves, what happens, the Villager), the debrief, and the hand-off |
-| `Room Packet` | Everything the room uses, in four sections with a section break between each: **1 Scenario** (the opening thread only), **2 Role Cards** (five, with the "only you know this" facts), **3 Decision Cards** (one per page, handed out one at a time), **4 Worksheet** (the room's record, filled in by the facilitator) |
+| `Role Cards and Worksheet` | The facilitator's copy (one printed), in two sections: **1 Role Cards** (five, with the "only you know this" facts, cut apart and dealt at setup), **2 Worksheet** (the room's record, filled in by the facilitator) |
+| `Participant Packet` | The room's copy (three printed), in two sections: **1 Scenario** (the opening thread only), **2 Decision Cards** (one page per decision; the room turns to each when the facilitator poses it) |
 
 ## How the app's moving parts become paper
 

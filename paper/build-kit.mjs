@@ -5,8 +5,9 @@
 //
 //   npm run paper-kit            → paper/out/Tabletop Paper Kit/*.docx
 //
-// Per room: Facilitator Booklet and Room Packet (four sections: Scenario, Role
-// Cards, Decision Cards, Worksheet). Shared: Print Order, Facilitator Guide,
+// Per room: Facilitator Booklet; Role Cards and Worksheet (the facilitator's
+// copy); Participant Packet (Scenario and Decision Cards, three copies for the
+// room). Shared: Print Order, Facilitator Guide,
 // Meter Board, Lead Facilitator's plenary wall. No 12-month report on paper. Paper-only content: the facilitator's
 // challenge questions (paper/challenges.js) and all the kit's own wording.
 // There is no AI Council on paper.
@@ -317,7 +318,7 @@ async function facilitatorBooklet(s, i) {
   const kids = [...coverBlock(s, i, "Facilitator booklet")];
   kids.push(
     p([run(`Room ${SCEN[s.id].room}     Facilitator ________________________`, { size: 22 })], { spacing: { after: 200 } }),
-    p([run("Keep this booklet on your side of the table. Everything the room sees comes from the Room Packet: 1 Scenario, 2 Role Cards, 3 Decision Cards, 4 Worksheet.", { size: 21 })]),
+    p([run("Keep this booklet on your side of the table. The room reads from its three Participant Packets (the opening and every decision). You hold the Role Cards and Worksheet.", { size: 21 })]),
     h3("In this booklet"),
     bullet("Before you start: setup, the roles at this table, and what to say first"),
     bullet("The opening"),
@@ -332,11 +333,10 @@ async function facilitatorBooklet(s, i) {
   // Before you start
   kids.push(pageBreak(), eyebrow("Before you start", c), h2("Setup"));
   [
-    "Deal the five role cards (Room Packet, section 2). Every person plays a role and every role is played: two people can share a role, or one person can play two.",
-    "Write each person's first name next to their role on the worksheet's first page (section 4).",
-    "Put the Scenario (section 1), the opening thread, face down on the table.",
+    "Deal the five role cards (from your Role Cards and Worksheet). Every person plays a role and every role is played: two people can share a role, or one person can play two.",
+    "Write each person's first name next to their role on the worksheet's first page.",
+    "Put the three Participant Packets face down around the table. They hold the opening and every decision, so ask the room not to read ahead: you'll say when to turn to each decision.",
     "Put the meter board in the middle of the table, where everyone can reach it, with a pen.",
-    "Keep the Decision Cards (section 3) face down in order. Hand out one at a time.",
     "Worksheet, pen, and a clock where you can see them.",
   ].forEach((t) => kids.push(p([box(), run(t)], { indent: { left: 360, hanging: 360 } })));
 
@@ -365,7 +365,7 @@ async function facilitatorBooklet(s, i) {
 
   // Opening
   kids.push(pageBreak(), eyebrow("The opening", c), h2("Start the story"));
-  kids.push(p("Hand out the opening thread (the first pages of the Scenario, Room Packet section 1). Read the first paragraph aloud and let the room read the messages. Give them a minute before the first decision."));
+  kids.push(p("Have the room turn over the Participant Packets to the opening (the first page). Read the first paragraph aloud and let the room read the messages. Give them a minute before the first decision."));
   kids.push(...openingBlocks(s));
 
   // Decisions
@@ -395,7 +395,7 @@ async function facilitatorBooklet(s, i) {
     }
 
     // 2. Pose
-    kids.push(h3(`${step++} · Hand out Decision Card ${k + 1} and read the question`));
+    kids.push(h3(`${step++} · Have the room turn to Decision ${k + 1} and read the question`));
     kids.push(quote(node.question));
     kids.push(note("Discussion: about 5 minutes. Keep them working toward one answer the whole room owns. If they drift into a vote, ask who would sign it."));
 
@@ -508,7 +508,7 @@ async function facilitatorBooklet(s, i) {
   [
     "Write the finish time on the worksheet.",
     "Fill one sticky note per decision for the plenary wall: the short answer and who made the final call. Green for Specific, yellow for Generic, pink for Absent or declined, blue for skipped.",
-    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the Scenario pages behind.",
+    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the Participant Packets behind.",
   ].forEach((t) => kids.push(bullet(t)));
 
   await save(fileName(s, "Facilitator Booklet"), [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
@@ -517,21 +517,25 @@ async function facilitatorBooklet(s, i) {
 // Output file names lead with the room, so the folder sorts room by room.
 const fileName = (s, doc) => `Room ${SCEN[s.id].room} - ${SCEN[s.id].short} - ${doc}`;
 
-// The Room Packet: one file per room, four sections with a section break
-// between each. Every section's page header names it.
-const PACKET_SECTIONS = ["Scenario", "Role Cards", "Decision Cards", "Worksheet"];
-async function roomPacket(s, i) {
+// Two room files, each in sections with a section break between them and
+// every section named in its page header:
+//   Role Cards and Worksheet: the facilitator's copy (one printed).
+//   Participant Packet: the Scenario and the Decision Cards (three printed).
+async function packet(s, doc, parts) {
   const c = SCEN[s.id].color;
-  const parts = [scenarioKids(s, i), roleCardKids(s, i), decisionCardKids(s), worksheetKids(s)];
   await save(
-    fileName(s, "Room Packet"),
-    parts.map((kids, k) => section(kids, { label: `Room ${SCEN[s.id].room} · ${SCEN[s.id].short} · Room packet · ${k + 1} ${PACKET_SECTIONS[k]}`, color: c })),
+    fileName(s, doc),
+    parts.map(([name, kids], k) => section(kids, { label: `Room ${SCEN[s.id].room} · ${SCEN[s.id].short} · ${doc} · ${k + 1} ${name}`, color: c })),
   );
+}
+async function roomFiles(s, i) {
+  await packet(s, "Role Cards and Worksheet", [["Role Cards", roleCardKids(s, i)], ["Worksheet", worksheetKids(s)]]);
+  await packet(s, "Participant Packet", [["Scenario", scenarioKids(s, i)], ["Decision Cards", decisionCardKids(s)]]);
 }
 
 function scenarioKids(s, i) {
   const c = SCEN[s.id].color;
-  const kids = [...coverBlock(s, i, "Room packet")];
+  const kids = [...coverBlock(s, i, "Participant packet")];
   kids.push(p([run(`Room ${SCEN[s.id].room}`, { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
   kids.push(...openingBlocks(s));
   // Paper leaves out the app's evidence folder and who's who: too much to
@@ -709,11 +713,12 @@ async function facilitatorGuide() {
   ];
   [
     ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the debrief."],
-    ["Room Packet", "Two copies, each in four sections:"],
-    ["   1 Scenario", "The opening thread: what happened, and the messages that started it. On the table from the start."],
-    ["   2 Role Cards", "Five, one per role. Dealt at setup."],
-    ["   3 Decision Cards", "One per decision. Hand out one at a time, face down until you pose it."],
-    ["   4 Worksheet", "The room's record. You fill it in; the second copy is a spare."],
+    ["Role Cards and Worksheet", "Your copy:"],
+    ["   Role Cards", "Five, one per role. Dealt at setup."],
+    ["   Worksheet", "The room's record. You fill it in."],
+    ["Participant Packets", "Three, for the room:"],
+    ["   Scenario", "The opening: what happened, and the messages that started it."],
+    ["   Decision Cards", "One page per decision. The room turns to each one when you pose it, not before."],
     ["Meter Board", "Four measures. After each decision the room marks + or − on each one."],
     ["Also", "Pens, a clock or timer, four colors of sticky notes (green, yellow, pink, blue)."],
   ].forEach(([k, v]) => kids.push(p([run(`${k}: `, { bold: true }), run(v)])));
@@ -723,7 +728,7 @@ async function facilitatorGuide() {
     grid(
       [
         ["Minutes", "What happens"],
-        ["0–10", "Deal roles, write first names, say the opening lines, hand out the opening thread"],
+        ["0–10", "Deal roles, write first names, say the opening lines, turn to the opening"],
         ["10–75", "The decisions: about 9 minutes each (8 for a seven-decision case)"],
         ["75–85", "Debrief, from the worksheet and the meter board"],
         ["85–90", "Fill the plenary stickies; hand in the worksheet"],
@@ -735,7 +740,7 @@ async function facilitatorGuide() {
   kids.push(h3("Every decision, the same nine steps"));
   [
     "Read the “Meanwhile” memo, if the booklet has one for this decision. It depends on an earlier answer.",
-    "Hand out the Decision Card and read the question.",
+    "Have the room turn to the decision in their packets, and read the question.",
     "Let the room discuss, about 5 minutes. One answer the whole room owns.",
     "Record their choice, their written answer, and who made the final call.",
     "Challenge the answer: ask the booklet's question that fits what they wrote.",
@@ -798,7 +803,7 @@ async function facilitatorGuide() {
   [
     "The worksheets are the record of the session. Hand them to the lead facilitator and don't photograph them.",
     "When worksheets are typed up for synthesis, replace first names with roles.",
-    "Role cards and room packets can be recycled; they hold nothing about the people in the room.",
+    "Role cards and participant packets can be recycled; they hold nothing about the people in the room.",
   ].forEach((t) => kids.push(bullet(t)));
 
   await save("00 - Facilitator Guide", [section(kids, { label: "Facilitator guide", color: PURPLE })]);
@@ -815,7 +820,8 @@ const PRINT_SHARED = [
 ];
 const PRINT_PER_ROOM = [
   ["Facilitator Booklet", "1", "Plain", "Single-sided", "Staple top left, so it folds flat"],
-  ["Room Packet", "2 (one for each side of the table)", "Plain; sections 2 and 3 on card stock if you can", "Single-sided", "Don't staple. Keep the four sections separate (clip each). Cut the role cards in section 2 apart along the borders."],
+  ["Role Cards and Worksheet", "1 (for the facilitator)", "Plain; the role cards (section 1) on card stock if you can", "Single-sided", "Cut the role cards apart along the borders. Staple the worksheet (section 2) top left."],
+  ["Participant Packet", "3 (for the room)", "Plain", "Single-sided", "Staple top left"],
 ];
 
 async function printOrder() {
@@ -839,9 +845,9 @@ async function printOrder() {
   }
   kids.push(h3("After printing"));
   [
-    "Each Room Packet has four sections, each starting on a new page with its name in the page header: 1 Scenario, 2 Role Cards, 3 Decision Cards, 4 Worksheet. Keep them in that order and clip each section separately.",
-    "Cut apart the role cards in section 2 along the printed borders.",
-    "Bundle one kit per room, by color: the room's Facilitator Booklet and two Room Packets, plus a Facilitator Guide and a Meter Board.",
+    "Each room has three files. The Facilitator Booklet and the Role Cards and Worksheet are the facilitator's (one copy each). The Participant Packet is the room's (three copies). Each section starts on a new page with its name in the page header.",
+    "Cut the role cards apart along the printed borders, and keep each room's set in its own envelope.",
+    "Bundle one kit per room, by color: the room's Facilitator Booklet, Role Cards and Worksheet, and three Participant Packets, plus a Facilitator Guide and a Meter Board.",
     "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). Every file name and cover already carries the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
     "The poster goes on the wall of the plenary room before the rooms hand off; each answer cell is sized for a 3×3 in sticky note. If it can't be printed in time, the lead facilitator can copy the grid onto flip chart paper.",
   ].forEach((t) => kids.push(bullet(t)));
@@ -1071,6 +1077,6 @@ await plenaryPoster();
 const list = Object.values(scenarios);
 for (const [i, s] of list.entries()) {
   await facilitatorBooklet(s, i);
-  await roomPacket(s, i);
+  await roomFiles(s, i);
 }
 console.log(`Wrote ${written.length} documents to ${OUT}`);
