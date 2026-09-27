@@ -94,8 +94,8 @@ while real rooms are in session.
 
 ## Paper kit
 
-The session can also run entirely on paper: `npm run paper-kit` builds 27
-editable Word documents (facilitator booklets, room packets, decision cards,
+The session can also run entirely on paper: `npm run paper-kit` builds 28
+editable Word documents (a print order, facilitator booklets, room packets, decision cards,
 role cards, worksheets, 12-month report cards, a meter board, and the plenary
 wall) from the same scenario content. See `paper/README.md`.
 

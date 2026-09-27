@@ -1,7 +1,7 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.2 · September 26, 2026*
+*Version 1.3 · September 26, 2026*
 
 > **The code is the source of truth.** Tabletop runs as two tracks, the web
 > app and the paper kit, and each track's code is its own source of truth:
@@ -62,7 +62,7 @@ session.
 | Attendees | Senior clinical, ETG, business strategy, innovation, security, data |
 | Facilitation | One facilitator per room, with no scribe. The lead facilitator (Angie) runs plenary. |
 | Delivery | The paper kit (§12). The web app at `tabletop.virtual-insights.com` (Replit) is built but not used for this session. |
-| Case assignment | The lead facilitator assigns each room one case in advance. (In the app, rooms choose; see §4.) |
+| Case assignment | Fixed on paper: Room 1 is S1, Room 2 is S2, Room 3 is S3, Room 4 is S4, in lifecycle order left to right across the plenary wall. (In the app, rooms choose; see §4.) |
 | Content | Fictional composites. No City of Hope interview transcripts, survey responses, or attributable material in the content, the prompts, or the repo. Nothing is attributed to a person present unless they named it themselves in pre-work. |
 
 ---
@@ -370,15 +370,16 @@ There's no per-room spend cap and no global circuit breaker.
 
 ## 12. The paper kit
 
-`npm run paper-kit` builds 27 editable Word documents (`paper/build-kit.mjs`;
+`npm run paper-kit` builds 28 editable Word documents (`paper/build-kit.mjs`;
 PR #24). The paper process is refined on its own and is expected to drift from
 the app; it isn't a printout of the app.
 
 | Document | Who it's for |
 |---|---|
-| Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter, what to print |
+| Print Order | The print shop: every file by exact name, with copies, paper, sides, and finishing, and how to cut and bundle the kits. No other document has printing instructions. |
+| Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter |
 | Meter Board | One per room |
-| Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: room-to-case assignments for packing, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
+| Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix, with each room's case in its column header, the cells that should get an answer outlined, and unasked measures shaded |
 | Per case (color-coded) | Facilitator Booklet, Room Packet (opening and evidence), Decision Cards, Role Cards, Worksheet, 12-Month Report Cards |
 
 ### Where paper differs from the app
@@ -515,4 +516,4 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. |

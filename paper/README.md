@@ -4,7 +4,7 @@ The whole exercise on paper: no app, no network, no AI in the room. Paper is
 its own track and is expected to drift from the app (PRD §12).
 
 ```bash
-npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (27 editable .docx files)
+npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (28 editable .docx files)
 ```
 
 **What's shared and what's paper-only.** The cases (`server/content/`) and the
@@ -18,17 +18,20 @@ lost on the next build.
 
 ## What's in the kit
 
-Shared (print once, or once per facilitator):
+Shared (the Print Order says how many of each):
 
 | File | For |
 |---|---|
-| `00 - Facilitator Guide` | Every facilitator: run of show, the nine-step loop, scoring, the meter, what to print |
+| `00 - Print Order` | The print shop: every file by its exact name, with copies, paper, sides, and finishing, then how to cut and bundle the kits. The only document with printing instructions. |
+| `00 - Facilitator Guide` | Every facilitator: run of show, the nine-step loop, scoring, the meter |
 | `00 - Meter Board` | One per room: four measures, − to the left of center, + to the right |
-| `00 - Lead Facilitator - Assignments and Plenary Wall` | The lead facilitator: the room-to-case assignment table for packing kits, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
+| `00 - Lead Facilitator - Assignments and Plenary Wall` | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix (each room's column headed with its case, answer cells outlined, unasked measures shaded) |
 
-Per scenario (`S1 Intake` … `S4 Monitoring`), color-coded. Each room is
-assigned one case in advance (rooms don't choose), so each scenario's set is
-one room's kit:
+Per scenario (`S1 Intake` … `S4 Monitoring`), color-coded. Rooms don't
+choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4 (lifecycle
+order, left to right on the plenary wall; set in `SCEN` in `build-kit.mjs`).
+Each scenario's set is one room's kit, and its booklet, packet, and worksheet
+print with the room number:
 
 | File | For |
 |---|---|
