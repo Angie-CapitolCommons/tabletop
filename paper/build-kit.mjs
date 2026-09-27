@@ -820,7 +820,8 @@ async function facilitatorGuide() {
 const PRINT_SHARED = [
   ["00 - Facilitator Guide", "5 (4 facilitators + 1 spare)", "Plain", "Double-sided", "Staple top left"],
   ["00 - Meter Board", "5 (4 rooms + 1 spare)", "Plain or card stock", "Single-sided", "Landscape"],
-  ["00 - Lead Facilitator - Assignments and Plenary Wall", "1", "Plain", "Single-sided", "Also print the last page (the matrix) on 11×17, scaled to fit"],
+  ["00 - Lead Facilitator - Assignments and Plenary Guide", "1", "Plain", "Single-sided", "Staple top left"],
+  ["00 - Plenary Wall Poster", "1", "Poster paper, matte", "Single-sided", "Poster, 24×36 in, portrait. The file is laid out at 12×18 in, the same shape: print it at 200%. Roll it; don't fold."],
 ];
 const PRINT_PER_ROOM = [
   ["Facilitator Booklet", "1", "Plain", "Single-sided", "Staple top left, so it folds flat"],
@@ -833,7 +834,7 @@ async function printOrder() {
   const tick = (name) => [p([run("☐ ", { font: SYM, size: 20 }), run(name, { size: 19, bold: true })], { spacing: { after: 0 } })];
   const kids = [
     h2("Print order"),
-    p("Every file below is in the kit folder under exactly this name. Print everything on US Letter, in color: each case is color-coded, and the colors tell the kits apart. Single-sided unless the table says otherwise."),
+    p("Every file below is in the kit folder under exactly this name. Print everything in color: each case is color-coded, and the colors tell the kits apart. US Letter and single-sided unless the table says otherwise (the plenary wall is a poster)."),
     h3("Shared"),
     grid([head, ...PRINT_SHARED.map(([f, ...rest]) => [tick(f), ...rest])], widths, { fontSize: 19 }),
   ];
@@ -852,7 +853,7 @@ async function printOrder() {
     "Cut apart the role cards in section 2 along the printed borders. Keep the Scenario pages loose: the opening thread and each evidence document are separate pages the room spreads out on the table.",
     "Bundle one kit per room, by color: the room's Facilitator Booklet and two Room Packets, plus a Facilitator Guide and a Meter Board.",
     "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). Every file name and cover already carries the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
-    "Instead of the 11×17 matrix, the lead facilitator can copy the matrix onto flip chart paper.",
+    "The poster goes on the wall of the plenary room before the rooms hand off; each answer cell is sized for a 3×3 in sticky note. If it can't be printed in time, the lead facilitator can copy the grid onto flip chart paper.",
   ].forEach((t) => kids.push(bullet(t)));
   await save("00 - Print Order", [section(kids, { label: "Print order", color: PURPLE, landscape: true })]);
 }
@@ -950,7 +951,7 @@ async function plenaryWall() {
   ].forEach(([k, v]) => guide.push(p([run(`${k}: `, { bold: true }), run(v)])));
 
   guide.push(h3("Which case asks which measure"));
-  guide.push(note("The matrix already shows each room's case at the top of its column, and shades the measures that case doesn't ask."));
+  guide.push(note("The poster (00 - Plenary Wall Poster) already shows each room's case at the top of its column, outlines the cells that should get an answer, and shades the measures that case doesn't ask."));
   const cov = [["Measure", ...Object.values(scenarios).map((s) => `Room ${SCEN[s.id].room} · ${SCEN[s.id].short.slice(0, 2)}`)]];
   for (const t of types) {
     cov.push([
@@ -973,54 +974,99 @@ async function plenaryWall() {
     ),
   );
 
-  const roomCases = [...scenarioList].sort((a, b) => SCEN[a.id].room - SCEN[b.id].room);
-  const colW = Math.floor((LW - 3000) / 5);
-  const matrixWidths = [3000, colW, colW, colW, colW, colW];
-  const matrixRows = [
-    new TableRow({
-      tableHeader: true,
-      children: ["Measure", ...roomCases.map((s) => `Room ${SCEN[s.id].room}\n${SCEN[s.id].short}  ·  ${SCEN[s.id].colorName}`), "What we see"].map((h, ci) =>
-        new TableCell({
-          width: { size: matrixWidths[ci], type: WidthType.DXA },
-          shading: { type: ShadingType.CLEAR, fill: ci >= 1 && ci <= 4 ? SCEN[roomCases[ci - 1].id].color : DEEP, color: "auto" },
-          margins: { top: 80, bottom: 80, left: 120, right: 120 },
-          children: h.split("\n").map((l, li) => p([run(l, { color: WHITE, bold: li === 0, size: li === 0 ? 20 : 16 })], { spacing: { after: 0 } })),
-        }),
-      ),
-    }),
-    ...types.map((t) =>
+  await save("00 - Lead Facilitator - Assignments and Plenary Guide", [section(guide, { label: "Lead facilitator · assignments and plenary", color: PURPLE })]);
+}
+
+// The plenary wall as a poster: 24×36 in, portrait. Word caps a page at 22 in,
+// so the file is laid out at half size (12×18 in, the same shape) and printed
+// at 200%. Everything below is sized for that: a 2,400-twip row is 3.3 in on
+// the poster, room for a 3×3 in sticky note.
+const POSTER = { width: 12 * 1440, height: 18 * 1440 };
+const POSTER_MARGIN = { top: 576, bottom: 576, left: 576, right: 576, header: 300, footer: 300 };
+const STICKY = [["8BC34A", "Green", "Specific"], ["FFE066", "Yellow", "Generic"], ["F48FB1", "Pink", "Absent or declined"], ["81D4FA", "Blue", "Skipped"]];
+
+async function plenaryPoster() {
+  const PW = POSTER.width - POSTER_MARGIN.left - POSTER_MARGIN.right; // 16128
+  const types = Object.keys(MEASURES).sort((a, b) => Number(MEASURES[a].id.slice(1)) - Number(MEASURES[b].id.slice(1)));
+  const roomCases = Object.values(scenarios).sort((a, b) => SCEN[a.id].room - SCEN[b.id].room);
+  const measureW = 3200, colW = 2600;
+  const widths = [measureW, colW, colW, colW, colW, PW - measureW - colW * 4];
+  const cellBorder = line("B9BCCB", 8);
+  const answerBorder = line(DEEP, 36);
+
+  const title = [
+    p([run("The plenary wall", { font: HEAD, size: 64, color: DEEP })], { spacing: { after: 0 } }),
+    p(
+      [
+        run("One sticky note per decision: the short answer and who made the final call.   ", { size: 24, color: SLATE }),
+        ...STICKY.flatMap(([fill, name, score]) => [run("■ ", { font: SYM, size: 30, color: fill }), run(`${name} ${score}   `, { size: 24, color: DEEP })]),
+      ],
+      { spacing: { after: 120 } },
+    ),
+  ];
+
+  const headRow = new TableRow({
+    tableHeader: true,
+    height: { value: 800, rule: HeightRule.ATLEAST },
+    children: ["Measure", ...roomCases.map((s) => `Room ${SCEN[s.id].room}\n${SCEN[s.id].short} · ${SCEN[s.id].colorName}`), "What we see"].map((h, ci) =>
+      new TableCell({
+        width: { size: widths[ci], type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        shading: { type: ShadingType.CLEAR, fill: ci >= 1 && ci <= 4 ? SCEN[roomCases[ci - 1].id].color : DEEP, color: "auto" },
+        margins: { top: 60, bottom: 60, left: 160, right: 160 },
+        children: h.split("\n").map((l, li) => p([run(l, { color: WHITE, bold: li === 0, size: li === 0 ? 34 : 22 })], { spacing: { after: 0 } })),
+      }),
+    ),
+  });
+
+  const bodyRows = types.map(
+    (t) =>
       new TableRow({
         cantSplit: true,
-        height: { value: 860, rule: HeightRule.ATLEAST },
+        height: { value: 2400, rule: HeightRule.EXACT },
         children: [
           new TableCell({
-            width: { size: 3000, type: WidthType.DXA },
+            width: { size: measureW, type: WidthType.DXA },
             shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
-            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder },
+            margins: { top: 140, bottom: 100, left: 180, right: 160 },
             children: [
-              p([run(`${MEASURES[t].id} `, { font: MONO, size: 16, color: BLUE }), run(MEASURES[t].name, { bold: true, size: 19 })], { spacing: { after: 20 } }),
-              p([run(MEASURES[t].def, { size: 15, color: SLATE })], { spacing: { after: 0 } }),
+              p([run(`${MEASURES[t].id}`, { font: MONO, size: 24, color: BLUE, bold: true })], { spacing: { after: 20 } }),
+              p([run(MEASURES[t].name, { bold: true, size: 30, color: DEEP })], { spacing: { after: 60 } }),
+              p([run(MEASURES[t].def, { size: 20, color: SLATE })], { spacing: { after: 0 } }),
             ],
           }),
-          // A cell that should get an answer (the room's case asks this measure) has a
-          // bold outline and its decision number; the rest are shaded "Not asked".
+          // A cell that should get an answer (the room's case asks this measure) has
+          // a bold outline and its decision number; the rest are shaded "Not asked".
           ...roomCases.map((s) => {
             const k = s.nodes.findIndex((n) => n.type === t);
             return k === -1
-              ? new TableCell({ width: { size: colW, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, shading: { type: ShadingType.CLEAR, fill: WARM, color: "auto" }, children: [p([run("Not asked", { size: 15, color: MUTED, italics: true })], { alignment: AlignmentType.CENTER, spacing: { after: 0 } })] })
-              : new TableCell({ width: { size: colW, type: WidthType.DXA }, borders: { top: line(DEEP, 24), bottom: line(DEEP, 24), left: line(DEEP, 24), right: line(DEEP, 24) }, margins: { top: 40, left: 100, right: 100 }, children: [p([run(`Decision ${k + 1}`, { font: MONO, size: 13, color: MUTED })], { spacing: { after: 0 } })] });
+              ? new TableCell({
+                  width: { size: colW, type: WidthType.DXA },
+                  verticalAlign: VerticalAlign.CENTER,
+                  shading: { type: ShadingType.CLEAR, fill: WARM, color: "auto" },
+                  borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder },
+                  children: [p([run("Not asked", { size: 24, color: MUTED, italics: true })], { alignment: AlignmentType.CENTER, spacing: { after: 0 } })],
+                })
+              : new TableCell({
+                  width: { size: colW, type: WidthType.DXA },
+                  borders: { top: answerBorder, bottom: answerBorder, left: answerBorder, right: answerBorder },
+                  margins: { top: 80, left: 120, right: 120 },
+                  children: [p([run(`Decision ${k + 1}`, { font: MONO, size: 18, color: MUTED })], { spacing: { after: 0 } })],
+                });
           }),
-          new TableCell({ width: { size: colW, type: WidthType.DXA }, children: [p("")] }),
+          new TableCell({ width: { size: widths[5], type: WidthType.DXA }, borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder }, children: [p("")] }),
         ],
       }),
-    ),
-  ];
-  const matrix = [
-    new Table({ width: { size: 3000 + colW * 5, type: WidthType.DXA }, columnWidths: matrixWidths, layout: TableLayoutType.FIXED, borders: allBorders(line("B9BCCB", 6)), rows: matrixRows }),
-  ];
-  await save("00 - Lead Facilitator - Assignments and Plenary Wall", [
-    section(guide, { label: "Lead facilitator · assignments and plenary", color: PURPLE }),
-    section(matrix, { label: "Plenary wall · the matrix", color: PURPLE, landscape: true }),
+  );
+
+  const table = new Table({ width: { size: PW, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders: allBorders(cellBorder), rows: [headRow, ...bodyRows] });
+  await save("00 - Plenary Wall Poster", [
+    {
+      properties: { page: { size: POSTER, margin: POSTER_MARGIN } },
+      footers: { default: footer() },
+      children: [...title, table],
+    },
   ]);
 }
 
@@ -1031,6 +1077,7 @@ await printOrder();
 await facilitatorGuide();
 await meterBoard();
 await plenaryWall();
+await plenaryPoster();
 const list = Object.values(scenarios);
 for (const [i, s] of list.entries()) {
   await facilitatorBooklet(s, i);

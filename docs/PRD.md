@@ -1,7 +1,7 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.4 · September 26, 2026*
+*Version 1.5 · September 26, 2026*
 
 > **The code is the source of truth.** Tabletop runs as two tracks, the web
 > app and the paper kit, and each track's code is its own source of truth:
@@ -370,7 +370,7 @@ There's no per-room spend cap and no global circuit breaker.
 
 ## 12. The paper kit
 
-`npm run paper-kit` builds 12 editable Word documents (`paper/build-kit.mjs`;
+`npm run paper-kit` builds 13 editable Word documents (`paper/build-kit.mjs`;
 PR #24). The paper process is refined on its own and is expected to drift from
 the app; it isn't a printout of the app.
 
@@ -379,7 +379,8 @@ the app; it isn't a printout of the app.
 | Print Order | The print shop: every file by exact name, with copies, paper, sides, and finishing, and how to cut and bundle the kits. No other document has printing instructions. |
 | Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter |
 | Meter Board | One per room |
-| Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix, with each room's case in its column header, the cells that should get an answer outlined, and unasked measures shaded |
+| Lead Facilitator: Assignments and Plenary Guide | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, and the decider tally |
+| Plenary Wall Poster | The A1–A9 matrix as a 24×36 in portrait poster (laid out at 12×18 in and printed at 200%; Word caps a page at 22 in). Each room's case heads its column; the cells that should get an answer are outlined and sized for a 3×3 in sticky note; unasked measures are shaded. |
 | Per room (color-coded) | Facilitator Booklet, and one Room Packet in four sections with a section break between each: 1 Scenario (opening and evidence), 2 Role Cards, 3 Decision Cards, 4 Worksheet |
 
 ### Where paper differs from the app
@@ -517,4 +518,4 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. v1.4: one Room Packet per room (Scenario, Role Cards, Decision Cards, Worksheet); the 12-month report is dropped from paper. |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. v1.4: one Room Packet per room (Scenario, Role Cards, Decision Cards, Worksheet); the 12-month report is dropped from paper. v1.5: the plenary wall is its own 24×36 in poster file. |

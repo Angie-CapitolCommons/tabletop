@@ -4,7 +4,7 @@ The whole exercise on paper: no app, no network, no AI in the room. Paper is
 its own track and is expected to drift from the app (PRD §12).
 
 ```bash
-npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (12 editable .docx files)
+npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (13 editable .docx files)
 ```
 
 **What's shared and what's paper-only.** The cases (`server/content/`) and the
@@ -25,7 +25,8 @@ Shared (the Print Order says how many of each):
 | `00 - Print Order` | The print shop: every file by its exact name, with copies, paper, sides, and finishing, then how to cut and bundle the kits. The only document with printing instructions. |
 | `00 - Facilitator Guide` | Every facilitator: run of show, the nine-step loop, scoring, the meter |
 | `00 - Meter Board` | One per room: four measures, − to the left of center, + to the right |
-| `00 - Lead Facilitator - Assignments and Plenary Wall` | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix (each room's column headed with its case, answer cells outlined, unasked measures shaded) |
+| `00 - Lead Facilitator - Assignments and Plenary Guide` | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, and the decider tally |
+| `00 - Plenary Wall Poster` | The A1–A9 matrix as a 24×36 in portrait poster (laid out at 12×18 in, printed at 200%, because Word caps a page at 22 in). Each room's column is headed with its case, answer cells are outlined and sized for a 3×3 in sticky note, and unasked measures are shaded. |
 
 Per room (`Room 1 - S1 Intake` … `Room 4 - S4 Monitoring`), color-coded.
 Rooms don't choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4
