@@ -5,9 +5,9 @@
 //
 //   npm run paper-kit            → paper/out/Tabletop Paper Kit/*.docx
 //
-// Per scenario: Facilitator Booklet, Room Packet, Decision Cards, Role Cards,
-// Worksheet, 12-Month Report Cards. Shared: Facilitator Guide, Meter Board,
-// Lead Facilitator's plenary wall. Paper-only content: the facilitator's
+// Per room: Facilitator Booklet and Room Packet (four sections: Scenario, Role
+// Cards, Decision Cards, Worksheet). Shared: Print Order, Facilitator Guide,
+// Meter Board, Lead Facilitator's plenary wall. No 12-month report on paper. Paper-only content: the facilitator's
 // challenge questions (paper/challenges.js) and all the kit's own wording.
 // There is no AI Council on paper.
 import fs from "node:fs";
@@ -317,12 +317,12 @@ async function facilitatorBooklet(s, i) {
   const kids = [...coverBlock(s, i, "Facilitator booklet")];
   kids.push(
     p([run(`Room ${SCEN[s.id].room}     Facilitator ________________________`, { size: 22 })], { spacing: { after: 200 } }),
-    p([run("Keep this booklet on your side of the table. Everything the room sees comes from the Room Packet, the Decision Cards, and the report cards you lay out at the end.", { size: 21 })]),
+    p([run("Keep this booklet on your side of the table. Everything the room sees comes from the Room Packet: 1 Scenario, 2 Role Cards, 3 Decision Cards, 4 Worksheet.", { size: 21 })]),
     h3("In this booklet"),
     bullet("Before you start: setup, the roles at this table, and what to say first"),
     bullet("The opening"),
     ...s.nodes.map((node, k) => bullet(`Decision ${k + 1}: ${node.title}`)),
-    bullet("The 12-month report and the debrief"),
+    bullet("The debrief"),
     bullet("Hand-off to the lead facilitator"),
   );
   if (n >= 7) {
@@ -332,12 +332,11 @@ async function facilitatorBooklet(s, i) {
   // Before you start
   kids.push(pageBreak(), eyebrow("Before you start", c), h2("Setup"));
   [
-    "Deal the five role cards. Every person plays a role and every role is played: two people can share a role, or one person can play two.",
-    "Write each person's first name next to their role on the worksheet's first page.",
-    "Put the Room Packet on the table with the opening thread on top. The evidence documents and the who's who go in the middle of the table as the room's folder.",
+    "Deal the five role cards (Room Packet, section 2). Every person plays a role and every role is played: two people can share a role, or one person can play two.",
+    "Write each person's first name next to their role on the worksheet's first page (section 4).",
+    "Put the Scenario (section 1) on the table with the opening thread on top. The evidence documents and the who's who go in the middle of the table as the room's folder.",
     "Put the meter board in the middle of the table, where everyone can reach it, with a pen.",
-    "Keep the Decision Cards face down in order. Hand out one at a time.",
-    "Keep the 12-month report cards face down, sorted by decision.",
+    "Keep the Decision Cards (section 3) face down in order. Hand out one at a time.",
     "Worksheet, pen, and a clock where you can see them.",
   ].forEach((t) => kids.push(p([box(), run(t)], { indent: { left: 360, hanging: 360 } })));
 
@@ -366,7 +365,7 @@ async function facilitatorBooklet(s, i) {
 
   // Opening
   kids.push(pageBreak(), eyebrow("The opening", c), h2("Start the story"));
-  kids.push(p("Hand out the opening thread (the first pages of the Room Packet). Read the first paragraph aloud and let the room read the messages. Give them two minutes with the folder before the first decision."));
+  kids.push(p("Hand out the opening thread (the first pages of the Scenario, Room Packet section 1). Read the first paragraph aloud and let the room read the messages. Give them two minutes with the folder before the first decision."));
   kids.push(...openingBlocks(s));
 
   // Decisions
@@ -489,23 +488,15 @@ async function facilitatorBooklet(s, i) {
     }
 
     kids.push(h3(`${step++} · Write the lock time on the worksheet`));
-    kids.push(note(k < n - 1 ? `Then move to Decision ${k + 2}.` : "Then lay out the 12-month report."));
+    kids.push(note(k < n - 1 ? `Then move to Decision ${k + 2}.` : "Then go to the debrief."));
   });
 
-  // 12-month report
-  kids.push(pageBreak(), eyebrow("After the last decision", c), h2("The 12-month report"));
-  numberedList(kids, [
-    "For each decision, take its report card that matches your score. Specific: the card marked “named.” Generic, Absent, declined, or skipped: the card marked “not named.”",
-    "Lay the cards on the table in month order, left to right. Put the unused cards aside, face down.",
-    "Let the room read its year. Don't explain it.",
-    "For the debrief, you can turn over the unused card for any decision. That's how that month goes the other way.",
-  ]);
-  const order = [...s.nodes].map((node, k) => ({ node, k })).sort((a, b) => a.node.later.month - b.node.later.month);
-  kids.push(h3("Month order"));
-  kids.push(grid([["Month", "Decision"], ...order.map(({ node, k }) => [`Month ${node.later.month}`, `Decision ${k + 1}: ${node.title}`])], [1800, 8280]));
+  // Debrief (no 12-month report on paper)
+  kids.push(pageBreak(), eyebrow("After the last decision", c), h2("The debrief"));
+  kids.push(p("About ten minutes. Work from the worksheet and the meter board. Let the room talk; your job is to ask, not to sum up."));
   kids.push(h3("Debrief questions"));
   [
-    "Which month would you most want to change? What would you decide differently?",
+    "Which decision would you most want to change? What would you decide differently?",
     "Look at the meter board. Where did the marks pile up, and what did the room trade for what?",
     "Look at who made the final call on each decision. Did one person end up deciding, or did it move around?",
     "Where did the room name a committee instead of a person? What stopped it from naming someone?",
@@ -520,14 +511,25 @@ async function facilitatorBooklet(s, i) {
     "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the folder behind.",
   ].forEach((t) => kids.push(bullet(t)));
 
-  await save(`${SCEN[s.id].short} - 1 Facilitator Booklet`, [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
+  await save(fileName(s, "Facilitator Booklet"), [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
 }
 
-function numberedList(kids, items) {
-  items.forEach((t) => kids.push(numbered(t)));
-}
+// Output file names lead with the room, so the folder sorts room by room.
+const fileName = (s, doc) => `Room ${SCEN[s.id].room} - ${SCEN[s.id].short} - ${doc}`;
 
+// The Room Packet: one file per room, four sections with a section break
+// between each. Every section's page header names it.
+const PACKET_SECTIONS = ["Scenario", "Role Cards", "Decision Cards", "Worksheet"];
 async function roomPacket(s, i) {
+  const c = SCEN[s.id].color;
+  const parts = [scenarioKids(s, i), roleCardKids(s, i), decisionCardKids(s), worksheetKids(s)];
+  await save(
+    fileName(s, "Room Packet"),
+    parts.map((kids, k) => section(kids, { label: `Room ${SCEN[s.id].room} · ${SCEN[s.id].short} · Room packet · ${k + 1} ${PACKET_SECTIONS[k]}`, color: c })),
+  );
+}
+
+function scenarioKids(s, i) {
   const c = SCEN[s.id].color;
   const kids = [...coverBlock(s, i, "Room packet")];
   kids.push(p([run(`Room ${SCEN[s.id].room}`, { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
@@ -544,10 +546,10 @@ async function roomPacket(s, i) {
       ),
     );
   }
-  await save(`${SCEN[s.id].short} - 2 Room Packet`, [section(kids, { label: `${scenarioLabel(s, i)} · Room packet`, color: c })]);
+  return kids;
 }
 
-async function decisionCards(s, i) {
+function decisionCardKids(s) {
   const c = SCEN[s.id].color;
   const n = s.nodes.length;
   const kids = [];
@@ -594,13 +596,13 @@ async function decisionCards(s, i) {
       ),
     );
   });
-  await save(`${SCEN[s.id].short} - 3 Decision Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · Decision cards`, color: c })]);
+  return kids;
 }
 
-async function roleCardsDoc(s, i) {
+function roleCardKids(s, i) {
   const c = SCEN[s.id].color;
   const kids = [
-    h2(s.title),
+    h2("Role cards"),
     note("Five roles, full coverage: every person plays a role, and every role is played. Share a card or play two."),
     spacer(80),
   ];
@@ -632,19 +634,19 @@ async function roleCardsDoc(s, i) {
       spacer(260),
     );
   });
-  await save(`${SCEN[s.id].short} - 4 Role Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · Role cards`, color: c })]);
+  return kids;
 }
 
-async function worksheet(s, i) {
+function worksheetKids(s) {
   const c = SCEN[s.id].color;
   // Pace: ten minutes of setup, then an even share of the decision window
-  // (65 minutes) per decision, leaving the last fifteen for the report.
+  // (65 minutes) per decision, leaving the last fifteen for the debrief.
   const per = Math.floor(65 / s.nodes.length);
   const paceRows = [["Decision", "Lock it by (minutes in)", "Clock time"]];
   s.nodes.forEach((node, k) => paceRows.push([`${k + 1}. ${node.title}`, `${10 + per * (k + 1)}`, ""]));
-  paceRows.push(["12-month report and debrief", "75–85", ""], ["Stickies and hand-off", "90", ""]);
+  paceRows.push(["Debrief", "75–85", ""], ["Stickies and hand-off", "90", ""]);
   const kids = [
-    h2(s.title),
+    h2("Worksheet"),
     p([run(`Room ${SCEN[s.id].room}     Facilitator ____________________     Date ____________     Start time ________`, { size: 21 })], { spacing: { after: 160 } }),
     h3("Who is playing which role (first names only)"),
     grid([["Role", "First name(s)"], ...roles.map((r) => [r, ""])], [4000, 6080], { fontSize: 20 }),
@@ -701,60 +703,13 @@ async function worksheet(s, i) {
   });
   kids.push(
     pageBreak(),
-    h3("The 12-month report"),
-    p([run("Cards laid out as ", { size: 20 }), run("named", { bold: true, size: 20 }), run(" for decisions:  ", { size: 20 }), ...ticks(s.nodes.map((_, k) => String(k + 1)), 20)]),
     p([run("Finish time ________", { size: 20 })], { spacing: { before: 120 } }),
     h3("Anything else the lead facilitator should know"),
     writeLine(), writeLine(), writeLine(), writeLine(), writeLine(),
   );
-  await save(`${SCEN[s.id].short} - 5 Worksheet`, [section(kids, { label: `${scenarioLabel(s, i)} · Worksheet`, color: c })]);
+  return kids;
 }
 
-async function reportCards(s, i) {
-  const c = SCEN[s.id].color;
-  const half = (W - 200) / 2;
-  const kids = [
-    h2(s.title),
-    note("Two cards per decision. After the last decision, the facilitator lays out the one that matches the score, in month order."),
-    spacer(100),
-  ];
-  s.nodes.forEach((node, k) => {
-    const cut = { style: BorderStyle.DASHED, size: 8, color: "8A8FAE" };
-    const card = (kind) => {
-      const named = kind === "named";
-      return new TableCell({
-        width: { size: half, type: WidthType.DXA },
-        borders: { top: cut, bottom: cut, left: cut, right: cut },
-        margins: { top: 200, bottom: 160, left: 220, right: 220 },
-        children: [
-          p([run(`MONTH ${node.later.month}`, { font: MONO, size: 30, bold: true, color: c, characterSpacing: 30 })], { spacing: { after: 100 } }),
-          p([run(named ? node.later.named : node.later.missing, { font: HEAD, size: 23, color: DEEP })], { spacing: { after: 160 } }),
-          p([run(`Decision ${k + 1} · ${SECTION[node.type]} · ${named ? "named" : "not named"}`, { font: MONO, size: 13, color: MUTED })], { spacing: { after: 0 } }),
-        ],
-      });
-    };
-    kids.push(
-      new Table({
-        width: { size: W, type: WidthType.DXA },
-        columnWidths: [half, 200, half],
-        layout: TableLayoutType.FIXED,
-        borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
-        rows: [
-          new TableRow({
-            cantSplit: true,
-            children: [
-              card("named"),
-              new TableCell({ width: { size: 200, type: WidthType.DXA }, children: [p("")] }),
-              card("missing"),
-            ],
-          }),
-        ],
-      }),
-      spacer(240),
-    );
-  });
-  await save(`${SCEN[s.id].short} - 6 Report Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · 12-month report cards`, color: c })]);
-}
 // ---------- shared documents ----------
 async function facilitatorGuide() {
   const kids = [
@@ -763,12 +718,12 @@ async function facilitatorGuide() {
     h3("The kit for your room"),
   ];
   [
-    ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the 12-month report."],
-    ["Room Packet", "The opening thread, the evidence folder, and the who's who. On the table from the start."],
-    ["Decision Cards", "One per decision. Hand out one at a time, face down until you pose it."],
-    ["Role Cards", "Five, one per role. Dealt at setup."],
-    ["Worksheet", "The room's record. You fill it in."],
-    ["12-Month Report Cards", "Two per decision. Face down until the end."],
+    ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the debrief."],
+    ["Room Packet", "Two copies, each in four sections:"],
+    ["   1 Scenario", "The opening thread, the evidence folder, and the who's who. On the table from the start."],
+    ["   2 Role Cards", "Five, one per role. Dealt at setup."],
+    ["   3 Decision Cards", "One per decision. Hand out one at a time, face down until you pose it."],
+    ["   4 Worksheet", "The room's record. You fill it in; the second copy is a spare."],
     ["Meter Board", "Four measures. After each decision the room marks + or − on each one."],
     ["Also", "Pens, a clock or timer, four colors of sticky notes (green, yellow, pink, blue)."],
   ].forEach(([k, v]) => kids.push(p([run(`${k}: `, { bold: true }), run(v)])));
@@ -780,7 +735,7 @@ async function facilitatorGuide() {
         ["Minutes", "What happens"],
         ["0–10", "Deal roles, write first names, say the opening lines, hand out the opening thread"],
         ["10–75", "The decisions: about 9 minutes each (8 for a seven-decision case)"],
-        ["75–85", "Lay out the 12-month report; debrief"],
+        ["75–85", "Debrief, from the worksheet and the meter board"],
         ["85–90", "Fill the plenary stickies; hand in the worksheet"],
       ],
       [1800, 8280],
@@ -867,13 +822,9 @@ const PRINT_SHARED = [
   ["00 - Meter Board", "5 (4 rooms + 1 spare)", "Plain or card stock", "Single-sided", "Landscape"],
   ["00 - Lead Facilitator - Assignments and Plenary Wall", "1", "Plain", "Single-sided", "Also print the last page (the matrix) on 11×17, scaled to fit"],
 ];
-const PRINT_PER_CASE = [
-  ["1 Facilitator Booklet", "1", "Plain", "Single-sided", "Staple top left, so it folds flat"],
-  ["2 Room Packet", "2 (one for each side of the table)", "Plain", "Single-sided", "Don't staple: loose pages"],
-  ["3 Decision Cards", "1", "Card stock if possible", "Single-sided", "One card per page; don't staple"],
-  ["4 Role Cards", "2 (1 + 1 spare)", "Card stock", "Single-sided", "Cut apart along the borders"],
-  ["5 Worksheet", "2 (1 + 1 spare)", "Plain", "Single-sided", "Staple top left"],
-  ["6 Report Cards", "1", "Card stock", "Single-sided", "Cut apart along the borders"],
+const PRINT_PER_ROOM = [
+  ["Facilitator Booklet", "1", "Plain", "Single-sided", "Staple top left, so it folds flat"],
+  ["Room Packet", "2 (one for each side of the table)", "Plain; sections 2 and 3 on card stock if you can", "Single-sided", "Don't staple. Keep the four sections separate (clip each). Cut the role cards in section 2 apart along the borders."],
 ];
 
 async function printOrder() {
@@ -888,19 +839,19 @@ async function printOrder() {
   ];
   for (const s of Object.values(scenarios)) {
     const sc = SCEN[s.id];
-    // Two room kits per page after the first, so no table splits across pages.
-    if (sc.room === 2 || sc.room === 4) kids.push(pageBreak());
+    // Rooms 3 and 4 start a new page, so no table splits across pages.
+    if (sc.room === 3) kids.push(pageBreak());
     kids.push(
       h3(`Room ${sc.room} · ${sc.short} · ${sc.colorName} kit`),
-      grid([head, ...PRINT_PER_CASE.map(([f, ...rest]) => [tick(`${sc.short} - ${f}`), ...rest])], widths, { fontSize: 19 }),
+      grid([head, ...PRINT_PER_ROOM.map(([f, ...rest]) => [tick(fileName(s, f)), ...rest])], widths, { fontSize: 19 }),
     );
   }
   kids.push(h3("After printing"));
   [
-    "Cut apart the Role Cards and the 12-Month Report Cards along the printed borders. Keep each case's cards in their own envelope.",
-    "Keep each Room Packet loose: the opening thread and each evidence document are separate pages the room spreads out on the table.",
-    "Bundle each case's six files into one kit, by color. With the shared documents, that's one kit per room: a Facilitator Guide and a Meter Board go in every kit.",
-    "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). The booklet, room packet, and worksheet already carry the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
+    "Each Room Packet has four sections, each starting on a new page with its name in the page header: 1 Scenario, 2 Role Cards, 3 Decision Cards, 4 Worksheet. Keep them in that order and clip each section separately.",
+    "Cut apart the role cards in section 2 along the printed borders. Keep the Scenario pages loose: the opening thread and each evidence document are separate pages the room spreads out on the table.",
+    "Bundle one kit per room, by color: the room's Facilitator Booklet and two Room Packets, plus a Facilitator Guide and a Meter Board.",
+    "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). Every file name and cover already carries the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
     "Instead of the 11×17 matrix, the lead facilitator can copy the matrix onto flip chart paper.",
   ].forEach((t) => kids.push(bullet(t)));
   await save("00 - Print Order", [section(kids, { label: "Print order", color: PURPLE, landscape: true })]);
@@ -1084,9 +1035,5 @@ const list = Object.values(scenarios);
 for (const [i, s] of list.entries()) {
   await facilitatorBooklet(s, i);
   await roomPacket(s, i);
-  await decisionCards(s, i);
-  await roleCardsDoc(s, i);
-  await worksheet(s, i);
-  await reportCards(s, i);
 }
 console.log(`Wrote ${written.length} documents to ${OUT}`);

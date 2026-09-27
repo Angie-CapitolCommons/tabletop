@@ -1,7 +1,7 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.3 · September 26, 2026*
+*Version 1.4 · September 26, 2026*
 
 > **The code is the source of truth.** Tabletop runs as two tracks, the web
 > app and the paper kit, and each track's code is its own source of truth:
@@ -370,7 +370,7 @@ There's no per-room spend cap and no global circuit breaker.
 
 ## 12. The paper kit
 
-`npm run paper-kit` builds 28 editable Word documents (`paper/build-kit.mjs`;
+`npm run paper-kit` builds 12 editable Word documents (`paper/build-kit.mjs`;
 PR #24). The paper process is refined on its own and is expected to drift from
 the app; it isn't a printout of the app.
 
@@ -380,7 +380,7 @@ the app; it isn't a printout of the app.
 | Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter |
 | Meter Board | One per room |
 | Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix, with each room's case in its column header, the cells that should get an answer outlined, and unasked measures shaded |
-| Per case (color-coded) | Facilitator Booklet, Room Packet (opening and evidence), Decision Cards, Role Cards, Worksheet, 12-Month Report Cards |
+| Per room (color-coded) | Facilitator Booklet, and one Room Packet in four sections with a section break between each: 1 Scenario (opening and evidence), 2 Role Cards, 3 Decision Cards, 4 Worksheet |
 
 ### Where paper differs from the app
 
@@ -397,7 +397,8 @@ list current as the paper process moves further from the app.
   the answer is already specific, they say so and the follow-up is optional.
   The worksheet records "After the challenge: Held / Revised".
 - **The meter** judged by the room (§8).
-- **The 12-month report** as named and not-named cards laid out in month order.
+- **No 12-month report.** The debrief works from the worksheet and the meter
+  board. The owner beat read at each decision still depends on the score.
 - **The dashboard** as a wall of colored sticky notes on the A1–A9 matrix.
 - **Transcripts** replaced by the facilitator's notes on each decision: words,
   never names.
@@ -516,4 +517,4 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. v1.4: one Room Packet per room (Scenario, Role Cards, Decision Cards, Worksheet); the 12-month report is dropped from paper. |

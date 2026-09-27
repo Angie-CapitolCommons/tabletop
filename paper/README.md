@@ -4,7 +4,7 @@ The whole exercise on paper: no app, no network, no AI in the room. Paper is
 its own track and is expected to drift from the app (PRD §12).
 
 ```bash
-npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (28 editable .docx files)
+npm run paper-kit    # → paper/out/Tabletop Paper Kit/ (12 editable .docx files)
 ```
 
 **What's shared and what's paper-only.** The cases (`server/content/`) and the
@@ -27,20 +27,15 @@ Shared (the Print Order says how many of each):
 | `00 - Meter Board` | One per room: four measures, − to the left of center, + to the right |
 | `00 - Lead Facilitator - Assignments and Plenary Wall` | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix (each room's column headed with its case, answer cells outlined, unasked measures shaded) |
 
-Per scenario (`S1 Intake` … `S4 Monitoring`), color-coded. Rooms don't
-choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4 (lifecycle
-order, left to right on the plenary wall; set in `SCEN` in `build-kit.mjs`).
-Each scenario's set is one room's kit, and its booklet, packet, and worksheet
-print with the room number:
+Per room (`Room 1 - S1 Intake` … `Room 4 - S4 Monitoring`), color-coded.
+Rooms don't choose: Room 1 is S1, Room 2 is S2, Room 3 is S3, and Room 4 is S4
+(lifecycle order, left to right on the plenary wall; set in `SCEN` in
+`build-kit.mjs`). Two files per room:
 
 | File | For |
 |---|---|
-| `1 Facilitator Booklet` | The facilitator's script: setup, role nudges, background, the opening, then one spread per decision (memo branches, question, challenge questions, scoring, meter moves, what happens, the Villager), the 12-month report and debrief |
-| `2 Room Packet` | On the table: the opening thread, evidence documents, who's who |
-| `3 Decision Cards` | One per decision, handed out one at a time |
-| `4 Role Cards` | Five cards with the "only you know this" facts, cut apart |
-| `5 Worksheet` | The room's record, filled in by the facilitator |
-| `6 Report Cards` | Two 12-month cards per decision (named / not named), cut apart |
+| `Facilitator Booklet` | The facilitator's script: setup, role nudges, background, the opening, then one spread per decision (memo branches, question, challenge questions, scoring, meter moves, what happens, the Villager), the debrief, and the hand-off |
+| `Room Packet` | Everything the room uses, in four sections with a section break between each: **1 Scenario** (the opening thread, evidence documents, who's who), **2 Role Cards** (five, with the "only you know this" facts), **3 Decision Cards** (one per page, handed out one at a time), **4 Worksheet** (the room's record, filled in by the facilitator) |
 
 ## How the app's moving parts become paper
 
@@ -59,8 +54,9 @@ print with the room number:
 - **Scoring** uses the same per-measure rubric the app shows the facilitator
   (`client/src/measures.js`). The A-codes appear only on the plenary wall, as
   they do only on the app's dashboard.
-- **The 12-month report** becomes cards the facilitator lays out in month
-  order, choosing named or not named per decision from the score.
+- **There is no 12-month report on paper.** The debrief works from the
+  worksheet and the meter board. Each decision's owner beat (read at the
+  decision) still depends on the score.
 - **The dashboard** becomes a wall of colored sticky notes on the A1–A9
   matrix.
 - The themes run and the "how did we get here" chat have no paper equivalent;
