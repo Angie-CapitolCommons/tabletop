@@ -1,7 +1,7 @@
 # Tabletop PRD
 
 *AI Integration Environment Tabletop · Virtual Insights LLC · City of Hope HCD session*
-*Version 1.1 · September 26, 2026*
+*Version 1.7 · September 27, 2026*
 
 > **The code is the source of truth.** Tabletop runs as two tracks, the web
 > app and the paper kit, and each track's code is its own source of truth:
@@ -25,7 +25,8 @@
 Tabletop is a facilitated exercise for four breakout rooms. Each room works
 one fictional case through the AI governance lifecycle. At each decision the
 room agrees on one answer, writes down who is on the hook, and says who made
-the final call. An AI Council of advisors (the Elders) presses on the answer.
+the final call. Then the answer is challenged for what's missing: in the app
+by an AI Council of advisors (the Elders), and on paper by the facilitator.
 Each decision sets dated events in motion, and at the end the case runs twelve
 months forward to show what held and what broke. The four rooms' answers are
 compared side by side for the closing plenary.
@@ -61,7 +62,7 @@ session.
 | Attendees | Senior clinical, ETG, business strategy, innovation, security, data |
 | Facilitation | One facilitator per room, with no scribe. The lead facilitator (Angie) runs plenary. |
 | Delivery | The paper kit (§12). The web app at `tabletop.virtual-insights.com` (Replit) is built but not used for this session. |
-| Case assignment | The lead facilitator assigns each room one case in advance. (In the app, rooms choose; see §4.) |
+| Case assignment | Fixed on paper: Room 1 is S1, Room 2 is S2, Room 3 is S3, Room 4 is S4, in lifecycle order left to right across the plenary wall. (In the app, rooms choose; see §4.) |
 | Content | Fictional composites. No City of Hope interview transcripts, survey responses, or attributable material in the content, the prompts, or the repo. Nothing is attributed to a person present unless they named it themselves in pre-work. |
 
 ---
@@ -211,7 +212,8 @@ earlier in the room and mentions it gently if the room didn't take it up.
 The personas are **placeholders** until they're derived from
 `CoH_Council_Actor_Encoding.md`.
 
-On paper, the Elders are scripted lines the facilitator reads (§12).
+There is no AI Council on paper. The facilitator challenges the answer
+instead (§12).
 
 ---
 
@@ -368,16 +370,18 @@ There's no per-room spend cap and no global circuit breaker.
 
 ## 12. The paper kit
 
-`npm run paper-kit` builds 27 editable Word documents (`paper/build-kit.mjs`;
+`npm run paper-kit` builds 17 editable Word documents (`paper/build-kit.mjs`;
 PR #24). The paper process is refined on its own and is expected to drift from
 the app; it isn't a printout of the app.
 
 | Document | Who it's for |
 |---|---|
-| Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter, what to print |
+| Print Order | The print shop: every file by exact name, with copies, paper, sides, and finishing, and how to cut and bundle the kits. No other document has printing instructions. |
+| Facilitator Guide | Every facilitator: run of show, the steps at each decision, scoring, the meter |
 | Meter Board | One per room |
-| Lead Facilitator: Assignments and Plenary Wall | The lead facilitator: room-to-case assignments for packing, how to read the wall, which case asks which measure, the decider tally, and the A1–A9 matrix |
-| Per case (color-coded) | Facilitator Booklet, Room Packet (opening and evidence), Decision Cards, Role Cards, Worksheet, 12-Month Report Cards |
+| Lead Facilitator: Assignments and Plenary Guide | The lead facilitator: the room assignments, how to read the wall, which case asks which measure, and the decider tally |
+| Plenary Wall Poster | The A1–A9 matrix as a 24×36 in portrait poster (laid out at 12×18 in and printed at 200%; Word caps a page at 22 in). Each room's case heads its column; the cells that should get an answer are outlined and sized for a 3×3 in sticky note; unasked measures are shaded. |
+| Per room (color-coded) | Facilitator Booklet; Role Cards and Worksheet (the facilitator's copy, one printed); Participant Packet (Scenario and Decision Cards, three printed for the room). Each packet has a section break between its sections. |
 
 ### Where paper differs from the app
 
@@ -387,11 +391,18 @@ list current as the paper process moves further from the app.
 - **Assigned cases** instead of choosing.
 - **"Meanwhile" memos** as lookup tables: find what the room chose earlier,
   read that row.
-- **Elders** as scripted lines (`paper/elder-cards.js`), one set per Elder per
-  decision, with four versions: nobody named, named but missing a trigger or
-  number or date, specific, and declined. Same rules as the live Elders.
+- **No AI Council.** The facilitator challenges the answer in their own
+  voice, from one set of questions per decision (`paper/challenges.js`) with
+  four branches: nobody named, named but missing a trigger or number or date,
+  specific, and declined. They press on the answer, never on a person; when
+  the answer is already specific, they say so and the follow-up is optional.
+  The worksheet records "After the challenge: Held / Revised".
 - **The meter** judged by the room (§8).
-- **The 12-month report** as named and not-named cards laid out in month order.
+- **No evidence folder or who's who.** Too much to read in the room. The
+  Scenario section is the opening; the facilitator answers questions from
+  the booklet's background.
+- **No 12-month report.** The debrief works from the worksheet and the meter
+  board. The owner beat read at each decision still depends on the score.
 - **The dashboard** as a wall of colored sticky notes on the A1–A9 matrix.
 - **Transcripts** replaced by the facilitator's notes on each decision: words,
   never names.
@@ -404,7 +415,7 @@ list current as the paper process moves further from the app.
 |---|---|---|
 | Cases: opening, evidence, decisions, options, events, owner beats, 12-month entries, Villagers, role cards | `server/content/` | Yes, read by the kit at build time |
 | Scoring rubric | `client/src/measures.js` | Yes, read by the kit at build time |
-| Scripted Elder lines | `paper/elder-cards.js` | No, paper only |
+| Challenge questions | `paper/challenges.js` | No, paper only |
 | Facilitator steps, meter board, worksheet, plenary wall, and all kit wording | `paper/build-kit.mjs` | No, paper only |
 
 **Rules for drift.**
@@ -492,8 +503,7 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 
 ## 16. Open questions
 
-1. Derive the Elder personas from `CoH_Council_Actor_Encoding.md`, and review
-   the paper kit's scripted Elder lines against them.
+1. Derive the Elder personas (app only) from `CoH_Council_Actor_Encoding.md`.
 2. Check scenario detail against the internal scout dispatch findings.
 3. Whether the four planning-team topics (North Star, Categorization,
    Operating Model, Success Metrics) stay as agenda labels over this
@@ -511,4 +521,5 @@ paper; the spend cap and the unauthenticated endpoints matter most.
 | Sep 24 | Health check (#8), stability fixes (#9, #10), and Replit configuration (#11). |
 | Sep 25 | Cases rewritten as moments instead of summaries, with transcripts, debrief, facilitator controls, clinician goodwill, and admin themes (#12–#14). |
 | Sep 26 | Time to first value rises with added process, and the Villager disclosure line is dropped (#15). "AI Lab" renamed the AI Integration Environment (#16). Review drawer (#17). The Executive Sponsor replaces The Doctor (#18). Ask the Council again, "how we got here", four rooms at once (#19). Rehearsal script and Postgres as the source of truth on Autoscale (#20–#22). |
-| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). |
+| Sep 26 | The session moves to paper. Paper kit (#24) with assigned cases and a room-judged meter. A1 rubric reworded to fit S2. This document rewritten to describe the code (v1.0). v1.1: the Replit deployment stays up; paper is its own track and is expected to drift from the app (§12). v1.2: the AI Council is removed from paper; the facilitator challenges the answer instead. v1.3: a Print Order document holds all printing instructions; rooms are fixed to cases (Room N = SN) and the plenary matrix prints with them. v1.4: one Room Packet per room (Scenario, Role Cards, Decision Cards, Worksheet); the 12-month report is dropped from paper. v1.5: the plenary wall is its own 24×36 in poster file. v1.6: the evidence folder and who's who are removed from paper. |
+| Sep 27 | v1.7: the Room Packet splits into Role Cards and Worksheet (one, for the facilitator) and a Participant Packet (Scenario and Decision Cards, three for the room). |

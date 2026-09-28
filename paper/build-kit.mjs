@@ -1,13 +1,16 @@
-// Builds the paper kit (editable Word documents) from the live scenario
-// content, so the paper and the app never drift apart.
+// Builds the paper kit (editable Word documents). Paper is its own track and
+// is expected to drift from the app (PRD §12): the cases and the scoring
+// rubric are still read from server/content and client/src/measures.js;
+// everything under paper/ is paper-only.
 //
 //   npm run paper-kit            → paper/out/Tabletop Paper Kit/*.docx
 //
-// Per scenario: Facilitator Booklet, Room Packet, Decision Cards, Role Cards,
-// Worksheet, 12-Month Report Cards. Shared: Facilitator Guide, Meter Board,
-// Lead Facilitator's plenary wall. The only paper-specific content is the
-// scripted Elder cards in paper/elder-cards.js; everything else is read from
-// server/content and client/src/measures.js.
+// Per room: Facilitator Booklet; Role Cards and Worksheet (the facilitator's
+// copy); Participant Packet (Scenario and Decision Cards, three copies for the
+// room). Shared: Print Order, Facilitator Guide,
+// Meter Board, Lead Facilitator's plenary wall. No 12-month report on paper. Paper-only content: the facilitator's
+// challenge questions (paper/challenges.js) and all the kit's own wording.
+// There is no AI Council on paper.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -21,9 +24,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const load = (p) => import(pathToFileURL(path.join(root, p)).href);
 const content = await load("server/content/index.js");
-const { scenarios, elders, elderFiresOn, roles, meterLabels } = content;
+const { scenarios, roles, meterLabels } = content;
 const { MEASURES, SCORING, GENERIC_ABSENT } = await load("client/src/measures.js");
-const { elderCards } = await load("paper/elder-cards.js");
+const { challenges } = await load("paper/challenges.js");
 
 const OUT = path.join(here, "out", "Tabletop Paper Kit");
 
@@ -32,10 +35,11 @@ const DEEP = "10122D", PURPLE = "2F2E78", BLUE = "387DB7", SLATE = "4A4E70", MUT
 const RUST = "A24F2C", HAIR = "D9D6CE", WARM = "ECEAE4", PAPER = "F7F6F3", WHITE = "FFFFFF";
 const HEAD = "Georgia", BODY = "Calibri", MONO = "Consolas", SYM = "Segoe UI Symbol";
 const SCEN = {
-  s1: { color: "387DB7", colorName: "Blue", short: "S1 Intake" },
-  s2: { color: "2F7D4F", colorName: "Green", short: "S2 Evaluation" },
-  s3: { color: "B98A2F", colorName: "Gold", short: "S3 Deployment" },
-  s4: { color: "2F2E78", colorName: "Purple", short: "S4 Monitoring" },
+  // Room assignments: lifecycle order, left to right across the plenary wall.
+  s1: { color: "387DB7", colorName: "Blue", short: "S1 Intake", room: 1 },
+  s2: { color: "2F7D4F", colorName: "Green", short: "S2 Evaluation", room: 2 },
+  s3: { color: "B98A2F", colorName: "Gold", short: "S3 Deployment", room: 3 },
+  s4: { color: "2F2E78", colorName: "Purple", short: "S4 Monitoring", room: 4 },
 };
 const PORTRAIT = { width: 12240, height: 15840 };
 const MARGIN = { top: 1000, bottom: 1000, left: 1080, right: 1080 };
@@ -313,13 +317,13 @@ async function facilitatorBooklet(s, i) {
   const n = s.nodes.length;
   const kids = [...coverBlock(s, i, "Facilitator booklet")];
   kids.push(
-    p([run("Assigned to Room ______     Facilitator ________________________", { size: 22 })], { spacing: { after: 200 } }),
-    p([run("Keep this booklet on your side of the table. Everything the room sees comes from the Room Packet, the Decision Cards, and the report cards you lay out at the end.", { size: 21 })]),
+    p([run(`Room ${SCEN[s.id].room}     Facilitator ________________________`, { size: 22 })], { spacing: { after: 200 } }),
+    p([run("Keep this booklet on your side of the table. The room reads from its three Participant Packets (the opening and every decision). You hold the Role Cards and Worksheet.", { size: 21 })]),
     h3("In this booklet"),
     bullet("Before you start: setup, the roles at this table, and what to say first"),
     bullet("The opening"),
     ...s.nodes.map((node, k) => bullet(`Decision ${k + 1}: ${node.title}`)),
-    bullet("The 12-month report and the debrief"),
+    bullet("The debrief"),
     bullet("Hand-off to the lead facilitator"),
   );
   if (n >= 7) {
@@ -329,12 +333,10 @@ async function facilitatorBooklet(s, i) {
   // Before you start
   kids.push(pageBreak(), eyebrow("Before you start", c), h2("Setup"));
   [
-    "Deal the five role cards. Every person plays a role and every role is played: two people can share a role, or one person can play two.",
+    "Deal the five role cards (from your Role Cards and Worksheet). Every person plays a role and every role is played: two people can share a role, or one person can play two.",
     "Write each person's first name next to their role on the worksheet's first page.",
-    "Put the Room Packet on the table with the opening thread on top. The evidence documents and the who's who go in the middle of the table as the room's folder.",
+    "Put the three Participant Packets face down around the table. They hold the opening and every decision, so ask the room not to read ahead: you'll say when to turn to each decision.",
     "Put the meter board in the middle of the table, where everyone can reach it, with a pen.",
-    "Keep the Decision Cards face down in order. Hand out one at a time.",
-    "Keep the 12-month report cards face down, sorted by decision.",
     "Worksheet, pen, and a clock where you can see them.",
   ].forEach((t) => kids.push(p([box(), run(t)], { indent: { left: 360, hanging: 360 } })));
 
@@ -358,12 +360,12 @@ async function facilitatorBooklet(s, i) {
   kids.push(grid(cueRows, [2200, 4280, 3600], { fontSize: 18 }));
 
   kids.push(h3("What's true in this story"));
-  kids.push(note("Background for answering the room's questions. Don't read it aloud; the room finds these facts in the folder and on the role cards."));
+  kids.push(note("Background for answering the room's questions. Don't read it aloud. The room has only the opening and the role cards, so when it asks for a fact, answer from here."));
   for (const para of s.modelBrief.split("\n")) if (para.trim()) kids.push(p([run(para.trim(), { size: 19, color: "33375C" })], { spacing: { after: 80 } }));
 
   // Opening
   kids.push(pageBreak(), eyebrow("The opening", c), h2("Start the story"));
-  kids.push(p("Hand out the opening thread (the first pages of the Room Packet). Read the first paragraph aloud and let the room read the messages. Give them two minutes with the folder before the first decision."));
+  kids.push(p("Have the room turn over the Participant Packets to the opening (the first page). Read the first paragraph aloud and let the room read the messages. Give them a minute before the first decision."));
   kids.push(...openingBlocks(s));
 
   // Decisions
@@ -393,7 +395,7 @@ async function facilitatorBooklet(s, i) {
     }
 
     // 2. Pose
-    kids.push(h3(`${step++} · Hand out Decision Card ${k + 1} and read the question`));
+    kids.push(h3(`${step++} · Have the room turn to Decision ${k + 1} and read the question`));
     kids.push(quote(node.question));
     kids.push(note("Discussion: about 5 minutes. Keep them working toward one answer the whole room owns. If they drift into a vote, ask who would sign it."));
 
@@ -401,61 +403,45 @@ async function facilitatorBooklet(s, i) {
     kids.push(h3(`${step++} · Record the room's answer`));
     kids.push(p([run("On the worksheet: tick their choice, write their answer, and tick who made the final call. Their answer should say: ", { size: 20 }), run(node.freeTextPrompt, { size: 20, bold: true })]));
 
-    // 4. Elders
-    const who = node.elders.map((id) => elders[id].name).join(" and ");
-    kids.push(h3(`${step++} · Read ${who}`));
-    kids.push(note(node.elders.length > 1 ? "Read one Elder, then the other. Pick the line that fits what the room wrote." : "Pick the line that fits what the room wrote. Read it once, plainly."));
-    for (const id of node.elders) {
-      const card = elderCards[s.id]?.[node.id]?.[id];
-      if (!card) throw new Error(`${s.id}/${node.id}: no paper Elder card for ${id}`);
-      const e = elders[id];
-      const rows = [
-        [[p([run(e.name, { font: HEAD, size: 26, color: WHITE })], { spacing: { after: 0 } }), p([run(`${e.seat.toUpperCase()}  ·  WATCHES FOR: ${elderFiresOn[id]}`, { font: MONO, size: 14, color: "D5D8E8" })], { spacing: { after: 0 } })], ""],
-        ["If no person or role is named (a committee, a department, “leadership”)", card.noName],
-        ["If someone is named, but the trigger, number, or date is missing", card.noTrigger],
-        ["If it names a person or role and a trigger, number, or date", card.specific],
-        ["If the room chose “We can't answer this today”", card.declined],
-      ];
-      kids.push(
-        new Table({
-          width: { size: W, type: WidthType.DXA },
-          columnWidths: [3000, 7080],
-          layout: TableLayoutType.FIXED,
-          borders: allBorders(line(HAIR)),
-          rows: rows.map((r, ri) =>
+    // 4. Challenge: the facilitator presses for the missing piece, in their own voice.
+    const ch = challenges[s.id]?.[node.id];
+    if (!ch) throw new Error(`${s.id}/${node.id}: no challenge questions in paper/challenges.js`);
+    kids.push(h3(`${step++} · Challenge the answer`));
+    kids.push(note("Ask the one that fits what they wrote, in your own words if you like. Press on the answer, never on a person."));
+    const chRows = [
+      ["If no person or role is named (a committee, a department, “leadership”)", ch.noName],
+      ["If someone is named, but the trigger, number, or date is missing", ch.noTrigger],
+      ["If it names a person or role and a trigger, number, or date: say what's solid; the question is optional", ch.specific],
+      ["If the room chose “We can't answer this today”", ch.declined],
+    ];
+    kids.push(
+      new Table({
+        width: { size: W, type: WidthType.DXA },
+        columnWidths: [3000, 7080],
+        layout: TableLayoutType.FIXED,
+        borders: allBorders(line(HAIR)),
+        rows: chRows.map(
+          (r) =>
             new TableRow({
               cantSplit: true,
-              children:
-                ri === 0
-                  ? [
-                      new TableCell({
-                        columnSpan: 2,
-                        width: { size: W, type: WidthType.DXA },
-                        shading: { type: ShadingType.CLEAR, fill: DEEP, color: "auto" },
-                        margins: { top: 100, bottom: 100, left: 160, right: 160 },
-                        children: r[0],
-                      }),
-                    ]
-                  : [
-                      new TableCell({
-                        width: { size: 3000, type: WidthType.DXA },
-                        shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
-                        margins: { top: 90, bottom: 90, left: 140, right: 120 },
-                        children: [p([run(r[0], { size: 17, color: SLATE })], { spacing: { after: 0 } })],
-                      }),
-                      new TableCell({
-                        width: { size: 7080, type: WidthType.DXA },
-                        margins: { top: 90, bottom: 90, left: 160, right: 140 },
-                        children: [p([run(r[1], { size: 20 })], { spacing: { after: 0 } })],
-                      }),
-                    ],
+              children: [
+                new TableCell({
+                  width: { size: 3000, type: WidthType.DXA },
+                  shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
+                  margins: { top: 90, bottom: 90, left: 140, right: 120 },
+                  children: [p([run(r[0], { size: 17, color: SLATE })], { spacing: { after: 0 } })],
+                }),
+                new TableCell({
+                  width: { size: 7080, type: WidthType.DXA },
+                  margins: { top: 90, bottom: 90, left: 160, right: 140 },
+                  children: [p([run(r[1], { size: 20 })], { spacing: { after: 0 } })],
+                }),
+              ],
             }),
-          ),
-        }),
-        spacer(100),
-      );
-    }
-    kids.push(note("If the room ignored something this Elder raised at an earlier decision, add one sentence saying so, kindly."));
+        ),
+      }),
+      spacer(100),
+    );
 
     // 5. Hold or revise
     kids.push(h3(`${step++} · Hold or revise`));
@@ -502,23 +488,15 @@ async function facilitatorBooklet(s, i) {
     }
 
     kids.push(h3(`${step++} · Write the lock time on the worksheet`));
-    kids.push(note(k < n - 1 ? `Then move to Decision ${k + 2}.` : "Then lay out the 12-month report."));
+    kids.push(note(k < n - 1 ? `Then move to Decision ${k + 2}.` : "Then go to the debrief."));
   });
 
-  // 12-month report
-  kids.push(pageBreak(), eyebrow("After the last decision", c), h2("The 12-month report"));
-  numberedList(kids, [
-    "For each decision, take its report card that matches your score. Specific: the card marked “named.” Generic, Absent, declined, or skipped: the card marked “not named.”",
-    "Lay the cards on the table in month order, left to right. Put the unused cards aside, face down.",
-    "Let the room read its year. Don't explain it.",
-    "For the debrief, you can turn over the unused card for any decision. That's how that month goes the other way.",
-  ]);
-  const order = [...s.nodes].map((node, k) => ({ node, k })).sort((a, b) => a.node.later.month - b.node.later.month);
-  kids.push(h3("Month order"));
-  kids.push(grid([["Month", "Decision"], ...order.map(({ node, k }) => [`Month ${node.later.month}`, `Decision ${k + 1}: ${node.title}`])], [1800, 8280]));
+  // Debrief (no 12-month report on paper)
+  kids.push(pageBreak(), eyebrow("After the last decision", c), h2("The debrief"));
+  kids.push(p("About ten minutes. Work from the worksheet and the meter board. Let the room talk; your job is to ask, not to sum up."));
   kids.push(h3("Debrief questions"));
   [
-    "Which month would you most want to change? What would you decide differently?",
+    "Which decision would you most want to change? What would you decide differently?",
     "Look at the meter board. Where did the marks pile up, and what did the room trade for what?",
     "Look at who made the final call on each decision. Did one person end up deciding, or did it move around?",
     "Where did the room name a committee instead of a person? What stopped it from naming someone?",
@@ -530,37 +508,42 @@ async function facilitatorBooklet(s, i) {
   [
     "Write the finish time on the worksheet.",
     "Fill one sticky note per decision for the plenary wall: the short answer and who made the final call. Green for Specific, yellow for Generic, pink for Absent or declined, blue for skipped.",
-    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the folder behind.",
+    "Bring the worksheet and the stickies to the lead facilitator. Leave the role cards and the Participant Packets behind.",
   ].forEach((t) => kids.push(bullet(t)));
 
-  await save(`${SCEN[s.id].short} - 1 Facilitator Booklet`, [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
+  await save(fileName(s, "Facilitator Booklet"), [section(kids, { label: `${scenarioLabel(s, i)} · Facilitator booklet`, color: c })]);
 }
 
-function numberedList(kids, items) {
-  items.forEach((t) => kids.push(numbered(t)));
-}
+// Output file names lead with the room, so the folder sorts room by room.
+const fileName = (s, doc) => `Room ${SCEN[s.id].room} - ${SCEN[s.id].short} - ${doc}`;
 
-async function roomPacket(s, i) {
+// Two room files, each in sections with a section break between them and
+// every section named in its page header:
+//   Role Cards and Worksheet: the facilitator's copy (one printed).
+//   Participant Packet: the Scenario and the Decision Cards (three printed).
+async function packet(s, doc, parts) {
   const c = SCEN[s.id].color;
-  const kids = [...coverBlock(s, i, "Room packet")];
-  kids.push(p([run("Room ______", { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
-  kids.push(...openingBlocks(s));
-  for (const doc of s.evidence) {
-    kids.push(pageBreak(), eyebrow(doc.id === "whos-who" ? "Who's who" : "From the folder", c), h2(doc.title));
-    const paras = doc.body.split("\n");
-    kids.push(
-      panel(
-        paras.map((l) =>
-          p([run(l.length ? l : " ", { font: doc.id === "whos-who" ? BODY : MONO, size: doc.id === "whos-who" ? 21 : 19 })], { spacing: { after: doc.id === "whos-who" ? 120 : 40 } }),
-        ),
-        { fill: WHITE },
-      ),
-    );
-  }
-  await save(`${SCEN[s.id].short} - 2 Room Packet`, [section(kids, { label: `${scenarioLabel(s, i)} · Room packet`, color: c })]);
+  await save(
+    fileName(s, doc),
+    parts.map(([name, kids], k) => section(kids, { label: `Room ${SCEN[s.id].room} · ${SCEN[s.id].short} · ${doc} · ${k + 1} ${name}`, color: c })),
+  );
+}
+async function roomFiles(s, i) {
+  await packet(s, "Role Cards and Worksheet", [["Role Cards", roleCardKids(s, i)], ["Worksheet", worksheetKids(s)]]);
+  await packet(s, "Participant Packet", [["Scenario", scenarioKids(s, i)], ["Decision Cards", decisionCardKids(s)]]);
 }
 
-async function decisionCards(s, i) {
+function scenarioKids(s, i) {
+  const c = SCEN[s.id].color;
+  const kids = [...coverBlock(s, i, "Participant packet")];
+  kids.push(p([run(`Room ${SCEN[s.id].room}`, { size: 22 })], { spacing: { after: 200 } }), eyebrow("The opening", c), h2("What happened"));
+  kids.push(...openingBlocks(s));
+  // Paper leaves out the app's evidence folder and who's who: too much to
+  // read in the room. The facilitator answers from the booklet's background.
+  return kids;
+}
+
+function decisionCardKids(s) {
   const c = SCEN[s.id].color;
   const n = s.nodes.length;
   const kids = [];
@@ -607,14 +590,14 @@ async function decisionCards(s, i) {
       ),
     );
   });
-  await save(`${SCEN[s.id].short} - 3 Decision Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · Decision cards`, color: c })]);
+  return kids;
 }
 
-async function roleCardsDoc(s, i) {
+function roleCardKids(s, i) {
   const c = SCEN[s.id].color;
   const kids = [
-    h2(s.title),
-    note("Five roles, full coverage: every person plays a role, and every role is played. Share a card or play two. Cut along the borders."),
+    h2("Role cards"),
+    note("Five roles, full coverage: every person plays a role, and every role is played. Share a card or play two."),
     spacer(80),
   ];
   roles.forEach((r) => {
@@ -645,20 +628,20 @@ async function roleCardsDoc(s, i) {
       spacer(260),
     );
   });
-  await save(`${SCEN[s.id].short} - 4 Role Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · Role cards`, color: c })]);
+  return kids;
 }
 
-async function worksheet(s, i) {
+function worksheetKids(s) {
   const c = SCEN[s.id].color;
   // Pace: ten minutes of setup, then an even share of the decision window
-  // (65 minutes) per decision, leaving the last fifteen for the report.
+  // (65 minutes) per decision, leaving the last fifteen for the debrief.
   const per = Math.floor(65 / s.nodes.length);
   const paceRows = [["Decision", "Lock it by (minutes in)", "Clock time"]];
   s.nodes.forEach((node, k) => paceRows.push([`${k + 1}. ${node.title}`, `${10 + per * (k + 1)}`, ""]));
-  paceRows.push(["12-month report and debrief", "75–85", ""], ["Stickies and hand-off", "90", ""]);
+  paceRows.push(["Debrief", "75–85", ""], ["Stickies and hand-off", "90", ""]);
   const kids = [
-    h2(s.title),
-    p([run("Room ______     Facilitator ____________________     Date ____________     Start time ________", { size: 21 })], { spacing: { after: 160 } }),
+    h2("Worksheet"),
+    p([run(`Room ${SCEN[s.id].room}     Facilitator ____________________     Date ____________     Start time ________`, { size: 21 })], { spacing: { after: 160 } }),
     h3("Who is playing which role (first names only)"),
     grid([["Role", "First name(s)"], ...roles.map((r) => [r, ""])], [4000, 6080], { fontSize: 20 }),
     note("Write what the room decides, in their words. In the notes, write what was said, never who said it."),
@@ -678,7 +661,7 @@ async function worksheet(s, i) {
       [p([run(`Their answer (${node.freeTextPrompt})`, { size: 17, color: SLATE })], { spacing: { after: 0 } }), writeLine(), writeLine(), writeLine()],
       [p([run("Final call:  ", { size: 18, bold: true }), ...ticks(deciders, 17)], { spacing: { after: 0 } })],
       [
-        p([run("After the Elder:  ", { size: 18, bold: true }), ...ticks(["Held", "Revised to"], 18), run("   ", { size: 18 }), ...ticks(["A", "B", "C", "Own plan"], 18)], { spacing: { after: 0 } }),
+        p([run("After the challenge:  ", { size: 18, bold: true }), ...ticks(["Held", "Revised to"], 18), run("   ", { size: 18 }), ...ticks(["A", "B", "C", "Own plan"], 18)], { spacing: { after: 0 } }),
         p([run("New wording:", { size: 17, color: SLATE })], { spacing: { before: 60, after: 0 } }),
         writeLine(),
       ],
@@ -714,60 +697,13 @@ async function worksheet(s, i) {
   });
   kids.push(
     pageBreak(),
-    h3("The 12-month report"),
-    p([run("Cards laid out as ", { size: 20 }), run("named", { bold: true, size: 20 }), run(" for decisions:  ", { size: 20 }), ...ticks(s.nodes.map((_, k) => String(k + 1)), 20)]),
     p([run("Finish time ________", { size: 20 })], { spacing: { before: 120 } }),
     h3("Anything else the lead facilitator should know"),
     writeLine(), writeLine(), writeLine(), writeLine(), writeLine(),
   );
-  await save(`${SCEN[s.id].short} - 5 Worksheet`, [section(kids, { label: `${scenarioLabel(s, i)} · Worksheet`, color: c })]);
+  return kids;
 }
 
-async function reportCards(s, i) {
-  const c = SCEN[s.id].color;
-  const half = (W - 200) / 2;
-  const kids = [
-    h2(s.title),
-    note("Two cards per decision. After the last decision, the facilitator lays out the one that matches the score, in month order. Print on card stock and cut along the borders."),
-    spacer(100),
-  ];
-  s.nodes.forEach((node, k) => {
-    const cut = { style: BorderStyle.DASHED, size: 8, color: "8A8FAE" };
-    const card = (kind) => {
-      const named = kind === "named";
-      return new TableCell({
-        width: { size: half, type: WidthType.DXA },
-        borders: { top: cut, bottom: cut, left: cut, right: cut },
-        margins: { top: 200, bottom: 160, left: 220, right: 220 },
-        children: [
-          p([run(`MONTH ${node.later.month}`, { font: MONO, size: 30, bold: true, color: c, characterSpacing: 30 })], { spacing: { after: 100 } }),
-          p([run(named ? node.later.named : node.later.missing, { font: HEAD, size: 23, color: DEEP })], { spacing: { after: 160 } }),
-          p([run(`Decision ${k + 1} · ${SECTION[node.type]} · ${named ? "named" : "not named"}`, { font: MONO, size: 13, color: MUTED })], { spacing: { after: 0 } }),
-        ],
-      });
-    };
-    kids.push(
-      new Table({
-        width: { size: W, type: WidthType.DXA },
-        columnWidths: [half, 200, half],
-        layout: TableLayoutType.FIXED,
-        borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
-        rows: [
-          new TableRow({
-            cantSplit: true,
-            children: [
-              card("named"),
-              new TableCell({ width: { size: 200, type: WidthType.DXA }, children: [p("")] }),
-              card("missing"),
-            ],
-          }),
-        ],
-      }),
-      spacer(240),
-    );
-  });
-  await save(`${SCEN[s.id].short} - 6 Report Cards`, [section(kids, { label: `${scenarioLabel(s, i)} · 12-month report cards`, color: c })]);
-}
 // ---------- shared documents ----------
 async function facilitatorGuide() {
   const kids = [
@@ -776,12 +712,13 @@ async function facilitatorGuide() {
     h3("The kit for your room"),
   ];
   [
-    ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the 12-month report."],
-    ["Room Packet", "The opening thread, the evidence folder, and the who's who. On the table from the start."],
-    ["Decision Cards", "One per decision. Hand out one at a time, face down until you pose it."],
-    ["Role Cards", "Five, one per role. Dealt at setup."],
-    ["Worksheet", "The room's record. You fill it in."],
-    ["12-Month Report Cards", "Two per decision. Face down until the end."],
+    ["Facilitator Booklet", "Your script. Setup, the opening, every decision step by step, the debrief."],
+    ["Role Cards and Worksheet", "Your copy:"],
+    ["   Role Cards", "Five, one per role. Dealt at setup."],
+    ["   Worksheet", "The room's record. You fill it in."],
+    ["Participant Packets", "Three, for the room:"],
+    ["   Scenario", "The opening: what happened, and the messages that started it."],
+    ["   Decision Cards", "One page per decision. The room turns to each one when you pose it, not before."],
     ["Meter Board", "Four measures. After each decision the room marks + or − on each one."],
     ["Also", "Pens, a clock or timer, four colors of sticky notes (green, yellow, pink, blue)."],
   ].forEach(([k, v]) => kids.push(p([run(`${k}: `, { bold: true }), run(v)])));
@@ -791,9 +728,9 @@ async function facilitatorGuide() {
     grid(
       [
         ["Minutes", "What happens"],
-        ["0–10", "Deal roles, write first names, say the opening lines, hand out the opening thread"],
+        ["0–10", "Deal roles, write first names, say the opening lines, turn to the opening"],
         ["10–75", "The decisions: about 9 minutes each (8 for a seven-decision case)"],
-        ["75–85", "Lay out the 12-month report; debrief"],
+        ["75–85", "Debrief, from the worksheet and the meter board"],
         ["85–90", "Fill the plenary stickies; hand in the worksheet"],
       ],
       [1800, 8280],
@@ -803,10 +740,10 @@ async function facilitatorGuide() {
   kids.push(h3("Every decision, the same nine steps"));
   [
     "Read the “Meanwhile” memo, if the booklet has one for this decision. It depends on an earlier answer.",
-    "Hand out the Decision Card and read the question.",
+    "Have the room turn to the decision in their packets, and read the question.",
     "Let the room discuss, about 5 minutes. One answer the whole room owns.",
     "Record their choice, their written answer, and who made the final call.",
-    "Read the Elder's line that fits what they wrote.",
+    "Challenge the answer: ask the booklet's question that fits what they wrote.",
     "Ask whether the answer stands or changes. Record any change.",
     "Score it: Specific, Generic, or Absent.",
     "Ask the room how the decision moved the meter, and mark it. Then read what happens.",
@@ -827,12 +764,13 @@ async function facilitatorGuide() {
   );
   kids.push(note("Each decision page in the booklet says exactly what a Specific answer contains for that question."));
 
-  kids.push(h3("Reading the Elders"));
+  kids.push(h3("Challenging the answer"));
   [
-    "The Elders are the AI Council: advisors who respond to the room's written answer. On paper, you read their lines.",
-    "Pick the one branch that fits what the room wrote: nobody named, named but missing a trigger or number, specific, or declined.",
-    "Read it once, plainly. Don't perform it, and don't add your own opinion.",
-    "They press on the answer, never on a person. If the room is doing well, the Elder says so.",
+    "After you record the answer, press for the piece that's missing. The booklet gives one question for each case: nobody named, named but missing a trigger or number or date, specific, or declined.",
+    "Ask it in your own voice. One question, then wait. Let the room answer before you say anything else.",
+    "Press on the answer, never on a person. Don't argue for an option, and don't hint at what happens next.",
+    "If the answer is already specific, say so plainly. The follow-up question is optional; never invent an objection.",
+    "If the room let something slide at an earlier decision, you can bring it back once, kindly.",
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(h3("The meter"));
@@ -858,36 +796,62 @@ async function facilitatorGuide() {
     "“Who in this room would sign that?”",
     "“If this goes wrong in March, whose phone rings?”",
     "“What would have to happen for you to change your mind?”",
-    "“Check the folder. Is there anything in there that helps?”",
+    "“What does your role card say about this?”",
   ].forEach((t) => kids.push(bullet(t)));
 
   kids.push(h3("After the session"));
   [
     "The worksheets are the record of the session. Hand them to the lead facilitator and don't photograph them.",
     "When worksheets are typed up for synthesis, replace first names with roles.",
-    "Role cards and room packets can be recycled; they hold nothing about the people in the room.",
+    "Role cards and participant packets can be recycled; they hold nothing about the people in the room.",
   ].forEach((t) => kids.push(bullet(t)));
 
-  kids.push(pageBreak(), eyebrow("Printing", PURPLE), h2("What to print"));
-  kids.push(note("Each room is assigned one case in advance, so print one full kit per scenario, color-coded, and write the room number on its booklet and room packet. Print on US Letter."));
-  kids.push(
-    grid(
-      [
-        ["Document", "Copies", "Paper"],
-        ["Facilitator Guide", "1 per facilitator (4) + 1 spare", "Plain, double-sided"],
-        ["Facilitator Booklet (per scenario)", "1 per scenario (4)", "Plain, single-sided so you can fold it flat"],
-        ["Room Packet (per scenario)", "1 per scenario; 2 if rooms are over 6 people", "Plain; keep opening thread and evidence as separate pages"],
-        ["Decision Cards (per scenario)", "1 per scenario", "Card stock if possible"],
-        ["Role Cards (per scenario)", "1 set per scenario, + 1 spare set", "Card stock; cut apart"],
-        ["Worksheet (per scenario)", "1 per scenario + 2 spares", "Plain, single-sided"],
-        ["12-Month Report Cards (per scenario)", "1 set per scenario", "Card stock; cut apart"],
-        ["Meter Board", "4 + 1 spare", "Plain or card stock"],
-        ["Lead Facilitator: assignments and plenary wall", "1", "Tile the matrix on 11×17, or copy it onto flip chart paper"],
-      ],
-      [4000, 3200, 2880],
-    ),
-  );
   await save("00 - Facilitator Guide", [section(kids, { label: "Facilitator guide", color: PURPLE })]);
+}
+
+// Everything the print shop needs, in one document: every file by its exact
+// name, with copies, paper, sides, and finishing. No other document carries
+// printing instructions.
+const PRINT_SHARED = [
+  ["00 - Facilitator Guide", "5 (4 facilitators + 1 spare)", "Plain", "Double-sided", "Staple top left"],
+  ["00 - Meter Board", "5 (4 rooms + 1 spare)", "Plain or card stock", "Single-sided", "Landscape"],
+  ["00 - Lead Facilitator - Assignments and Plenary Guide", "1", "Plain", "Single-sided", "Staple top left"],
+  ["00 - Plenary Wall Poster", "1", "Poster paper, matte", "Single-sided", "Poster, 24×36 in, portrait. The file is laid out at 12×18 in, the same shape: print it at 200%. Roll it; don't fold."],
+];
+const PRINT_PER_ROOM = [
+  ["Facilitator Booklet", "1", "Plain", "Single-sided", "Staple top left, so it folds flat"],
+  ["Role Cards and Worksheet", "1 (for the facilitator)", "Plain; the role cards (section 1) on card stock if you can", "Single-sided", "Cut the role cards apart along the borders. Staple the worksheet (section 2) top left."],
+  ["Participant Packet", "3 (for the room)", "Plain", "Single-sided", "Staple top left"],
+];
+
+async function printOrder() {
+  const widths = [4700, 2500, 1900, 1400, 3180];
+  const head = ["File", "Copies", "Paper", "Sides", "Finishing"];
+  const tick = (name) => [p([run("☐ ", { font: SYM, size: 20 }), run(name, { size: 19, bold: true })], { spacing: { after: 0 } })];
+  const kids = [
+    h2("Print order"),
+    p("Every file below is in the kit folder under exactly this name. Print everything in color: each case is color-coded, and the colors tell the kits apart. US Letter and single-sided unless the table says otherwise (the plenary wall is a poster)."),
+    h3("Shared"),
+    grid([head, ...PRINT_SHARED.map(([f, ...rest]) => [tick(f), ...rest])], widths, { fontSize: 19 }),
+  ];
+  for (const s of Object.values(scenarios)) {
+    const sc = SCEN[s.id];
+    // Rooms 3 and 4 start a new page, so no table splits across pages.
+    if (sc.room === 3) kids.push(pageBreak());
+    kids.push(
+      h3(`Room ${sc.room} · ${sc.short} · ${sc.colorName} kit`),
+      grid([head, ...PRINT_PER_ROOM.map(([f, ...rest]) => [tick(fileName(s, f)), ...rest])], widths, { fontSize: 19 }),
+    );
+  }
+  kids.push(h3("After printing"));
+  [
+    "Each room has three files. The Facilitator Booklet and the Role Cards and Worksheet are the facilitator's (one copy each). The Participant Packet is the room's (three copies). Each section starts on a new page with its name in the page header.",
+    "Cut the role cards apart along the printed borders, and keep each room's set in its own envelope.",
+    "Bundle one kit per room, by color: the room's Facilitator Booklet, Role Cards and Worksheet, and three Participant Packets, plus a Facilitator Guide and a Meter Board.",
+    "Label each kit with its room: Room 1 is S1 Intake (Blue), Room 2 is S2 Evaluation (Green), Room 3 is S3 Deployment (Gold), Room 4 is S4 Monitoring (Purple). Every file name and cover already carries the room number. Tick “Kit packed” on the lead facilitator's room assignments as each kit is done.",
+    "The poster goes on the wall of the plenary room before the rooms hand off; each answer cell is sized for a 3×3 in sticky note. If it can't be printed in time, the lead facilitator can copy the grid onto flip chart paper.",
+  ].forEach((t) => kids.push(bullet(t)));
+  await save("00 - Print Order", [section(kids, { label: "Print order", color: PURPLE, landscape: true })]);
 }
 
 // The room's own meter: a center line per measure, minus marks to the left,
@@ -938,11 +902,11 @@ async function plenaryWall() {
   const scenarioList = Object.values(scenarios);
   const guide = [
     h1("Room assignments"),
-    p("Each room is assigned one case before the session; rooms don't choose. Fill this in when you assign them, and use it to pack the kits: each kit is color-coded by case."),
+    p("Each room is assigned one case; rooms don't choose. The cases run in lifecycle order from Room 1 to Room 4, left to right across the plenary wall. Use this table to pack the kits and hand each facilitator theirs."),
     grid(
       [
         ["Room", "Case", "Kit color", "Facilitator", "Kit packed"],
-        ...[1, 2, 3, 4].map((n) => [`Room ${n}`, "", "", "", [p(ticks([""]), { spacing: { after: 0 } })]]),
+        ...scenarioList.map((s) => [`Room ${SCEN[s.id].room}`, `${SCEN[s.id].short.slice(0, 2)} ${s.title}`, SCEN[s.id].colorName, "", [p(ticks([""]), { spacing: { after: 0 } })]]),
       ],
       [1400, 3880, 1500, 2300, 1000],
       { fontSize: 20 },
@@ -950,8 +914,8 @@ async function plenaryWall() {
     h3("The four cases"),
     grid(
       [
-        ["Case", "Enters at", "Kit color", "Decisions"],
-        ...scenarioList.map((s, i) => [`S${i + 1} ${s.title}`, s.entersAt, SCEN[s.id].colorName, String(s.nodes.length)]),
+        ["Case", "Room", "Enters at", "Decisions"],
+        ...scenarioList.map((s) => [`${SCEN[s.id].short.slice(0, 2)} ${s.title}`, `Room ${SCEN[s.id].room}`, s.entersAt, String(s.nodes.length)]),
       ],
       [5480, 1700, 1500, 1400],
       { fontSize: 19 },
@@ -976,15 +940,15 @@ async function plenaryWall() {
   [
     ["Alignment", "Three or more rooms gave the same substantive answer to the same measure."],
     ["Friction", "Rooms gave different answers to the same measure."],
-    ["Collision", "Rooms gave the same authority to different people, or sent the same kind of call to different groups. The shared who's who makes this visible: look for the same decision landing on the Workgroup in one room and the AI Leader in another."],
+    ["Collision", "Rooms gave the same authority to different people, or sent the same kind of call to different groups. Look for the same decision landing on the Workgroup in one room and the AI Leader in another."],
     ["Orphan", "Pink or blue in three or more of the rooms whose case asked it. A cell whose case didn't ask that measure doesn't count."],
     ["Drop-off", "Read top to bottom: where along the lifecycle do rooms stop naming people?"],
     ["Who decides", "Look at the “final call” names across the wall. Did the same role end up deciding in every room, or did it move around? That is the organization's own open question."],
   ].forEach(([k, v]) => guide.push(p([run(`${k}: `, { bold: true }), run(v)])));
 
   guide.push(h3("Which case asks which measure"));
-  guide.push(note("Before the session, write each room's assigned case at the top of its matrix column, then grey out the measures that case doesn't ask."));
-  const cov = [["Measure", ...Object.values(scenarios).map((s, i) => `S${i + 1} ${s.entersAt}`)]];
+  guide.push(note("The poster (00 - Plenary Wall Poster) already shows each room's case at the top of its column, outlines the cells that should get an answer, and shades the measures that case doesn't ask."));
+  const cov = [["Measure", ...Object.values(scenarios).map((s) => `Room ${SCEN[s.id].room} · ${SCEN[s.id].short.slice(0, 2)}`)]];
   for (const t of types) {
     cov.push([
       `${MEASURES[t].id} ${MEASURES[t].name}`,
@@ -1000,67 +964,119 @@ async function plenaryWall() {
   guide.push(note("Tally from each worksheet's “Final call” line: one mark per decision."));
   guide.push(
     grid(
-      [["", "Room 1", "Room 2", "Room 3", "Room 4"], ...[...roles, "The group", "Other"].map((r) => [r, "", "", "", ""])],
+      [["", ...scenarioList.map((s) => `Room ${SCEN[s.id].room} · ${SCEN[s.id].short.slice(0, 2)}`)], ...[...roles, "The group", "Other"].map((r) => [r, "", "", "", ""])],
       [3280, 1700, 1700, 1700, 1700],
       { fontSize: 19 },
     ),
   );
 
-  const colW = Math.floor((LW - 3000) / 5);
-  const matrixWidths = [3000, colW, colW, colW, colW, colW];
-  const matrixRows = [
-    new TableRow({
-      tableHeader: true,
-      children: ["Measure", "Room 1\nCase: ______", "Room 2\nCase: ______", "Room 3\nCase: ______", "Room 4\nCase: ______", "What we see"].map((h, ci) =>
-        new TableCell({
-          width: { size: matrixWidths[ci], type: WidthType.DXA },
-          shading: { type: ShadingType.CLEAR, fill: DEEP, color: "auto" },
-          margins: { top: 80, bottom: 80, left: 120, right: 120 },
-          children: h.split("\n").map((l, li) => p([run(l, { color: WHITE, bold: li === 0, size: li === 0 ? 20 : 16 })], { spacing: { after: 0 } })),
-        }),
-      ),
-    }),
-    ...types.map((t) =>
-      new TableRow({
-        cantSplit: true,
-        height: { value: 860, rule: HeightRule.ATLEAST },
-        children: [
-          new TableCell({
-            width: { size: 3000, type: WidthType.DXA },
-            shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
-            margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            children: [
-              p([run(`${MEASURES[t].id} `, { font: MONO, size: 16, color: BLUE }), run(MEASURES[t].name, { bold: true, size: 19 })], { spacing: { after: 20 } }),
-              p([run(MEASURES[t].def, { size: 15, color: SLATE })], { spacing: { after: 0 } }),
-            ],
-          }),
-          ...Array.from({ length: 5 }, (_, ci) => new TableCell({ width: { size: colW, type: WidthType.DXA }, children: [p("")] })),
-        ],
-      }),
+  await save("00 - Lead Facilitator - Assignments and Plenary Guide", [section(guide, { label: "Lead facilitator · assignments and plenary", color: PURPLE })]);
+}
+
+// The plenary wall as a poster: 24×36 in, portrait. Word caps a page at 22 in,
+// so the file is laid out at half size (12×18 in, the same shape) and printed
+// at 200%. Everything below is sized for that: a 2,400-twip row is 3.3 in on
+// the poster, room for a 3×3 in sticky note.
+const POSTER = { width: 12 * 1440, height: 18 * 1440 };
+const POSTER_MARGIN = { top: 576, bottom: 576, left: 576, right: 576, header: 300, footer: 300 };
+const STICKY = [["8BC34A", "Green", "Specific"], ["FFE066", "Yellow", "Generic"], ["F48FB1", "Pink", "Absent or declined"], ["81D4FA", "Blue", "Skipped"]];
+
+async function plenaryPoster() {
+  const PW = POSTER.width - POSTER_MARGIN.left - POSTER_MARGIN.right; // 16128
+  const types = Object.keys(MEASURES).sort((a, b) => Number(MEASURES[a].id.slice(1)) - Number(MEASURES[b].id.slice(1)));
+  const roomCases = Object.values(scenarios).sort((a, b) => SCEN[a.id].room - SCEN[b.id].room);
+  const measureW = 3200, colW = 2600;
+  const widths = [measureW, colW, colW, colW, colW, PW - measureW - colW * 4];
+  const cellBorder = line("B9BCCB", 8);
+  const answerBorder = line(DEEP, 36);
+
+  const title = [
+    p([run("The plenary wall", { font: HEAD, size: 64, color: DEEP })], { spacing: { after: 0 } }),
+    p(
+      [
+        run("One sticky note per decision: the short answer and who made the final call.   ", { size: 24, color: SLATE }),
+        ...STICKY.flatMap(([fill, name, score]) => [run("■ ", { font: SYM, size: 30, color: fill }), run(`${name} ${score}   `, { size: 24, color: DEEP })]),
+      ],
+      { spacing: { after: 120 } },
     ),
   ];
-  const matrix = [
-    new Table({ width: { size: 3000 + colW * 5, type: WidthType.DXA }, columnWidths: matrixWidths, layout: TableLayoutType.FIXED, borders: allBorders(line("B9BCCB", 6)), rows: matrixRows }),
-  ];
-  await save("00 - Lead Facilitator - Assignments and Plenary Wall", [
-    section(guide, { label: "Lead facilitator · assignments and plenary", color: PURPLE }),
-    section(matrix, { label: "Plenary wall · the matrix", color: PURPLE, landscape: true }),
+
+  const headRow = new TableRow({
+    tableHeader: true,
+    height: { value: 800, rule: HeightRule.ATLEAST },
+    children: ["Measure", ...roomCases.map((s) => `Room ${SCEN[s.id].room}\n${SCEN[s.id].short} · ${SCEN[s.id].colorName}`), "What we see"].map((h, ci) =>
+      new TableCell({
+        width: { size: widths[ci], type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        shading: { type: ShadingType.CLEAR, fill: ci >= 1 && ci <= 4 ? SCEN[roomCases[ci - 1].id].color : DEEP, color: "auto" },
+        margins: { top: 60, bottom: 60, left: 160, right: 160 },
+        children: h.split("\n").map((l, li) => p([run(l, { color: WHITE, bold: li === 0, size: li === 0 ? 34 : 22 })], { spacing: { after: 0 } })),
+      }),
+    ),
+  });
+
+  const bodyRows = types.map(
+    (t) =>
+      new TableRow({
+        cantSplit: true,
+        height: { value: 2400, rule: HeightRule.EXACT },
+        children: [
+          new TableCell({
+            width: { size: measureW, type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: PAPER, color: "auto" },
+            borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder },
+            margins: { top: 140, bottom: 100, left: 180, right: 160 },
+            children: [
+              p([run(`${MEASURES[t].id}`, { font: MONO, size: 24, color: BLUE, bold: true })], { spacing: { after: 20 } }),
+              p([run(MEASURES[t].name, { bold: true, size: 30, color: DEEP })], { spacing: { after: 60 } }),
+              p([run(MEASURES[t].def, { size: 20, color: SLATE })], { spacing: { after: 0 } }),
+            ],
+          }),
+          // A cell that should get an answer (the room's case asks this measure) has
+          // a bold outline and its decision number; the rest are shaded "Not asked".
+          ...roomCases.map((s) => {
+            const k = s.nodes.findIndex((n) => n.type === t);
+            return k === -1
+              ? new TableCell({
+                  width: { size: colW, type: WidthType.DXA },
+                  verticalAlign: VerticalAlign.CENTER,
+                  shading: { type: ShadingType.CLEAR, fill: WARM, color: "auto" },
+                  borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder },
+                  children: [p([run("Not asked", { size: 24, color: MUTED, italics: true })], { alignment: AlignmentType.CENTER, spacing: { after: 0 } })],
+                })
+              : new TableCell({
+                  width: { size: colW, type: WidthType.DXA },
+                  borders: { top: answerBorder, bottom: answerBorder, left: answerBorder, right: answerBorder },
+                  margins: { top: 80, left: 120, right: 120 },
+                  children: [p([run(`Decision ${k + 1}`, { font: MONO, size: 18, color: MUTED })], { spacing: { after: 0 } })],
+                });
+          }),
+          new TableCell({ width: { size: widths[5], type: WidthType.DXA }, borders: { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder }, children: [p("")] }),
+        ],
+      }),
+  );
+
+  const table = new Table({ width: { size: PW, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders: allBorders(cellBorder), rows: [headRow, ...bodyRows] });
+  await save("00 - Plenary Wall Poster", [
+    {
+      properties: { page: { size: POSTER, margin: POSTER_MARGIN } },
+      footers: { default: footer() },
+      children: [...title, table],
+    },
   ]);
 }
 
 // ---------- build ----------
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
+await printOrder();
 await facilitatorGuide();
 await meterBoard();
 await plenaryWall();
+await plenaryPoster();
 const list = Object.values(scenarios);
 for (const [i, s] of list.entries()) {
   await facilitatorBooklet(s, i);
-  await roomPacket(s, i);
-  await decisionCards(s, i);
-  await roleCardsDoc(s, i);
-  await worksheet(s, i);
-  await reportCards(s, i);
+  await roomFiles(s, i);
 }
 console.log(`Wrote ${written.length} documents to ${OUT}`);
